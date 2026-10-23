@@ -12,6 +12,14 @@
   вместе с методикой и официальными результатами, а не «на глаз».</p>
 </div>
 
+{% if catalogue_year and live_year and catalogue_year != live_year %}
+<div class="callout">
+  <p><strong>Это архив {{ catalogue_year }} года.</strong> Заявки выпуска {{ live_year }}
+  ещё принимают, списки участников организаторы публикуют после закрытия приёма.
+  Ниже — демонстрационный набор {{ catalogue_year }} года, помеченный бейджем «пример».</p>
+</div>
+{% endif %}
+
 <form class="filters" method="get" action="/participants" role="search" aria-label="Поиск и фильтры участников">
   <label>Имя или студия
     <input type="search" name="q" value="{{ current.q }}" maxlength="80" placeholder="например, студия A">

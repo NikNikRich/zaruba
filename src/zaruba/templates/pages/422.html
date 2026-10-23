@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Проверьте параметры{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <p class="kicker">422</p>
+  <h1>Проверьте параметры в адресе</h1>
+  <p class="lead">Страница не открылась: в ссылке значение, которого нет в фильтрах.
+  С данными чемпионата это не связано — мы не подменяем запрос «ближайшим похожим»
+  и не показываем пустой список, который легко принять за правду.</p>
+</div>
+
+<section class="section">
+  <h2>Что не так</h2>
+  <ul class="link-list">
+    {% for error in errors %}
+    <li><code>{{ error.param }}</code> — {{ error.message }}</li>
+    {% else %}
+    <li>Сервер не принял параметры запроса.</li>
+    {% endfor %}
+  </ul>
+  <p><a class="btn" href="{{ canonical }}">Открыть эту страницу без фильтров</a></p>
+  <p class="muted small">Если ссылка пришла из чата студии, попросите её обновить:
+  фильтры меняются вместе с выпуском, а старые адреса мы стараемся не ломать.</p>
+</section>
+
+<section class="section">
+  <h2>Куда дальше</h2>
+  <ul class="link-list">
+    <li><a href="/schedule">Расписание</a> — дни, номинации и мастер-классы.</li>
+    <li><a href="/performances">Выступления</a> — фильтры по дню, стилю и возрасту.</li>
+    <li><a href="/participants">Участники</a> — каталог с поиском по имени и студии.</li>
+    <li><a href="/">Главная</a> — даты, место и цены на одном экране.</li>
+  </ul>
+</section>
+{% endblock %}

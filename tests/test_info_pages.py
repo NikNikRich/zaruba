@@ -8,35 +8,48 @@ def test_judges_page_shows_confirmed_people_only(client: TestClient) -> None:
 
     html = client.get("/judges").text
 
-    for name in ("Анастасия Юрасова", "Андрей Морыженков", "Наталья Мафия", "GEO"):
+    for name in ("Фара", "Александр Бурцев", "Дарья Губанова", "Дмитрий Бончинче", "Гео (GEO)"):
         assert name in html, name
-    assert "MATÈ" in html
     assert "ведущий" in html
     assert "ведёт сцену · блоки уточняются" in html
     assert "какие блоки судит — уточняется" in html
-    assert 'href="https://tyumen.kassy.ru/"' in html
+    assert 'href="https://vk.com/zaruba72champ"' in html
+    assert "Ирина" not in html, "жюри 2025 в выпуске 2026 быть не должно"
 
 
-def test_judges_page_states_criteria_are_unconfirmed(client: TestClient) -> None:
+def test_judges_page_shows_official_criteria(client: TestClient) -> None:
+    """§1.6.5: критерии и баллы — из «Положения», а не из общих слов."""
+
     html = client.get("/judges").text
 
-    assert "Официального списка критериев нет" in html
-    assert "«Положение» чемпионата не опубликовано" in html
-    assert "не правила «Зарубы»" in html
+    assert "Сложность хореографии" in html
+    assert "Техничность и синхронность" in html
+    assert "Внешний вид" in html
+    assert "Мастер-классы 12 декабря" in html
+    assert "Официального списка критериев нет" not in html
 
 
 def test_tickets_page_does_not_sell_anything(client: TestClient) -> None:
-    """§6.13: сайт не продаёт билеты и не выдумывает цены."""
+    """§6.13: сайт не продаёт билеты; цены — только подтверждённые."""
 
     html = client.get("/tickets").text
 
     assert "Мы не продаём билеты и не принимаем деньги" in html
-    assert "Продажи на выпуск 2025 закрыты" in html
-    assert "Цены не публикуем" in html
-    assert 'href="https://tyumen.kassy.ru/"' in html
-    assert "6+" in html
-    # Единственное упоминание рубля — объяснение, почему диапазонов на сайте нет.
-    assert html.count("₽") == 1
+    assert "Продажи на выпуск 2025 закрыты" not in html
+    assert "1\u00a0000 ₽" in html
+    assert "1\u00a0800 ₽" in html
+    assert "1\u00a0500 ₽" in html, "взносы в таблице — с разрядами, как цены билетов"
+    assert "1500 ₽" not in html, "разряды нужны и во взносах: «1 500», а не «1500»"
+    assert "Официальная форма заявки" in html
+    assert "не объявлен" in html, "ценз 2026 на афише не опубликован"
+
+
+def test_tickets_page_explains_refund_and_discount(client: TestClient) -> None:
+    html = client.get("/tickets").text
+
+    assert "Скидка 25 %" in html
+    assert "7 декабря 2026" in html
+    assert "возврат" in html.lower()
 
 
 def test_glossary_covers_every_style_and_terms(client: TestClient) -> None:
@@ -56,8 +69,9 @@ def test_event_directions_link_to_glossary(client: TestClient) -> None:
 
     html = client.get("/event").text
 
-    assert 'href="/glossary#style-hip-hop"' in html
-    assert 'href="/glossary#style-contemporary"' in html
+    assert 'href="/glossary#style-heels-girly"' in html
+    assert 'href="/glossary#style-experimental"' in html
+    assert "БЕГ — команда занимается до 3 лет" in html
 
 
 def test_faq_has_twelve_questions_in_four_groups(client: TestClient) -> None:
@@ -87,4 +101,5 @@ def test_faq_links_source_for_confirmed_answer(client: TestClient) -> None:
     html = client.get("/faq").text
 
     assert "Мы не принимаем заявки и не берём данные" in html
-    assert 'href="https://tyumen.kassy.ru/"' in html
+    assert 'href="https://vk.com/zaruba72champ"' in html
+    assert 'href="https://forms.gle/W5651Np7epysbeWWA"' in html

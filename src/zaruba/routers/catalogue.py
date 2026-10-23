@@ -24,6 +24,7 @@ from ..services.catalogs import (
 )
 from ..services.edition import (
     block_for_nomination,
+    catalogue_bundle,
     edition_notice,
     filter_performances,
     participant_view,
@@ -65,7 +66,7 @@ def performances(
     video: Annotated[bool | None, Query()] = None,
     page: Annotated[int, Query(ge=1)] = 1,
 ) -> HTMLResponse:
-    bundle = load_latest(request.app.state.settings)
+    bundle = catalogue_bundle(load_site(request.app.state.settings))
     edition = bundle.edition
 
     views = filter_performances(
@@ -143,16 +144,27 @@ def performances(
         if pages > 1
         else None,
         page_title="Выступления",
+        catalogue_year=bundle.year,
+        live_year=load_latest(request.app.state.settings).year,
     )
 
 
 @router.get("/performances/{slug}", response_class=HTMLResponse)
 def performance_page(request: Request, slug: str) -> HTMLResponse:
-    bundle = load_latest(request.app.state.settings)
-    edition = bundle.edition
-    view = performance_detail(bundle, slug)
-    if view is None:
+    bundles = load_site(request.app.state.settings)
+    latest = bundles[0]
+    found = next(
+        (
+            (bundle, view)
+            for bundle in bundles
+            if (view := performance_detail(bundle, slug)) is not None
+        ),
+        None,
+    )
+    if found is None:
         raise HTTPException(status_code=404, detail=f"выступление «{slug}» не найдено")
+    bundle, view = found
+    edition = bundle.edition
 
     source = edition.source_index.get(view.performance.source_id)
     return render(
@@ -166,6 +178,7 @@ def performance_page(request: Request, slug: str) -> HTMLResponse:
         block=block_for_nomination(bundle, view.nomination.slug),
         more=siblings(bundle, view),
         source=source,
+        live_year=latest.year,
         page_title=f"{view.nomination.title} — {view.participant_names}",
     )
 
@@ -178,13 +191,15 @@ def participant_page(request: Request, slug: str) -> HTMLResponse:
     if view is None:
         raise HTTPException(status_code=404, detail=f"участник «{slug}» не найден")
 
+    # Шапка и предупреждение — по выпуску, в котором человек выступал, а не по свежему.
+    bundle = next((item for item in bundles if item.year == view.year), latest)
     return render(
         request,
         "pages/participant.html",
-        bundle=latest,
-        edition=latest.edition,
-        venue=latest.venue,
-        notice=edition_notice(latest),
+        bundle=bundle,
+        edition=bundle.edition,
+        venue=bundle.venue,
+        notice=edition_notice(bundle),
         view=view,
         # §6.8: ребёнок без согласия — только инициалы и закрытая от индексации страница.
         robots=None if view.participant.is_public_person else "noindex, nofollow",
@@ -206,12 +221,11 @@ def participants(
 
     bundles = load_site(request.app.state.settings)
     latest = bundles[0]
-    edition = latest.edition
+    catalogue = catalogue_bundle(bundles)
+    edition = catalogue.edition
 
     everyone = participant_views(bundles)
-    views = filter_participants(
-        everyone, q=q, studio=studio, city=city, age=age, style=style
-    )
+    views = filter_participants(everyone, q=q, studio=studio, city=city, age=age, style=style)
     total = len(views)
     pages = max(1, ceil(total / PAGE_SIZE))
     current_page = min(page, pages)
@@ -222,10 +236,10 @@ def participants(
     return render(
         request,
         "pages/participants.html",
-        bundle=latest,
+        bundle=catalogue,
         edition=edition,
-        venue=latest.venue,
-        notice=edition_notice(latest),
+        venue=catalogue.venue,
+        notice=edition_notice(catalogue),
         views=views[start : start + PAGE_SIZE],
         total=total,
         filtered=filtered,
@@ -242,9 +256,7 @@ def participants(
                 [(item.slug, item.name) for item in sorted(edition.studios, key=lambda s: s.name)],
                 studio,
             ),
-            "cities": _options(
-                [(value, value) for value in participant_cities(everyone)], city
-            ),
+            "cities": _options([(value, value) for value in participant_cities(everyone)], city),
             "ages": _options(
                 [
                     (item.value, item.label)
@@ -257,9 +269,7 @@ def participants(
                 [
                     (item.value, item.label)
                     for item in DanceStyle
-                    if any(
-                        nomination.style is item for nomination in edition.nominations
-                    )
+                    if any(nomination.style is item for nomination in edition.nominations)
                 ],
                 style.value if style else None,
             ),
@@ -277,6 +287,8 @@ def participants(
             else None
         ),
         page_title="Участники",
+        catalogue_year=edition.edition,
+        live_year=latest.year,
     )
 
 
@@ -324,6 +336,8 @@ def studio_page(request: Request, slug: str) -> HTMLResponse:
     if view is None:
         raise HTTPException(status_code=404, detail=f"студия «{slug}» не найдена")
 
+    # Предупреждение — по выпуску, где студия заявлена, а не по свежему.
+    bundle = next((item for item in bundles if slug in item.edition.studio_index), latest)
     shows = sorted(
         view.performances,
         key=lambda item: (item.performance.scheduled_at, item.performance.order_no),
@@ -332,10 +346,10 @@ def studio_page(request: Request, slug: str) -> HTMLResponse:
     return render(
         request,
         "pages/studio.html",
-        bundle=latest,
-        edition=latest.edition,
-        venue=latest.venue,
-        notice=edition_notice(latest),
+        bundle=bundle,
+        edition=bundle.edition,
+        venue=bundle.venue,
+        notice=edition_notice(bundle),
         view=view,
         performances=shows,
         page_title=view.studio.name,

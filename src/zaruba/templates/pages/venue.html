@@ -30,9 +30,10 @@
 
 <section class="section">
   <h2>Зачем ехать</h2>
-  <p class="lead">Два дня: день 1 — соло и дуэты, день 2 — команды, мини-группы и шоу.
-  Вход по билетам «Касс Ру», возрастной ценз {{ edition.age_rating }}.</p>
-  <p class="section-link"><a href="/schedule">расписание блоков →</a></p>
+  <p class="lead">12 декабря — соло, дуэты и мини-группы, 13 декабря — команды.
+  Вход по билетам официального канала, возрастной ценз
+  {% if edition.age_rating %}{{ edition.age_rating }}{% else %}на афише не объявлен{% endif %}.</p>
+  <p class="section-link"><a href="/schedule">расписание →</a></p>
 </section>
 
 <section class="sources">

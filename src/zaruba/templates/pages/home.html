@@ -9,36 +9,119 @@
   <ul class="hero-meta">
     <li><span class="lbl">даты</span> {{ edition.dates|fmt_dates }}</li>
     <li><span class="lbl">место</span> {{ venue.name }}, {{ venue.address }}</li>
-    <li><span class="lbl">ценз</span> {{ edition.age_rating }}</li>
+    {% if edition.registration_until %}
+    <li><span class="lbl">заявки</span> до {{ edition.registration_until|fmt_dt }}</li>
+    {% endif %}
+    <li><span class="lbl">ценз</span> {% if edition.age_rating %}{{ edition.age_rating }}{% else %}не объявлен{% endif %}</li>
   </ul>
   <div class="actions">
-    <a class="btn btn--primary" href="/schedule">Смотреть расписание</a>
-    <a class="btn" href="/performances">Выступления</a>
-    <a class="btn" href="/venue">Как добраться</a>
+    <a class="btn btn--primary" href="/schedule">Программа и мастер-классы</a>
+    <a class="btn" href="/tickets">Билеты и взносы</a>
+    <a class="btn" href="/judges">Жюри</a>
   </div>
 </section>
 
 <section class="section">
-  <h2>{{ edition.days }} дня, {{ edition.blocks|length }} блока</h2>
-  <p class="lead muted">День 1 — соло и дуэты, день 2 — команды и шоу.
-  Время блоков берётся из расписания, а не из постов в соцсетях.</p>
+  <h2>Номинации: {{ nominations|length }}</h2>
+  <p class="lead muted">Сетка из официального «Положения». БЕГ и ПРО — это стаж команды
+  (до 3 лет без хореографа / больше 3 лет), а не «уровень мастерства».</p>
   <div class="block-grid">
-    {% for item in blocks %}
-    <a class="block-card" href="/schedule#block-{{ item.block.slug }}">
-      <span class="block-time">{{ item.block.starts_at|fmt_time }}–{{ item.block.ends_at|fmt_time }}</span>
-      <strong>{{ item.block.title }}</strong>
-      <span class="muted">День {{ item.day }} · {{ item.date|fmt_weekday }}, {{ item.date|fmt_date }}</span>
-      <span class="muted">{{ item.block.stage }} · {{ item.nominations|length }} номинаций</span>
-    </a>
+    {% for nomination in nominations %}
+    <article class="block-card">
+      <strong>{{ nomination.title }}</strong>
+      <span class="muted">{{ nomination.format.label }} · {{ nomination.age_group.label }}</span>
+      {% if nomination.levels %}<span class="muted small">зачёты: {{ nomination.levels_label }}</span>{% endif %}
+      {% if nomination.team_size_label %}<span class="muted small">состав: {{ nomination.team_size_label }}</span>{% endif %}
+      {% if nomination.note %}<span class="muted small">{{ nomination.note }}</span>{% endif %}
+      {% if nomination.day %}<span class="badge">день {{ nomination.day }}</span>{% endif %}
+    </article>
     {% endfor %}
   </div>
-  <p class="section-link"><a href="/schedule">всё расписание →</a></p>
+  <p class="section-link"><a href="/event">формат, возраст и уровни →</a></p>
+</section>
+
+<section class="section">
+  <h2>Программа</h2>
+  {% for day in days %}
+  <article class="block">
+    <header class="block-head">
+      <span class="block-time">{{ day.date|fmt_weekday }}, {{ day.date|fmt_date }}</span>
+      <h3>День {{ day.day }}</h3>
+    </header>
+    {% if day.nominations %}
+    <p>{{ day.nominations|map(attribute="title")|join(" · ") }}</p>
+    {% else %}
+    <p class="muted">Номинации этого дня уточняются.</p>
+    {% endif %}
+    {% if master_classes and day.day == 1 %}
+    <ul class="link-list">
+      {% for item in master_classes %}
+      <li><span class="mono">{{ item.starts_at|fmt_time }}–{{ item.ends_at|fmt_time }}</span> — {{ item.teacher }}, мастер-класс</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </article>
+  {% endfor %}
+  <p class="muted small">Тайминг блоков организаторы ещё не опубликовали: на сайте нет
+  выдуманных «12:00–15:00». Время мастер-классов — из официальной афиши.</p>
+  <p class="section-link"><a href="/schedule">расписание по дням →</a></p>
+</section>
+
+<section class="section">
+  <h2>Сколько стоит</h2>
+  <div class="facts">
+    <div>
+      <h3>Зрителю</h3>
+      {% if tickets %}
+      <ul class="facts">
+        {% for ticket in tickets %}
+        <li><span class="lbl">{{ ticket.title }}</span> {{ ticket.price|money }} ₽</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted">Цены на билеты не объявлены.</p>
+      {% endif %}
+    </div>
+    <div>
+      <h3>Участнику</h3>
+      {% if fees %}
+      <ul class="facts">
+        {% for fee in fees %}
+        <li><span class="lbl">{{ fee.audience.label|lower }}, {{ fee.format.label|lower }}</span>
+          {{ fee.amount_early|money }}–{{ fee.amount_late|money }} ₽ {{ fee.unit }}{% if fee.early_until %} (до {{ fee.early_until|fmt_dt }}){% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted">Взносы не объявлены.</p>
+      {% endif %}
+    </div>
+  </div>
+  <p class="muted small">Сайт не продаёт билеты и не принимает взносы: только официальный канал
+  организатора. Цифры — из постов сообщества, дата проверки — в источниках.</p>
+  <p class="section-link"><a href="/tickets">билеты, взносы и возврат →</a></p>
+</section>
+
+
+<section class="section">
+  <h2>Жюри и ведущий</h2>
+  {% if judges %}
+  <ul class="link-list">
+    {% for judge in judges %}
+    <li><strong>{{ judge.name }}</strong> — {{ judge.role.label }}{% if judge.regalia %}, {{ judge.regalia }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Тот же состав ведёт мастер-классы 12 декабря — это одна поездка жюри,
+  а не два разных события.</p>
+  <p class="section-link"><a href="/judges">состав и критерии оценки →</a></p>
+  {% else %}
+  <p class="empty">Состав жюри уточняется. <a href="/judges">Страница жюри</a> объясняет,
+  что уже известно, а что нет.</p>
+  {% endif %}
 </section>
 
 <section class="section">
   <h2>Кто выступает</h2>
-  <p class="lead muted">Восемь карточек для примера: реальные заявки появятся, когда
-  организаторы опубликуют списки. Участники младше 18 лет — только инициалы.</p>
+  {% if participants %}
   <div class="person-grid">
     {% for participant in participants %}
     <a class="person-card" href="/participants/{{ participant.slug }}">
@@ -51,6 +134,15 @@
     {% endfor %}
   </div>
   <p class="section-link"><a href="/participants">все участники →</a> · <a href="/performances">все выступления →</a></p>
+  {% else %}
+  <p class="empty">Списки участников выпуска {{ edition.edition }} появятся после закрытия заявок
+  {% if edition.registration_until %}({{ edition.registration_until|fmt_dt }}){% endif %}:
+  организаторы публикуют их в сообществе. Мы не подставляем правдоподобные имена вместо настоящих.</p>
+  {% if archive %}
+  <p class="muted small">Пока можно посмотреть <a href="/performances">каталог выступлений {{ archive.year }} года</a>
+  — он демонстрационный и помечен бейджем «пример».</p>
+  {% endif %}
+  {% endif %}
 </section>
 
 <section class="section">
@@ -67,6 +159,19 @@
   <p class="section-link"><a href="/venue">вход, гардероб, парковка →</a></p>
 </section>
 
+{% if edition.organizers %}
+<section class="section">
+  <h2>Организаторы</h2>
+  <ul class="facts">
+    {% for organizer in edition.organizers %}
+    <li>{{ organizer }}</li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Сайт неофициальный: он не принимает заявки и не отвечает за расписание.
+  Все вопросы — организаторам в сообществе «ЗАРУБА72».</p>
+</section>
+{% endif %}
+
 <section class="section sources">
   <h2>Откуда данные</h2>
   <ul class="source-list">
@@ -77,7 +182,8 @@
     </li>
     {% endfor %}
   </ul>
-  <p class="muted small">Расписание блоков и участники на этой странице — демонстрационные
-  и помечены как «пример». Даты, место, ценз и название подтверждены источниками выше.</p>
+  <p class="muted small">Даты, площадка, номинации, взносы, билеты, критерии и состав жюри —
+  из «Положения» и официальных постов. Тайминг блоков, списки участников и призовой фонд
+  по номинациям публично не подтверждены, поэтому их на сайте нет.</p>
 </section>
 {% endblock %}

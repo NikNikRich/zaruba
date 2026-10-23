@@ -11,7 +11,15 @@ from zaruba.content import (
     load_glossary,
     main,
 )
-from zaruba.models import DanceStyle, FaqGroup, GlossaryEntry, Participant
+from zaruba.models import (  # noqa: I001 - импорт моделей одним блоком
+    AgeGroup,
+    DanceStyle,
+    FaqGroup,
+    GlossaryEntry,
+    Nomination,
+    NominationLevel,
+    Participant,
+)
 
 CONTENT_DIR = Path(__file__).resolve().parents[1] / "content" / "editions"
 GLOSSARY_FILE = Path(__file__).resolve().parents[1] / "content" / "glossary.yaml"
@@ -65,10 +73,10 @@ def test_repeated_load_is_stable(edition_path: Path) -> None:
     assert load_edition(edition_path) == load_edition(edition_path)
 
 
-def test_site_loads_exactly_one_edition() -> None:
+def test_site_loads_editions_newest_first() -> None:
     bundles = load_editions(CONTENT_DIR)
 
-    assert [bundle.year for bundle in bundles] == [2025]
+    assert [bundle.year for bundle in bundles] == [2026, 2025]
 
 
 def test_duplicate_slug_is_reported(tmp_path: Path, edition_path: Path) -> None:
@@ -166,12 +174,10 @@ def test_cli_check_passes(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert "2025" in output
     assert "8 участников" in output
-    assert "проверено выпусков: 1" in output
+    assert "проверено выпусков: 2" in output
 
 
-def test_cli_import_is_idempotent(
-    capsys: pytest.CaptureFixture[str], edition_path: Path
-) -> None:
+def test_cli_import_is_idempotent(capsys: pytest.CaptureFixture[str], edition_path: Path) -> None:
     assert main(["import", str(edition_path)]) == 0
     first = capsys.readouterr().out
     assert main(["import", str(edition_path)]) == 0
@@ -272,3 +278,114 @@ def test_glossary_file_with_duplicate_style_is_reported(tmp_path: Path) -> None:
 
     assert "направление описано дважды" in str(error.value)
 
+
+def test_2026_has_official_volume(edition_2026: Path) -> None:
+    """§1.6.1: 15 номинаций, два дня, без выдуманного тайминга."""
+
+    edition = load_edition(edition_2026).edition
+
+    assert edition.edition == 2026
+    assert edition.days == 2
+    assert len(edition.nominations) == 15
+    assert len(edition.judges) == 5
+    assert edition.registration_until.isoformat() == "2026-12-07"
+    assert not edition.blocks, "тайминг блоков 2026 не опубликован — блоков быть не должно"
+    assert not any(item.has_timing for item in edition.nominations)
+    assert {item.day for item in edition.nominations} == {1, 2}
+
+
+def test_2026_levels_and_team_sizes(edition_2026: Path) -> None:
+    """БЕГ/ПРО — из «Положения»: у КИДС два зачёта, у мини-групп 3–5 человек."""
+
+    edition = load_edition(edition_2026).edition
+
+    kids = edition.nomination_index["best-kids"]
+    assert {level for level in kids.levels} == {NominationLevel.BEG, NominationLevel.PRO}
+    assert kids.min_participants == 6
+    assert kids.team_size_label == "от 6 человек"
+
+    mini = edition.nomination_index["best-mini-groups"]
+    assert (mini.min_participants, mini.max_participants) == (3, 5)
+    assert mini.team_size_label == "3–5 человек"
+
+    baby = edition.nomination_index["best-baby"]
+    assert baby.age_group is AgeGroup.BABY
+    assert not baby.levels, "у БЕЙБИ в «Положении» нет деления на БЕГ/ПРО"
+
+
+def test_2026_age_groups_cover_edition(edition_2026: Path) -> None:
+    edition = load_edition(edition_2026).edition
+    groups = {item.age_group for item in edition.nominations}
+
+    assert AgeGroup.BABY in groups
+    assert AgeGroup.ADULTS_16 in groups
+    assert AgeGroup.ADULTS in groups
+    assert AgeGroup.ANY in groups
+
+
+def test_2026_fees_and_tickets_are_confirmed(edition_2026: Path) -> None:
+    edition = load_edition(edition_2026).edition
+
+    assert len(edition.fees) == 6
+    children_team = next(fee for fee in edition.fees if fee.slug == "children-team")
+    assert (children_team.amount_early, children_team.amount_late) == (1500, 1800)
+    assert children_team.early_until.isoformat() == "2026-11-14"
+
+    prices = {ticket.title: ticket.price for ticket in edition.tickets}
+    assert prices["12 декабря, один день"] == 1000
+    assert prices["13 декабря, 2-й блок (взрослые команды)"] == 800
+    assert prices["12–13 декабря, оба дня"] == 1800
+
+    assert len(edition.master_classes) == 4
+    assert edition.master_class_pass_early == 5000
+    assert edition.master_class_pass_late == 6000
+
+
+def test_2026_criteria_are_from_the_document(edition_2026: Path) -> None:
+    edition = load_edition(edition_2026).edition
+    scores = [(item.title, item.max_score) for item in edition.criteria]
+
+    assert scores[:4] == [
+        ("Сложность хореографии", 10),
+        ("Техничность и синхронность", 10),
+        ("Креативность", 10),
+        ("Зрелищность", 10),
+    ]
+    assert scores[4] == ("Внешний вид", 5)
+    assert edition.rules and all(len(rule) < 300 for rule in edition.rules)
+
+
+def test_nomination_rejects_half_a_timing() -> None:
+    with pytest.raises(ValidationError):
+        Nomination(
+            slug="half-timing",
+            name="ТЕСТ",
+            format="team",
+            age_group="18+",
+            day=1,
+            starts_at="12:00",
+        )
+
+
+def test_nomination_rejects_time_without_day() -> None:
+    with pytest.raises(ValidationError):
+        Nomination(
+            slug="time-no-day",
+            name="ТЕСТ",
+            format="team",
+            age_group="18+",
+            starts_at="12:00",
+            ends_at="13:00",
+        )
+
+
+def test_nomination_rejects_team_size_swap() -> None:
+    with pytest.raises(ValidationError):
+        Nomination(
+            slug="team-size",
+            name="ТЕСТ",
+            format="small-group",
+            age_group="15+",
+            min_participants=6,
+            max_participants=3,
+        )

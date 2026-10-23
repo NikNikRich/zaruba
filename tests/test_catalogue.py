@@ -1,3 +1,5 @@
+import re
+
 from fastapi.testclient import TestClient
 
 
@@ -57,7 +59,11 @@ def test_empty_filter_result_offers_a_way_out(client: TestClient) -> None:
 
 
 def test_performances_rejects_unknown_style(client: TestClient) -> None:
-    assert client.get("/performances", params={"style": "ballet"}).status_code == 422
+    response = client.get("/performances", params={"style": "ballet"})
+
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith("text/html")
+    assert "допустимые значения" in response.text
 
 
 def test_performance_card_works_without_js(client: TestClient) -> None:
@@ -70,7 +76,8 @@ def test_performance_card_works_without_js(client: TestClient) -> None:
     assert "Видео появится после события" in html
     assert "Официальных результатов нет" in html
     assert 'href="/schedule#block-day1-solo"' in html
-    assert "<script" not in html.lower()
+    scripts = re.findall(r"<script[^>]*>", html, flags=re.IGNORECASE)
+    assert all('type="application/ld+json"' in tag for tag in scripts), scripts
 
 
 def test_performance_card_links_participants(client: TestClient) -> None:
@@ -119,11 +126,12 @@ def test_event_page_keeps_chronology_honest(client: TestClient) -> None:
 
     html = client.get("/event").text
 
-    assert "6–7 декабря 2025" in html
-    assert "Юбилейный выпуск" in html
+    assert "12–13 декабря 2026" in html
+    assert "2025" in html, "архив 2025 остаётся в хронологии"
     assert "2024" not in html
     assert "Год без подтверждённых данных" in html
     assert "Золотые ворота Сибири" in html
+    assert "Хронометраж: команды — до 4:00" in html
 
 
 def test_unknown_page_renders_site_404(client: TestClient) -> None:

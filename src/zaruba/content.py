@@ -154,7 +154,10 @@ class Knowledge:
 
 def load_knowledge(settings: Settings | None = None) -> Knowledge:
     settings = settings or get_settings()
-    source_ids = set(load_latest(settings).edition.source_index)
+    # FAQ общий для сайта: источник может быть из любого выпуска, не только из свежего.
+    source_ids = {
+        source_id for bundle in load_site(settings) for source_id in bundle.edition.source_index
+    }
     return Knowledge(
         glossary=load_glossary(settings.glossary_file),
         faq=load_faq(settings.faq_file, source_ids),
@@ -202,11 +205,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "check":
-            bundles = (
-                [load_edition(path) for path in args.paths]
-                if args.paths
-                else load_site()
-            )
+            bundles = [load_edition(path) for path in args.paths] if args.paths else load_site()
             for bundle in bundles:
                 print(f"OK  {bundle.year}: {_summary(bundle)}")
             print(f"проверено выпусков: {len(bundles)}")

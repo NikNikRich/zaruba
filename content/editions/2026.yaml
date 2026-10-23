@@ -1,0 +1,339 @@
+# Выпуск 2026 — текущий. Все поля взяты из «Положения ЗАРУБА 12-13 декабря 2026»
+# и официальных постов сообщества (docs/01-research.md §1.6, §1.6.1–1.6.6).
+# Чего здесь нет и почему:
+#   * тайминг блоков и порядок выступлений — не опубликованы;
+#   * списки участников и студий — приём заявок до 07.12.2026;
+#   * возрастной ценз афиши — не объявлен (поле пустое, страница так и пишет);
+#   * призовой фонд по номинациям — в PDF таблица без структуры, не выдумываем.
+edition: 2026
+title: «ЗАРУБА» 2026
+dates: ["2026-12-12", "2026-12-13"]
+venue: zolotye-vorota
+status: confirmed
+timezone: Asia/Yekaterinburg
+updated_at: "2026-10-23T18:00:00+05:00"
+note: 12 декабря — соло, дуэты и мини-группы; 13 декабря — команды, два блока.
+organizers:
+  - Танцевальная студия «Печать танца»
+  - Оксана Бабкина
+  - Алина Богданова
+registration_until: "2026-12-07"
+
+sources:
+  - id: polozhenie-2026
+    title: «Положение ЗАРУБА 12-13 декабря 2026» (PDF, 18 страниц)
+    url: https://vk.com/zaruba72champ
+    retrieved_at: "2026-10-23"
+    trust: official
+  - id: registration-form
+    title: Форма заявки на участие в выпуске 2026
+    url: https://forms.gle/W5651Np7epysbeWWA
+    retrieved_at: "2026-10-23"
+    trust: official
+  - id: masterclass-form
+    title: Форма записи на мастер-классы 12 декабря 2026
+    url: https://forms.gle/U8b24BxsLPGCAZdf8
+    retrieved_at: "2026-10-23"
+    trust: official
+  - id: vk-community
+    title: Сообщество «ЗАРУБА72» — посты о жюри, ценах и билетах
+    url: https://vk.com/zaruba72champ
+    retrieved_at: "2026-10-23"
+    trust: official
+
+# «Положение 2026»: БЕГ — команда занимается до 3 лет и выступает без хореографа,
+# ПРО — больше 3 лет и/или с хореографом. Это стаж, а не «уровень мастерства».
+nominations:
+  - slug: best-baby
+    name: БЕСТ ЗАРУБА БЕЙБИ
+    format: team
+    age_group: "3-6"
+    min_participants: 6
+    day: 2
+    source_id: polozhenie-2026
+  - slug: best-kids
+    name: БЕСТ ЗАРУБА КИДС
+    format: team
+    age_group: "7-11"
+    levels: [beg, pro]
+    min_participants: 6
+    day: 2
+    source_id: polozhenie-2026
+  - slug: best-juniors
+    name: БЕСТ ЗАРУБА ДЖУНИОРС
+    format: team
+    age_group: "12-14"
+    levels: [beg, pro]
+    min_participants: 6
+    day: 2
+    source_id: polozhenie-2026
+  - slug: best-varsity
+    name: БЕСТ ЗАРУБА ВАРСИТИ
+    format: team
+    age_group: "15-17"
+    levels: [beg, pro]
+    min_participants: 6
+    day: 2
+    source_id: polozhenie-2026
+  - slug: best-adults
+    name: БЕСТ ЗАРУБА АДЛТС
+    format: team
+    age_group: "18+"
+    levels: [beg, pro]
+    min_participants: 6
+    day: 2
+    source_id: polozhenie-2026
+  - slug: best-heels
+    name: БЕСТ ЗАРУБА ХИЛС
+    style: heels-girly
+    format: team
+    age_group: "16+"
+    levels: [beg]
+    min_participants: 6
+    day: 2
+    note: Каблук не ниже 7 см, без железных набоек.
+    source_id: polozhenie-2026
+  - slug: best-strip
+    name: БЕСТ ЗАРУБА СТРИП
+    style: heels-girly
+    format: team
+    age_group: "16+"
+    levels: [beg]
+    min_participants: 6
+    day: 2
+    note: Frame up strip, каблук не ниже 7 см.
+    source_id: polozhenie-2026
+  - slug: best-strip-heels
+    name: БЕСТ ЗАРУБА СТРИП/ХИЛС
+    style: heels-girly
+    format: team
+    age_group: "16+"
+    levels: [pro]
+    min_participants: 6
+    day: 2
+    note: Frame up strip или heels, каблук.
+    source_id: polozhenie-2026
+  - slug: best-experimental
+    name: БЕСТ ЗАРУБА ЭКС
+    style: experimental
+    format: team
+    age_group: any
+    min_participants: 6
+    day: 2
+    note: Экспериментальное решение в хореографии.
+    source_id: polozhenie-2026
+  - slug: best-solo-kids
+    name: БЕСТ ЗАРУБА СОЛО ДЕТИ
+    format: solo
+    age_group: "10-15"
+    levels: [pro]
+    day: 1
+    source_id: polozhenie-2026
+  - slug: best-duets-kids
+    name: БЕСТ ЗАРУБА ДУЭТЫ ДЕТИ
+    format: duet
+    age_group: "14-17"
+    day: 1
+    source_id: polozhenie-2026
+  - slug: best-solo-adults-sneakers
+    name: БЕСТ ЗАРУБА СОЛО АДЛТС КРОССОВКИ
+    format: solo
+    age_group: "16+"
+    levels: [pro]
+    day: 1
+    note: Кроссовки или без обуви.
+    source_id: polozhenie-2026
+  - slug: best-solo-adults-heels
+    name: БЕСТ ЗАРУБА СОЛО АДЛТС КАБЛУКИ
+    style: heels-girly
+    format: solo
+    age_group: "16+"
+    levels: [pro]
+    day: 1
+    note: Только каблук не ниже 7 см.
+    source_id: polozhenie-2026
+  - slug: best-duets-adults
+    name: БЕСТ ЗАРУБА ДУЭТЫ АДЛТС
+    format: duet
+    age_group: "18+"
+    day: 1
+    source_id: polozhenie-2026
+  - slug: best-mini-groups
+    name: БЕСТ ЗАРУБА МИНИ ГРУППЫ
+    format: small-group
+    age_group: "15+"
+    levels: [beg, pro]
+    min_participants: 3
+    max_participants: 5
+    day: 1
+    note: Ограничений по стилю нет.
+    source_id: polozhenie-2026
+
+# Взносы: до 14.11.2026 дешевле. Скидка 25 % на каждую следующую номинацию
+# не действует на соло и дуэты (docs/01, §1.6.2).
+fees:
+  - slug: children-team
+    audience: children
+    format: team
+    amount_early: 1500
+    amount_late: 1800
+    early_until: "2026-11-14"
+    unit: с участника
+  - slug: children-solo
+    audience: children
+    format: solo
+    amount_early: 2300
+    amount_late: 2800
+    early_until: "2026-11-14"
+    unit: за соло
+  - slug: children-duet
+    audience: children
+    format: duet
+    amount_early: 3500
+    amount_late: 4000
+    early_until: "2026-11-14"
+    unit: с дуэта
+  - slug: adults-team
+    audience: adults
+    format: team
+    amount_early: 2000
+    amount_late: 2300
+    early_until: "2026-11-14"
+    unit: с участника
+  - slug: adults-solo
+    audience: adults
+    format: solo
+    amount_early: 2500
+    amount_late: 3000
+    early_until: "2026-11-14"
+    unit: за соло
+  - slug: adults-duet
+    audience: adults
+    format: duet
+    amount_early: 4000
+    amount_late: 4500
+    early_until: "2026-11-14"
+    unit: с дуэта
+
+# Первые подтверждённые цены билетов за историю проекта (docs/01, §1.6.3).
+tickets:
+  - slug: day1
+    title: 12 декабря, один день
+    day: 1
+    price: 1000
+    source_id: vk-community
+  - slug: day2-kids-block
+    title: 13 декабря, 1-й блок (детские команды)
+    day: 2
+    block: 1-й блок
+    price: 1000
+    source_id: vk-community
+  - slug: day2-adults-block
+    title: 13 декабря, 2-й блок (взрослые команды)
+    day: 2
+    block: 2-й блок
+    price: 800
+    source_id: vk-community
+  - slug: day2-full
+    title: 13 декабря, весь день
+    day: 2
+    price: 1600
+    source_id: vk-community
+  - slug: both-days
+    title: 12–13 декабря, оба дня
+    price: 1800
+    source_id: vk-community
+
+master_classes:
+  - slug: mc-gubanova
+    day: 1
+    starts_at: "10:00"
+    ends_at: "11:30"
+    teacher: Дарья Губанова
+    price_early: 2000
+    price_late: 2500
+    source_id: masterclass-form
+  - slug: mc-burtsev
+    day: 1
+    starts_at: "11:30"
+    ends_at: "13:00"
+    teacher: Александр Бурцев
+    price_early: 2000
+    price_late: 2500
+    source_id: masterclass-form
+  - slug: mc-fara
+    day: 1
+    starts_at: "13:00"
+    ends_at: "14:30"
+    teacher: Фара
+    price_early: 2000
+    price_late: 2500
+    source_id: masterclass-form
+  - slug: mc-bonchinche
+    day: 1
+    starts_at: "14:30"
+    ends_at: "16:00"
+    teacher: Дмитрий Бончинче
+    price_early: 2000
+    price_late: 2500
+    source_id: masterclass-form
+master_class_pass_early: 5000
+master_class_pass_late: 6000
+
+# Критерии из «Положения»: четыре шкалы по 0–10 и одна по 0–5.
+# Для соло пятая строка в PDF не подписана — поэтому applies_to только у команд.
+criteria:
+  - title: Сложность хореографии
+    max_score: 10
+  - title: Техничность и синхронность
+    max_score: 10
+    applies_to: все номинации, кроме соло
+  - title: Креативность
+    max_score: 10
+    applies_to: все номинации, кроме соло
+  - title: Зрелищность
+    max_score: 10
+    applies_to: все номинации, кроме соло
+  - title: Внешний вид
+    max_score: 5
+    applies_to: все номинации, кроме соло
+
+rules:
+  - 'Хронометраж: команды — до 4:00, дуэты — до 2:00, соло — до 1:30. Превышение больше чем на 10 секунд по согласованию — минус 5 баллов.'
+  - 'Фонограмма: MP3 или WAV на zaruba72champ@mail.ru до 07.12.2026, имя файла «номинация_команда.mp3»; с собой — флешка с треком.'
+  - 'Без фонограммы в срок возможна дисквалификация без возврата взноса.'
+  - 'Реквизит согласуют не позднее чем за неделю. Запрещены открытый огонь, пиротехника, оружие, животные, кремы, краски и блёстки на покрытии.'
+  - 'В детских номинациях участники предъявляют документы; не более 20 % команды могут не подходить по возрасту.'
+  - 'Возврат взноса — до окончания регистрации, то есть до 07.12.2026.'
+  - 'Каждый участник получает памятный диплом в электронном виде.'
+
+# Жюри и ведущий 2026 — официальные посты сообщества (docs/01, §1.6.6).
+judges:
+  - slug: fara
+    name: Фара
+    role: judge
+    regalia: Афро-направление, победитель и призёр мировых чемпионатов
+    source_id: vk-community
+  - slug: burtsev
+    name: Александр Бурцев
+    role: judge
+    regalia: MDC NRG, ABUFAM, финалист «Новых танцев» на ТНТ
+    source_id: vk-community
+  - slug: gubanova
+    name: Дарья Губанова
+    role: judge
+    regalia: Официальный представитель Frame up strip, хореограф Gorchitsa
+    source_id: vk-community
+  - slug: bonchinche
+    name: Дмитрий Бончинче
+    role: judge
+    regalia: House of Bonchinche, победитель «Лиги Танцев»
+    source_id: vk-community
+  - slug: mc-geo
+    name: Гео (GEO)
+    role: mc
+    regalia: MC «Лиги Танцев Winline», финалист «Новых танцев» на ТНТ
+    source_id: vk-community
+
+    source_id: polozhenie-2026
+

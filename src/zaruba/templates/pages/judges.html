@@ -56,15 +56,66 @@
 
 <section class="section">
   <h2>Что оценивают</h2>
+  {% if criteria %}
+  <table class="table">
+    <caption class="sr-only">Критерии и максимальные баллы</caption>
+    <thead>
+      <tr><th scope="col">Критерий</th><th scope="col">Максимум</th><th scope="col">Где применяется</th></tr>
+    </thead>
+    <tbody>
+      {% for criterion in criteria %}
+      <tr>
+        <td>{{ criterion.title }}</td>
+        <td class="mono">{{ criterion.max_score }}</td>
+        <td>{% if criterion.applies_to %}{{ criterion.applies_to }}{% else %}все номинации{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted small">Список и баллы — из «Положения» выпуска {{ edition.edition }}.
+  Пятая строка для соло в PDF не подписана, поэтому называть её «внешний вид» для соло
+  мы не будем: в таблице указано, к каким номинациям она относится.</p>
+  {% else %}
   <p>Официального списка критериев нет: «Положение» чемпионата не опубликовано.
   Поэтому мы не пишем «судьи оценивают технику на 40%» — такие проценты берутся
   только из документа организаторов.</p>
   <p class="muted small">Что обычно обсуждают в судейских протоколах таких чемпионатов —
   техника и чистота, музыкальность, подача и образ, композиция номера. Это общее описание,
-  а не правила «Зарубы»: как только появится «Положение», здесь будет список из 4–6 пунктов
-  со ссылкой на источник и датой проверки.</p>
+  а не правила «Зарубы».</p>
+  {% endif %}
   <p class="section-link"><a href="/glossary">разобраться в направлениях →</a></p>
 </section>
+
+{% if master_classes %}
+<section class="section">
+  <h2>Мастер-классы 12 декабря</h2>
+  <table class="table">
+    <caption class="sr-only">Расписание мастер-классов</caption>
+    <thead>
+      <tr><th scope="col">Время</th><th scope="col">Педагог</th><th scope="col">Один класс</th><th scope="col">После срока</th></tr>
+    </thead>
+    <tbody>
+      {% for item in master_classes %}
+      <tr>
+        <td class="mono">{{ item.starts_at|fmt_time }}–{{ item.ends_at|fmt_time }}</td>
+        <td>{{ item.teacher }}</td>
+        <td class="mono">{{ item.price_early|money }} ₽</td>
+        <td class="mono">{{ item.price_late|money }} ₽</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if pass_early and pass_late %}
+  <p>Все четыре класса: <strong>{{ pass_early|money }} ₽</strong> до 12 ноября, после —
+  <strong>{{ pass_late|money }} ₽</strong>. Возрастных ограничений нет, место бронируется только
+  после оплаты; запись — в отдельной форме организаторов.</p>
+  {% endif %}
+  <p class="muted small">Состав жюри и педагоги мастер-классов совпадают: это одна поездка,
+  а не два события. Деньги за мастер-класс не возвращаются — место можно перепродать,
+  сообщив организаторам имя участника.</p>
+</section>
+{% endif %}
+
 
 <section class="sources">
   <h2>Источники</h2>

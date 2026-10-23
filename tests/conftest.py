@@ -27,3 +27,8 @@ def venues():
 @pytest.fixture(scope="session")
 def edition_path() -> Path:
     return CONTENT_DIR / "2025.yaml"
+
+
+@pytest.fixture(scope="session")
+def edition_2026() -> Path:
+    return CONTENT_DIR / "2026.yaml"

@@ -55,7 +55,69 @@
   </article>
   {% endfor %}
 
-  {% if not day.blocks %}
+  {% set nom_day = (nominations_days | selectattr("day", "equalto", day.day) | list | first) %}
+  {% if nom_day and nom_day.nominations %}
+  <article class="block">
+    <header class="block-head">
+      <span class="block-time">тайминг уточняется</span>
+      <h3>Номинации дня</h3>
+    </header>
+    <table class="table">
+      <caption class="sr-only">Номинации дня {{ day.day }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">Номинация</th>
+          <th scope="col">Формат</th>
+          <th scope="col">Возраст</th>
+          <th scope="col">Зачёты</th>
+          <th scope="col">Состав</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for nomination in nom_day.nominations %}
+        <tr>
+          <td>{{ nomination.title }}</td>
+          <td>{{ nomination.format.label }}</td>
+          <td>{{ nomination.age_group.label }}</td>
+          <td>{% if nomination.levels %}{{ nomination.levels_label }}{% else %}<span class="muted">без деления</span>{% endif %}</td>
+          <td>{% if nomination.team_size_label %}{{ nomination.team_size_label }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted small">Время и порядок выходов появятся, когда организаторы опубликуют
+    тайминг: выдуманная сетка «12:00–15:00» хуже, чем честная пустая клетка.</p>
+  </article>
+  {% endif %}
+
+  {% if master_classes and day.day == 1 %}
+  <article class="block" id="master-classes">
+    <header class="block-head">
+      <span class="block-time">10:00–16:00</span>
+      <h3>Мастер-классы</h3>
+      <span class="badge">подтверждено</span>
+    </header>
+    <table class="table">
+      <caption class="sr-only">Мастер-классы 12 декабря</caption>
+      <thead>
+        <tr><th scope="col">Время</th><th scope="col">Педагог</th><th scope="col">Цена</th></tr>
+      </thead>
+      <tbody>
+        {% for item in master_classes %}
+        <tr>
+          <td class="mono">{{ item.starts_at|fmt_time }}–{{ item.ends_at|fmt_time }}</td>
+          <td>{{ item.teacher }}</td>
+          <td class="mono">{{ item.price_early|money }} ₽</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="muted small">Это единственное подтверждённое время выпуска: мастер-классы идут
+    до начала первого дня. Цены и условия записи — на странице <a href="/judges">жюри</a>.</p>
+  </article>
+  {% endif %}
+
+  {% if not day.blocks and not (nom_day and nom_day.nominations) %}
   <p class="empty">В этот день блоков пока нет. <a href="/schedule">Посмотреть все дни</a>
   или <a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">анонсы в сообществе</a>.</p>
   {% endif %}
@@ -72,8 +134,8 @@
     </li>
     {% endfor %}
   </ul>
-  <p class="muted small">Тайминг блоков и номинаций — демонстрационный (нужен, чтобы собрать
-  страницу). Реальное расписание появится из официального «Положения»; тогда же у каждой
-  строки появится ссылка на источник.</p>
+  <p class="muted small">Тайминг блоков и порядок выступлений появятся из официального
+  расписания организаторов. До этого на странице только то, что подтверждено: дни, номинации
+  по дням и время мастер-классов.</p>
 </section>
 {% endblock %}

@@ -10,12 +10,13 @@
 
 <section class="section">
   <h2>Что это</h2>
-  <p>«ЗАРУБА» — чемпионат по современным направлениям танца в Тюмени. В 2025 году он
-  проходит в концертно-танцевальном зале «{{ venue.name }}»: два дня, вход по билетам
-  официального канала «Кассы Ру», возрастной ценз {{ edition.age_rating }}.</p>
-  <p>На сцене — сольные номера, дуэты, мини-группы, команды и шоу-постановки. Зритель
-  приходит не на один «гала-концерт», а на два дня отборов: расписание блоков важнее
-  афиши, поэтому мы держим его отдельной страницей и печатаем на A4.</p>
+  <p>«ЗАРУБА» — чемпионат по современным направлениям танца в Тюмени. Выпуск
+  {{ edition.edition }} года проходит в концертно-танцевальном зале «{{ venue.name }}»:
+  {{ edition.days }} дня, вход по билетам официального канала, возрастной ценз
+  {% if edition.age_rating %}{{ edition.age_rating }}{% else %}на афише не объявлен{% endif %}.</p>
+  <p>На сцене — сольные номера, дуэты, мини-группы и команды. Зритель приходит не на один
+  «гала-концерт», а на два дня отборов: расписание блоков важнее афиши, поэтому мы держим
+  его отдельной страницей и печатаем на A4.</p>
 </section>
 
 <section class="section">
@@ -34,43 +35,69 @@
       <tr>
         <td class="mono">День {{ day.day }}<br>{{ day.date|fmt_date }}</td>
         <td>
-          {% for block in day.blocks %}
-          <div>{{ block.block.starts_at|fmt_time }}–{{ block.block.ends_at|fmt_time }} · {{ block.block.title }}</div>
-          {% endfor %}
+          {% if day.blocks %}
+            {% for block in day.blocks %}
+            <div>{{ block.block.starts_at|fmt_time }}–{{ block.block.ends_at|fmt_time }} · {{ block.block.title }}</div>
+            {% endfor %}
+          {% else %}
+            <span class="muted">тайминг уточняется</span>
+          {% endif %}
         </td>
-        <td>{{ day.nominations_count }} в {{ day.blocks|length }} блоках</td>
+        <td>
+          {% set nom_day = (nominations_days | selectattr("day", "equalto", day.day) | list | first) %}
+          {% if day.blocks %}{{ day.nominations_count }} в {{ day.blocks|length }} блоках
+          {% elif nom_day %}{{ nom_day.nominations|length }} номинаций
+          {% else %}—{% endif %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
-  <p class="muted small">Сетка блоков и номинаций — демонстрационная: она нужна, чтобы страница
-  работала до публикации официального «Положения». Даты, место и ценз подтверждены источниками
-  внизу страницы.</p>
+  <p class="muted small">Номинации по дням — из «Положения»: 12 декабря соло, дуэты и
+  мини-группы, 13 декабря команды. Тайминг блоков организаторы ещё не публиковали, поэтому
+  времени в таблице нет.</p>
   <p class="section-link"><a href="/schedule">расписание по блокам →</a></p>
 </section>
 
 <section class="section">
-  <h2>Направления</h2>
+  <h2>Форматы и зачёты</h2>
+  <div class="chips">
+    {% for item in formats %}
+    <span class="chip">{{ item.label }} <span class="muted">{{ item.count }}</span></span>
+    {% endfor %}
+  </div>
+  {% if levels %}
+  <p class="muted small">Зачёты:
+    {% for item in levels %}{{ item.label }} — {{ item.count }} номинаций{% if not loop.last %}; {% endif %}{% endfor %}.
+    БЕГ — команда занимается до 3 лет и выступает без хореографа, ПРО — больше 3 лет
+    и/или с хореографом. Это стаж, а не «уровень мастерства».</p>
+  {% endif %}
+  {% if directions %}
+  <h3>Направления</h3>
   <div class="chips">
     {% for item in directions %}
     <a class="chip" href="/glossary#style-{{ item.value }}">{{ item.label }} <span class="muted">{{ item.count }}</span></a>
     {% endfor %}
   </div>
-  <p class="muted small">Названия стилей взяты из сетки номинаций, а не из постов в соцсетях.
-  Что это за направление и как его отличить — в <a href="/glossary">глоссарии</a>.</p>
+  <p class="muted small">Стилевой дивизион указан только там, где он есть в «Положении»
+  (хилс, стрип, экспериментал). Остальные номинации делятся по возрасту и стажу, а не по стилю —
+  поэтому «Hip-Hop» в сетке 2026 года нет.</p>
+  {% endif %}
 </section>
 
 <section class="section">
-  <h2>Кто участвует</h2>
+  <h2>Возраст и состав</h2>
   <ul class="facts">
     {% for item in ages %}
-    <li><span class="lbl">возраст</span> {{ item.label }} — {{ item.count }} участников</li>
+    <li><span class="lbl">{{ item.label }}</span> {{ item.count }} номинаций</li>
     {% endfor %}
-    <li><span class="lbl">города</span> {{ cities|join(", ") }}</li>
-    <li><span class="lbl">студии</span> {{ studios|length }} в демонстрационном наборе</li>
+    <li><span class="lbl">минимум в команде</span> 6 человек; мини-группы — 3–5</li>
+    {% if cities %}<li><span class="lbl">города</span> {{ cities|join(", ") }}</li>{% endif %}
+    {% if studios %}<li><span class="lbl">студии</span> {{ studios|length }} в наборе</li>{% endif %}
   </ul>
-  <p class="muted small">Участники младше 18 лет публикуются только инициалами, без фото и клипа.
-  Полные имена и клипы — только при согласии родителя.</p>
+  <p class="muted small">Списки участников появятся после закрытия заявок
+  {% if edition.registration_until %}({{ edition.registration_until|fmt_dt }}){% endif %}.
+  Участники младше 18 лет без согласия публикуются только инициалами, без фото и клипа.</p>
 </section>
 
 <section class="section">
@@ -121,10 +148,23 @@
     <li><a href="/schedule">Расписание блоков и дней</a> — что и когда смотреть.</li>
     <li><a href="/performances">Выступления</a> — кто и с чем выходит.</li>
     <li><a href="/venue">Площадка</a> — адрес, вместимость и как добраться.</li>
-    <li><a href="/judges">Жюри</a> — кто оценивает и что известно о критериях.</li>
-    <li><a href="/tickets">Билеты</a> — где официальный канал и почему цен нет.</li>
+    <li><a href="/judges">Жюри</a> — кто оценивает и по каким критериям.</li>
+    <li><a href="/tickets">Билеты и взносы</a> — официальные цены и форма заявки.</li>
   </ul>
 </section>
+
+{% if rules %}
+<section class="section">
+  <h2>Правила участия</h2>
+  <ul class="link-list">
+    {% for rule in rules %}
+    <li>{{ rule }}</li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Пункты пересказывают «Положение» выпуска {{ edition.edition }};
+  полный документ — у организаторов в сообществе.</p>
+</section>
+{% endif %}
 
 <section class="sources">
   <h2>Источники</h2>

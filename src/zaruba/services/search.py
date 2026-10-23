@@ -106,30 +106,32 @@ def search_site(
     )
 
     shows: list[tuple[int, SearchHit]] = []
-    for view in performance_views(bundle):
-        text = " ".join(
-            [
-                view.performance.title,
-                view.nomination.title,
-                view.participant_names,
-                view.studio_names,
-            ]
-        )
-        score = _score(text, needle)
-        if score:
-            shows.append(
-                (
-                    score,
-                    SearchHit(
-                        title=view.performance.title,
-                        subtitle=(
-                            f"День {view.day} · {view.nomination.title} · {view.participant_names}"
-                        ),
-                        url=f"/performances/{view.performance.slug}",
-                        badge="пример" if view.performance.demo else None,
-                    ),
-                )
+    for edition_bundle in bundles:
+        for view in performance_views(edition_bundle):
+            text = " ".join(
+                [
+                    view.performance.title,
+                    view.nomination.title,
+                    view.participant_names,
+                    view.studio_names,
+                ]
             )
+            score = _score(text, needle)
+            if score:
+                shows.append(
+                    (
+                        score,
+                        SearchHit(
+                            title=view.performance.title,
+                            subtitle=(
+                                f"День {view.day} · {view.nomination.title} · "
+                                f"{view.participant_names}"
+                            ),
+                            url=f"/performances/{view.performance.slug}",
+                            badge="пример" if view.performance.demo else None,
+                        ),
+                    )
+                )
     groups.append(
         SearchGroup(
             key="performances",
@@ -140,25 +142,29 @@ def search_site(
     )
 
     nominations: list[tuple[int, SearchHit]] = []
-    for nomination in bundle.edition.nominations:
-        score = _score(f"{nomination.title} {nomination.stage}", needle)
-        if not score:
-            continue
-        block = block_for_nomination(bundle, nomination.slug)
-        nominations.append(
-            (
-                score,
-                SearchHit(
-                    title=nomination.title,
-                    subtitle=(
-                        f"День {nomination.day} · "
-                        f"{nomination.starts_at.strftime('%H:%M')}–"
-                        f"{nomination.ends_at.strftime('%H:%M')}"
-                    ),
-                    url=f"/schedule#block-{block.slug}" if block else "/schedule",
-                ),
+    show_years = {bundle.year for bundle in bundles}
+    for edition_bundle in bundles:
+        for nomination in edition_bundle.edition.nominations:
+            score = _score(f"{nomination.title} {nomination.stage}", needle)
+            if not score:
+                continue
+            block = block_for_nomination(edition_bundle, nomination.slug)
+            when = (
+                f"{nomination.starts_at.strftime('%H:%M')}–{nomination.ends_at.strftime('%H:%M')}"
+                if nomination.has_timing
+                else "время уточняется"
             )
-        )
+            year = f" · {edition_bundle.year}" if len(show_years) > 1 else ""
+            nominations.append(
+                (
+                    score,
+                    SearchHit(
+                        title=nomination.title,
+                        subtitle=f"День {nomination.day or '—'} · {when}{year}",
+                        url=f"/schedule#block-{block.slug}" if block else "/schedule",
+                    ),
+                )
+            )
     groups.append(
         SearchGroup(
             key="nominations",
@@ -223,4 +229,3 @@ def search_site(
     )
 
     return [group for group in groups if group.hits]
-

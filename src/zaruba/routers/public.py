@@ -7,18 +7,31 @@ from datetime import date
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from ..content import load_knowledge, load_latest
-from ..models import AgeGroup, DanceStyle, FaqGroup, GlossaryKind
-from ..services.edition import day_views, edition_notice, flat_blocks
+from ..content import load_knowledge, load_latest, load_site
+from ..models import AgeGroup, DanceFormat, DanceStyle, FaqGroup, GlossaryKind, NominationLevel
+from ..services.edition import (
+    catalogue_bundle,
+    day_views,
+    edition_notice,
+    flat_blocks,
+    nominations_by_day,
+)
+from ..services.seo import event_json_ld, faq_json_ld, glossary_json_ld
 from ..templating import render
 
 router = APIRouter()
 
 
+def _base_url(request: Request) -> str:
+    return str(request.base_url).rstrip("/")
+
+
 @router.get("/", response_class=HTMLResponse)
 def home(request: Request) -> HTMLResponse:
-    bundle = load_latest(request.app.state.settings)
+    settings = request.app.state.settings
+    bundle = load_latest(settings)
     edition = bundle.edition
+    archive = catalogue_bundle(load_site(settings))
     return render(
         request,
         "pages/home.html",
@@ -27,8 +40,17 @@ def home(request: Request) -> HTMLResponse:
         venue=bundle.venue,
         notice=edition_notice(bundle),
         blocks=flat_blocks(bundle)[:3],
+        days=nominations_by_day(bundle),
+        nominations=edition.nominations,
+        master_classes=edition.master_classes,
+        fees=edition.fees,
+        tickets=edition.tickets,
+        judges=edition.judges,
         participants=edition.participants[:8],
         studios=edition.studio_index,
+        archive=archive if archive.year != edition.edition else None,
+        # §6.19: Event на главной — даты, место и ссылка на билеты.
+        json_ld=[event_json_ld(bundle, _base_url(request))],
     )
 
 
@@ -44,10 +66,20 @@ def event_page(request: Request) -> HTMLResponse:
         for style in DanceStyle
         if (matches := [item for item in edition.nominations if item.style == style])
     ]
+    formats = [
+        {"value": item.value, "label": item.label, "count": len(matches)}
+        for item in DanceFormat
+        if (matches := [row for row in edition.nominations if row.format == item])
+    ]
+    levels = [
+        {"value": item.value, "label": item.label, "count": len(matches)}
+        for item in NominationLevel
+        if (matches := [row for row in edition.nominations if item in row.levels])
+    ]
     ages = [
         {
             "label": group.label,
-            "count": sum(1 for item in edition.participants if item.age_group == group),
+            "count": sum(1 for item in edition.nominations if item.age_group == group),
         }
         for group in AgeGroup
         if any(item.age_group == group for item in edition.nominations)
@@ -55,11 +87,12 @@ def event_page(request: Request) -> HTMLResponse:
     # §6.5: год без подтверждённых данных не выдумываем — строка появляется только по факту.
     chronology = [
         {
-            "year": edition.edition,
-            "dates": edition.dates,
-            "feature": edition.note or "—",
-            "source": edition.sources[0] if edition.sources else None,
+            "year": item.year,
+            "dates": item.edition.dates,
+            "feature": item.edition.note or "—",
+            "source": item.edition.sources[0] if item.edition.sources else None,
         }
+        for item in load_site(request.app.state.settings)
     ]
 
     return render(
@@ -70,7 +103,10 @@ def event_page(request: Request) -> HTMLResponse:
         venue=bundle.venue,
         notice=edition_notice(bundle),
         days=day_views(bundle),
+        nominations_days=nominations_by_day(bundle),
         directions=directions,
+        formats=formats,
+        levels=levels,
         ages=ages,
         cities=sorted({item.city for item in edition.participants}),
         studios=sorted(edition.studios, key=lambda item: item.name),
@@ -80,7 +116,9 @@ def event_page(request: Request) -> HTMLResponse:
             "studios": sum(1 for item in edition.studios if item.demo),
         },
         chronology=chronology,
+        rules=edition.rules,
         page_title="О событии",
+        json_ld=[event_json_ld(bundle, _base_url(request))],
     )
 
 
@@ -121,6 +159,10 @@ def judges_page(request: Request) -> HTMLResponse:
         venue=bundle.venue,
         notice=edition_notice(bundle),
         cards=cards,
+        criteria=edition.criteria,
+        master_classes=edition.master_classes,
+        pass_early=edition.master_class_pass_early,
+        pass_late=edition.master_class_pass_late,
         page_title="Жюри",
     )
 
@@ -131,10 +173,14 @@ def tickets_page(request: Request) -> HTMLResponse:
 
     bundle = load_latest(request.app.state.settings)
     edition = bundle.edition
-    ticket_source = next(
-        (source for source in edition.sources if "kassy" in source.url),
-        edition.sources[0] if edition.sources else None,
+    ticket_source = (
+        edition.source_index.get(edition.tickets[0].source_id) if edition.tickets else None
     )
+    if ticket_source is None:
+        ticket_source = next(
+            (source for source in edition.sources if "kassy" in source.url),
+            edition.sources[0] if edition.sources else None,
+        )
     return render(
         request,
         "pages/tickets.html",
@@ -143,6 +189,9 @@ def tickets_page(request: Request) -> HTMLResponse:
         venue=bundle.venue,
         notice=edition_notice(bundle),
         ticket_source=ticket_source,
+        tickets=edition.tickets,
+        fees=edition.fees,
+        registration_until=edition.registration_until,
         sales_closed=edition.dates[-1] < date.today(),
         page_title="Билеты",
     )
@@ -164,6 +213,8 @@ def glossary_page(request: Request) -> HTMLResponse:
         styles=[entry for entry in glossary if entry.kind is GlossaryKind.STYLE],
         terms=[entry for entry in glossary if entry.kind is GlossaryKind.TERM],
         page_title="Глоссарий",
+        # §6.19: DefinedTerm для глоссария.
+        json_ld=[glossary_json_ld(_base_url(request), glossary)],
     )
 
 
@@ -194,4 +245,6 @@ def faq_page(request: Request) -> HTMLResponse:
         sources=edition.source_index,
         total=len(knowledge.faq),
         page_title="Вопросы и ответы",
+        # §6.19: FAQPage — ровно те вопросы, что видит посетитель.
+        json_ld=[faq_json_ld(_base_url(request), knowledge.faq)],
     )

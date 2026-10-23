@@ -15,6 +15,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette.routing import NoMatchFound
 
+from .services.seo import breadcrumbs_json_ld, json_ld_script
+
 PACKAGE_DIR = Path(__file__).resolve().parent
 
 templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
@@ -58,7 +60,6 @@ FOOTER_ITEMS: tuple[dict[str, str], ...] = (
     {"endpoint": "faq_page", "label": "Вопросы и ответы"},
     {"endpoint": "search", "label": "Поиск"},
 )
-
 
 
 def fmt_date(value: date | datetime | None) -> str:
@@ -112,6 +113,18 @@ def plural(count: int, one: str, few: str, many: str) -> str:
     return many
 
 
+def money(value: int | None) -> str:
+    """«1 000» — разряды неразрывным пробелом, чтобы цена не рвалась по строкам.
+
+    Цены приходят из «Положения» целыми рублями, поэтому копеек и валюты здесь
+    нет: знак «₽» ставит шаблон.
+    """
+
+    if value is None:
+        return ""
+    return f"{value:,}".replace(",", "\u00a0")
+
+
 templates.env.filters.update(
     {
         "fmt_date": fmt_date,
@@ -120,6 +133,7 @@ templates.env.filters.update(
         "fmt_dates": fmt_dates,
         "fmt_weekday": fmt_weekday,
         "plural": plural,
+        "money": money,
     }
 )
 
@@ -145,6 +159,30 @@ def build_footer(app: FastAPI) -> list[dict[str, str]]:
     return _links(app, FOOTER_ITEMS)
 
 
+def _json_ld_blocks(request: Request, context: dict[str, Any], status_code: int) -> list[str]:
+    """JSON-LD страницы: то, что передал роутер, плюс крошки (§6.19).
+
+    Крошки строятся здесь, а не в каждом роутере: иначе половина страниц
+    осталась бы без `BreadcrumbList`. На страницах ошибок разметки нет —
+    адрес там заведомо несуществующий.
+    """
+
+    blocks: list[dict[str, Any]] = list(context.get("json_ld") or [])
+    if status_code >= 400:
+        return [json_ld_script(block) for block in blocks]
+
+    if not any(block.get("@type") == "BreadcrumbList" for block in blocks):
+        crumbs = breadcrumbs_json_ld(
+            str(request.base_url).rstrip("/"),
+            request.url.path,
+            context.get("page_title"),
+            [*request.app.state.nav, *request.app.state.footer_links],
+        )
+        if crumbs is not None:
+            blocks.append(crumbs)
+    return [json_ld_script(block) for block in blocks]
+
+
 def render(
     request: Request, template_name: str, *, status_code: int = 200, **context: Any
 ) -> HTMLResponse:
@@ -159,4 +197,6 @@ def render(
         "robots": None,
     }
     payload.update(context)
+    # json_ld ставим после update: роутер передаёт словари, шаблон ждёт строки.
+    payload["json_ld"] = _json_ld_blocks(request, context, status_code)
     return templates.TemplateResponse(request, template_name, payload, status_code=status_code)

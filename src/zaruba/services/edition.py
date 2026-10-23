@@ -53,7 +53,9 @@ def _rows(bundle: EditionBundle, block: ScheduleBlock) -> list[NominationRow]:
     edition = bundle.edition
     index = edition.nomination_index
     return [
-        NominationRow(nomination=index[slug], performances=edition.performances_for_nomination(slug))
+        NominationRow(
+            nomination=index[slug], performances=edition.performances_for_nomination(slug)
+        )
         for slug in block.nominations
     ]
 
@@ -72,6 +74,35 @@ def day_views(bundle: EditionBundle) -> list[DayView]:
 
 def flat_blocks(bundle: EditionBundle) -> list[BlockView]:
     return [block for day in day_views(bundle) for block in day.blocks]
+
+
+@dataclass(frozen=True)
+class DayNominationView:
+    """День выпуска без блоков: у 2026 тайминг ещё не опубликован, а номинации уже есть."""
+
+    day: int
+    date: date
+    nominations: list[Nomination]
+
+
+def nominations_by_day(bundle: EditionBundle) -> list[DayNominationView]:
+    edition = bundle.edition
+    views: list[DayNominationView] = []
+    for day_index, day_date in enumerate(edition.dates, start=1):
+        rows = [item for item in edition.nominations if item.day == day_index]
+        views.append(DayNominationView(day=day_index, date=day_date, nominations=rows))
+    return views
+
+
+def catalogue_bundle(bundles: Sequence[EditionBundle]) -> EditionBundle:
+    """Выпуск, по которому есть что показать в каталоге.
+
+    Свежий выпуск может быть ещё без заявок (2026: приём до 07.12). Тогда
+    каталог показывает предыдущий выпуск с явной пометкой года в шапке,
+    а не пустую страницу.
+    """
+
+    return next((bundle for bundle in bundles if bundle.edition.performances), bundles[0])
 
 
 def edition_notice(bundle: EditionBundle, today: date | None = None) -> str | None:
@@ -176,9 +207,7 @@ def filter_performances(
     if fmt is not None:
         result = [view for view in result if view.nomination.format == fmt]
     if studio:
-        result = [
-            view for view in result if any(item.studio == studio for item, _ in view.rows)
-        ]
+        result = [view for view in result if any(item.studio == studio for item, _ in view.rows)]
     if video is not None:
         result = [view for view in result if (view.performance.video_url is not None) == video]
     return result
@@ -191,9 +220,7 @@ def performance_detail(bundle: EditionBundle, slug: str) -> PerformanceView | No
     return None
 
 
-def siblings(
-    bundle: EditionBundle, view: PerformanceView, limit: int = 4
-) -> list[PerformanceView]:
+def siblings(bundle: EditionBundle, view: PerformanceView, limit: int = 4) -> list[PerformanceView]:
     """«Похожие»: ещё выступления той же номинации, без самого себя."""
 
     same = [
@@ -212,9 +239,7 @@ def block_for_nomination(bundle: EditionBundle, nomination_slug: str) -> Schedul
     return None
 
 
-def participant_view(
-    bundles: Sequence[EditionBundle], slug: str
-) -> ParticipantView | None:
+def participant_view(bundles: Sequence[EditionBundle], slug: str) -> ParticipantView | None:
     """Карточка участника собирается по всем выпускам: годы участия — не выдумка."""
 
     found: tuple[Participant, Studio, int] | None = None
@@ -239,4 +264,3 @@ def participant_view(
     return ParticipantView(
         participant=participant, studio=studio, performances=performances, year=year
     )
-

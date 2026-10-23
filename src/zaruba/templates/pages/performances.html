@@ -7,9 +7,17 @@
 <div class="page-head">
   <h1>Выступления</h1>
   <p class="lead">Что показывают на «Зарубе»: {{ total }} выступлений в {{ edition.nominations|length }} номинациях.</p>
-  <p class="muted small">Карточки собираются из сетки номинаций и заявок. Пока заявки
-  демонстрационные, у каждой карточки стоит бейдж «пример».</p>
+  <p class="muted small">Карточки собираются из сетки номинаций и заявок выпуска {{ edition.edition }}.
+  Пока заявки демонстрационные, у каждой карточки стоит бейдж «пример».</p>
 </div>
+
+{% if catalogue_year and live_year and catalogue_year != live_year %}
+<div class="callout">
+  <p><strong>Это архив {{ catalogue_year }} года.</strong> Списки выступающих выпуска
+  {{ live_year }} появятся после закрытия заявок — организаторы публикуют их в сообществе.
+  Мы не переносим прошлогодние пары в новый выпуск и не выдаём их за {{ live_year }}-й.</p>
+</div>
+{% endif %}
 
 <form class="filters" method="get" action="/performances" role="search" aria-label="Фильтры каталога">
   <label>День

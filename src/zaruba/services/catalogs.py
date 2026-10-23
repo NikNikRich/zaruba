@@ -26,7 +26,9 @@ def styles_in(performances: Sequence[PerformanceView]) -> list[DanceStyle]:
     """Направления в порядке справочника `DanceStyle`, а не в порядке появления."""
 
     return [
-        style for style in DanceStyle if any(view.nomination.style is style for view in performances)
+        style
+        for style in DanceStyle
+        if any(view.nomination.style is style for view in performances)
     ]
 
 
@@ -114,9 +116,7 @@ class StudioView:
 
 def studio_views(bundles: Sequence[EditionBundle]) -> list[StudioView]:
     people = participant_views(bundles)
-    all_performances = [
-        view for bundle in bundles for view in performance_views(bundle)
-    ]
+    all_performances = [view for bundle in bundles for view in performance_views(bundle)]
 
     studios: dict[str, Studio] = {}
     for bundle in bundles:

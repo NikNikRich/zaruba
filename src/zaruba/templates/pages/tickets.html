@@ -21,12 +21,13 @@
   {% if ticket_source %}
   <ul class="link-list">
     <li>
-      <a href="{{ ticket_source.url }}" rel="noopener noreferrer nofollow">Официальная страница билетов</a>
+      <a href="{{ ticket_source.url }}" rel="noopener noreferrer nofollow">Официальный канал билетов</a>
       — {{ ticket_source.title }}, проверено {{ ticket_source.retrieved_at|fmt_dt }}.
+      Там же анонсы, изменения дат и правила возврата.
     </li>
     <li>
-      <a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">Сообщество «ЗАРУБА72»</a>
-      — анонсы, изменения дат и правила возврата.
+      Телефон организаторов: <a href="tel:+79129952877">+7 912 995-28-77</a> —
+      по вопросам билетов, заявок и возврата.
     </li>
   </ul>
   {% else %}
@@ -37,11 +38,28 @@
 </section>
 
 <section class="section">
-  <h2>Цены</h2>
+  <h2>Билеты</h2>
   {% if sales_closed %}
-  <p><strong>Продажи на выпуск {{ edition.edition }} закрыты.</strong> Цены не публикуем
-  задним числом: в открытых источниках их нет, а диапазоны «примерно 800–1200 ₽» —
-  это догадка, а не факт.</p>
+  <p><strong>Продажи на выпуск {{ edition.edition }} закрыты.</strong> Ниже — цены, которые
+  были объявлены официально, с датой проверки. Задним числом мы их не переписываем.</p>
+  {% elif tickets %}
+  <table class="table">
+    <caption class="sr-only">Цены билетов</caption>
+    <thead>
+      <tr><th scope="col">Когда</th><th scope="col">Что входит</th><th scope="col">Цена</th></tr>
+    </thead>
+    <tbody>
+      {% for ticket in tickets %}
+      <tr>
+        <td>{{ ticket.title }}</td>
+        <td>{% if ticket.block %}{{ ticket.block }}{% elif ticket.day %}день {{ ticket.day }}{% else %}оба дня{% endif %}</td>
+        <td class="mono">{{ ticket.price|money }} ₽</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted small">Это первые подтверждённые цены билетов за историю проекта: раньше
+  на «Кассах Ру» стояло «актуальных мероприятий нет».</p>
   {% else %}
   <p><strong>Цены ещё не объявлены.</strong> Мы не пишем диапазоны и «ориентировочно»:
   либо точная цифра из официального анонса, либо ничего.</p>
@@ -49,14 +67,51 @@
   <ul class="facts">
     <li><span class="lbl">даты</span> {{ edition.dates|fmt_dates }}</li>
     <li><span class="lbl">площадка</span> {{ venue.name }}, {{ venue.address_line }}</li>
-    <li><span class="lbl">возрастной ценз</span> {{ edition.age_rating }}</li>
-    <li><span class="lbl">формат</span> {{ edition.days }} дня: соло и дуэты, команды и шоу</li>
+    <li><span class="lbl">возрастной ценз</span> {% if edition.age_rating %}{{ edition.age_rating }}{% else %}не объявлен{% endif %}</li>
+    <li><span class="lbl">формат</span> {% if edition.days == 2 %}2 дня: соло, дуэты и мини-группы, затем команды{% else %}{{ edition.days }} день{% endif %}</li>
   </ul>
-  <p class="muted small">Цены и категории мест появятся на этой странице только вместе
-  с официальным анонсом — со ссылкой и датой проверки. Правила возврата и льготы
-  определяет организатор, а не фан-сайт.</p>
+  <p class="muted small">Категории мест и льготы определяет организатор, а не фан-сайт.</p>
   <p class="section-link"><a href="/venue">как добраться до площадки →</a></p>
 </section>
+
+<section class="section">
+  <h2>Взносы за участие</h2>
+  {% if fees %}
+  <table class="table">
+    <caption class="sr-only">Взносы участников</caption>
+    <thead>
+      <tr>
+        <th scope="col">Категория</th>
+        <th scope="col">Формат</th>
+        <th scope="col">До {{ fees[0].early_until|fmt_dt }}</th>
+        <th scope="col">После</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for fee in fees %}
+      <tr>
+        <td>{{ fee.audience.label }}</td>
+        <td>{{ fee.format.label }}{% if fee.unit %}, {{ fee.unit }}{% endif %}</td>
+        <td class="mono">{{ fee.amount_early|money }} ₽</td>
+        <td class="mono">{{ fee.amount_late|money }} ₽</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted small">Скидка 25 % — на каждую последующую номинацию (меньшую по стоимости);
+  на соло и дуэты не действует. Возврат — до окончания регистрации
+  {% if registration_until %}({{ registration_until|fmt_dt }}){% endif %}.</p>
+  {% if registration_until %}
+  <p><a class="btn" href="https://forms.gle/W5651Np7epysbeWWA" rel="noopener noreferrer nofollow">Официальная форма заявки</a></p>
+  <p class="muted small">Заявки принимают до {{ registration_until|fmt_dt }}; могут закрыть
+  раньше, если наберётся лимит. Форму заполняют у организаторов — сайт данные не собирает.</p>
+  {% endif %}
+  {% else %}
+  <p class="muted">Взносы на этот выпуск не объявлены. <a href="/faq">Вопросы и ответы</a>
+  подскажут, что известно точно.</p>
+  {% endif %}
+</section>
+
 
 <section class="section">
   <h2>Что посмотреть</h2>

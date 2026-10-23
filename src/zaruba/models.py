@@ -22,13 +22,43 @@ class Strict(BaseModel):
 
 
 class AgeGroup(StrEnum):
+    """Возрастные группы выпусков.
+
+    До 2025 включительно сетка была из трёх групп (6–11, 12–17, 18+).
+    «Положение 2026» делит участников иначе: 3–6, 7–11, 12–14, 15–17, 10–15,
+    14–17, 16+ и 18+, плюс номинация без возрастного ограничения. Старые
+    значения остаются, чтобы архивные выпуски читались без переписывания.
+    """
+
+    BABY = "3-6"
     KIDS = "6-11"
+    KIDS_7_11 = "7-11"
+    KIDS_10_15 = "10-15"
     TEENS = "12-17"
+    JUNIORS = "12-14"
+    TEENS_14_17 = "14-17"
+    VARSITY = "15-17"
+    ADULTS_15 = "15+"
+    ADULTS_16 = "16+"
     ADULTS = "18+"
+    ANY = "any"
 
     @property
     def label(self) -> str:
-        return {"6-11": "6–11 лет", "12-17": "12–17 лет", "18+": "18+"}[self.value]
+        return {
+            "3-6": "3–6 лет",
+            "6-11": "6–11 лет",
+            "7-11": "7–11 лет",
+            "10-15": "10–15 лет",
+            "12-17": "12–17 лет",
+            "12-14": "12–14 лет",
+            "14-17": "14–17 лет",
+            "15-17": "15–17 лет",
+            "15+": "15+",
+            "16+": "16+",
+            "18+": "18+",
+            "any": "любой возраст",
+        }[self.value]
 
 
 STYLE_LABELS: dict[str, str] = {
@@ -78,6 +108,17 @@ class DanceFormat(StrEnum):
             "team": "Команда",
             "show": "Шоу",
         }[self.value]
+
+
+class NominationLevel(StrEnum):
+    """Уровень зачёта из «Положения 2026»: стаж команды и участие хореографа."""
+
+    BEG = "beg"
+    PRO = "pro"
+
+    @property
+    def label(self) -> str:
+        return {"beg": "БЕГ", "pro": "ПРО"}[self.value]
 
 
 class EventStatus(StrEnum):
@@ -160,26 +201,74 @@ class Venue(Strict):
 
 
 class Nomination(Strict):
+    """Номинация выпуска.
+
+    У архивных выпусков есть время и зал, но нет публичного названия; у 2026
+    наоборот — есть название, возраст, уровни и минимальный состав, а тайминг
+    блоков ещё не опубликован. Поэтому `name`, `day` и время необязательны,
+    но «время без дня» и «половина тайминга» запрещены.
+    """
+
     slug: Slug
-    style: DanceStyle
+    name: str | None = Field(default=None, min_length=3, max_length=80)
+    style: DanceStyle | None = None
     format: DanceFormat
     age_group: AgeGroup
-    day: int = Field(ge=1, le=3)
-    starts_at: time
-    ends_at: time
-    stage: str = Field(default="Зал A", max_length=40)
+    levels: list[NominationLevel] = Field(default_factory=list, max_length=2)
+    min_participants: int | None = Field(default=None, ge=2, le=40)
+    max_participants: int | None = Field(default=None, ge=2, le=40)
+    day: int | None = Field(default=None, ge=1, le=3)
+    starts_at: time | None = None
+    ends_at: time | None = None
+    stage: str = Field(default="Сцена", max_length=40)
     status: EventStatus = EventStatus.SCHEDULED
+    note: str | None = Field(default=None, max_length=240)
     source_id: Slug | None = None
 
     @model_validator(mode="after")
-    def _time_order(self) -> Nomination:
-        if self.ends_at <= self.starts_at:
+    def _schedule_shape(self) -> Nomination:
+        if self.name is None and self.style is None:
+            raise ValueError("нужно поле name или style: номинация без названия не читается")
+        if (self.starts_at is None) != (self.ends_at is None):
+            raise ValueError("starts_at и ends_at задаются вместе")
+        if self.starts_at is not None and self.ends_at <= self.starts_at:
             raise ValueError("ends_at должен быть позже starts_at")
+        if self.starts_at is not None and self.day is None:
+            raise ValueError("время без дня не имеет смысла: укажите day")
+        if len(set(self.levels)) != len(self.levels):
+            raise ValueError("уровень указан дважды")
+        if (
+            self.min_participants is not None
+            and self.max_participants is not None
+            and self.max_participants < self.min_participants
+        ):
+            raise ValueError("max_participants меньше min_participants")
         return self
 
     @property
     def title(self) -> str:
+        if self.name:
+            return self.name
+        assert self.style is not None  # гарантировано _schedule_shape
         return f"{self.format.label} · {self.style.label} · {self.age_group.label}"
+
+    @property
+    def levels_label(self) -> str:
+        return " · ".join(level.label for level in self.levels)
+
+    @property
+    def team_size_label(self) -> str | None:
+        """«от 6 человек», «3–5 человек» — как в «Положении», без домыслов."""
+
+        if self.min_participants is None:
+            return None
+        if self.max_participants is None:
+            return f"от {self.min_participants} человек"
+        return f"{self.min_participants}–{self.max_participants} человек"
+
+    @property
+    def has_timing(self) -> bool:
+        return self.starts_at is not None and self.ends_at is not None
 
 
 class Studio(Strict):
@@ -314,9 +403,7 @@ class Participant(Strict):
             and self.consent_status is not ConsentStatus.GRANTED
             and not INITIALS_RE.match(self.display_name)
         ):
-            raise ValueError(
-                "для несовершеннолетнего без согласия display_name — только инициалы"
-            )
+            raise ValueError("для несовершеннолетнего без согласия display_name — только инициалы")
         if self.consent_status is ConsentStatus.GRANTED and self.consent_at is None:
             raise ValueError("consent_at обязателен при consent_status=granted")
         return self
@@ -361,6 +448,74 @@ class ScheduleBlock(Strict):
         return self
 
 
+class FeeAudience(StrEnum):
+    CHILDREN = "children"
+    ADULTS = "adults"
+
+    @property
+    def label(self) -> str:
+        return {"children": "Детские", "adults": "Взрослые"}[self.value]
+
+
+class Fee(Strict):
+    """Взнос за участие: ставка до и после даты, из «Положения»."""
+
+    slug: Slug
+    audience: FeeAudience
+    format: DanceFormat
+    amount_early: int = Field(ge=1, le=100_000)
+    amount_late: int = Field(ge=1, le=100_000)
+    early_until: date
+    unit: str = Field(default="с участника", max_length=40)
+    note: str | None = Field(default=None, max_length=200)
+
+    @model_validator(mode="after")
+    def _price_order(self) -> Fee:
+        if self.amount_late < self.amount_early:
+            raise ValueError("ставка после раннего срока не может быть ниже ранней")
+        return self
+
+
+class Ticket(Strict):
+    """Зрительский билет: `day` пустой — билет на оба дня."""
+
+    slug: Slug
+    title: str = Field(min_length=3, max_length=80)
+    price: int = Field(ge=1, le=100_000)
+    day: int | None = Field(default=None, ge=1, le=3)
+    block: str | None = Field(default=None, max_length=60)
+    source_id: Slug | None = None
+
+
+class MasterClass(Strict):
+    """Мастер-класс: время и педагог из афиши, цена до и после срока."""
+
+    slug: Slug
+    day: int = Field(ge=1, le=3)
+    starts_at: time
+    ends_at: time
+    teacher: str = Field(min_length=2, max_length=80)
+    price_early: int = Field(ge=1, le=100_000)
+    price_late: int = Field(ge=1, le=100_000)
+    source_id: Slug | None = None
+
+    @model_validator(mode="after")
+    def _time_order(self) -> MasterClass:
+        if self.ends_at <= self.starts_at:
+            raise ValueError("ends_at должен быть позже starts_at")
+        if self.price_late < self.price_early:
+            raise ValueError("цена после срока не может быть ниже ранней")
+        return self
+
+
+class Criterion(Strict):
+    """Критерий судейства с максимальным баллом — только из «Положения»."""
+
+    title: str = Field(min_length=3, max_length=80)
+    max_score: int = Field(ge=1, le=10)
+    applies_to: str | None = Field(default=None, max_length=80)
+
+
 class Edition(Strict):
     """Один выпуск: всё, что нужно страницам, в одном файле (`docs/06` §6.17)."""
 
@@ -370,9 +525,12 @@ class Edition(Strict):
     venue: Slug
     status: DataStatus = DataStatus.UNCONFIRMED
     timezone: str = "Asia/Yekaterinburg"
-    age_rating: str = Field(default="6+", max_length=8)
+    # Ценз берём с афиши; если его там нет — поля нет, а сайт пишет «не объявлен».
+    age_rating: str | None = Field(default=None, max_length=8)
     updated_at: datetime
     note: str | None = Field(default=None, max_length=300)
+    organizers: list[str] = Field(default_factory=list, max_length=6)
+    registration_until: date | None = None
 
     sources: list[Source] = Field(default_factory=list)
     studios: list[Studio] = Field(default_factory=list)
@@ -381,6 +539,13 @@ class Edition(Strict):
     participants: list[Participant] = Field(default_factory=list)
     performances: list[Performance] = Field(default_factory=list)
     judges: list[Judge] = Field(default_factory=list)
+    fees: list[Fee] = Field(default_factory=list, max_length=12)
+    tickets: list[Ticket] = Field(default_factory=list, max_length=12)
+    master_classes: list[MasterClass] = Field(default_factory=list, max_length=12)
+    master_class_pass_early: int | None = Field(default=None, ge=1, le=100_000)
+    master_class_pass_late: int | None = Field(default=None, ge=1, le=100_000)
+    criteria: list[Criterion] = Field(default_factory=list, max_length=8)
+    rules: list[str] = Field(default_factory=list, max_length=12)
 
     @model_validator(mode="after")
     def _integrity(self) -> Edition:
@@ -395,6 +560,9 @@ class Edition(Strict):
             "participants": [p.slug for p in self.participants],
             "performances": [p.slug for p in self.performances],
             "judges": [j.slug for j in self.judges],
+            "fees": [f.slug for f in self.fees],
+            "tickets": [t.slug for t in self.tickets],
+            "master_classes": [m.slug for m in self.master_classes],
         }
         for name, slugs in groups.items():
             duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
@@ -456,9 +624,33 @@ class Edition(Strict):
             if missing_blocks:
                 raise ValueError(f"judges.{judge.slug}: нет блоков {missing_blocks}")
             if judge.source_id and judge.source_id not in source_ids:
+                raise ValueError(f"judges.{judge.slug}: неизвестный source_id «{judge.source_id}»")
+
+        for ticket in self.tickets:
+            if ticket.day is not None:
+                self._check_day(ticket.day, "tickets", ticket.slug)
+            if ticket.source_id and ticket.source_id not in source_ids:
                 raise ValueError(
-                    f"judges.{judge.slug}: неизвестный source_id «{judge.source_id}»"
+                    f"tickets.{ticket.slug}: неизвестный source_id «{ticket.source_id}»"
                 )
+
+        for master_class in self.master_classes:
+            self._check_day(master_class.day, "master_classes", master_class.slug)
+            if master_class.source_id and master_class.source_id not in source_ids:
+                raise ValueError(
+                    f"master_classes.{master_class.slug}: "
+                    f"неизвестный source_id «{master_class.source_id}»"
+                )
+
+        for fee in self.fees:
+            if fee.early_until > self.dates[0]:
+                raise ValueError(
+                    f"fees.{fee.slug}: ранний срок {fee.early_until} позже начала выпуска"
+                )
+
+        for rule in self.rules:
+            if len(rule) > 300:
+                raise ValueError("rules: правило длиннее 300 символов — это уже абзац")
         return self
 
     def _check_day(self, day: int, field: str, slug: str) -> None:
@@ -486,7 +678,9 @@ class Edition(Strict):
         return {participant.slug: participant for participant in self.participants}
 
     def blocks_for_day(self, day: int) -> list[ScheduleBlock]:
-        return sorted((block for block in self.blocks if block.day == day), key=lambda b: b.starts_at)
+        return sorted(
+            (block for block in self.blocks if block.day == day), key=lambda b: b.starts_at
+        )
 
     def performances_for_nomination(self, slug: str) -> list[Performance]:
         return sorted(
@@ -504,6 +698,3 @@ class EditionBundle(Strict):
     @property
     def year(self) -> int:
         return self.edition.edition
-
-
-
