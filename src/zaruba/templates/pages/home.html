@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Чемпионат по современным танцам в Тюмени — {{ edition.title }}{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <p class="kicker">{{ edition.title }}</p>
+  <h1>Чемпионат по современным танцам</h1>
+  <ul class="hero-meta">
+    <li><span class="lbl">даты</span> {{ edition.dates|fmt_dates }}</li>
+    <li><span class="lbl">место</span> {{ venue.name }}, {{ venue.address }}</li>
+    <li><span class="lbl">ценз</span> {{ edition.age_rating }}</li>
+  </ul>
+  <div class="actions">
+    <a class="btn btn--primary" href="/schedule">Смотреть расписание</a>
+    <a class="btn" href="/venue">Как добраться</a>
+  </div>
+</section>
+
+<section class="section">
+  <h2>{{ edition.days }} дня, {{ edition.blocks|length }} блока</h2>
+  <p class="lead muted">День 1 — соло и дуэты, день 2 — команды и шоу.
+  Время блоков берётся из расписания, а не из постов в соцсетях.</p>
+  <div class="block-grid">
+    {% for item in blocks %}
+    <a class="block-card" href="/schedule#block-{{ item.block.slug }}">
+      <span class="block-time">{{ item.block.starts_at|fmt_time }}–{{ item.block.ends_at|fmt_time }}</span>
+      <strong>{{ item.block.title }}</strong>
+      <span class="muted">День {{ item.day }} · {{ item.date|fmt_weekday }}, {{ item.date|fmt_date }}</span>
+      <span class="muted">{{ item.block.stage }} · {{ item.nominations|length }} номинаций</span>
+    </a>
+    {% endfor %}
+  </div>
+  <p class="section-link"><a href="/schedule">всё расписание →</a></p>
+</section>
+
+<section class="section">
+  <h2>Кто выступает</h2>
+  <p class="lead muted">Восемь карточек для примера: реальные заявки появятся, когда
+  организаторы опубликуют списки. Участники младше 18 лет — только инициалы.</p>
+  <div class="person-grid">
+    {% for participant in participants %}
+    <article class="person-card">
+      <span class="avatar" aria-hidden="true">{{ participant.display_name }}</span>
+      <strong>{{ participant.display_name }}</strong>
+      <span class="muted">{{ studios[participant.studio].name }}</span>
+      <span class="muted small">{{ participant.age_group.label }}</span>
+      {% if participant.demo %}<span class="badge">пример</span>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <h2>Площадка</h2>
+  <div class="venue-card">
+    <div>
+      <strong>{{ venue.name }}</strong>
+      <p class="muted">{{ venue.address_line }}{% if venue.capacity %} · до {{ venue.capacity }} гостей{% endif %}</p>
+    </div>
+    {% if venue.map_url %}
+    <a class="btn" href="{{ venue.map_url }}" rel="noopener noreferrer nofollow">Открыть на карте</a>
+    {% endif %}
+  </div>
+  <p class="section-link"><a href="/venue">вход, гардероб, парковка →</a></p>
+</section>
+
+<section class="section sources">
+  <h2>Откуда данные</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }} · {{ source.trust.label }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Расписание блоков и участники на этой странице — демонстрационные
+  и помечены как «пример». Даты, место, ценз и название подтверждены источниками выше.</p>
+</section>
+{% endblock %}

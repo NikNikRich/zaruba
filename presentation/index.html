@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ЗАРУБА — сайт чемпионата · презентация проекта</title>
+<style>
+/* ============ 1. Основа ============ */
+:root{
+  --bg:#0b0b0f; --bg2:#13131a; --bg3:#1b1b24;
+  --ink:#f4f1ea; --muted:#9a9aab; --dim:#6c6c7d;
+  --lime:#e8ff3a; --coral:#ff5c38; --sky:#79c9ff;
+  --line:rgba(244,241,234,.14); --line2:rgba(244,241,234,.07);
+  --r:14px; --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --sans:"Segoe UI",Inter,system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+.deck{scroll-snap-type:y mandatory; height:100vh; overflow-y:auto}
+.slide{
+  min-height:100vh; scroll-snap-align:start; padding:clamp(24px,4vw,72px);
+  display:flex; flex-direction:column; justify-content:center; gap:clamp(16px,2vw,32px);
+  position:relative; border-bottom:1px solid var(--line2);
+}
+.slide--center{align-items:flex-start}
+.kicker{
+  font-family:var(--mono); font-size:clamp(11px,1vw,13px); letter-spacing:.18em;
+  text-transform:uppercase; color:var(--lime); display:flex; gap:10px; align-items:center;
+}
+.kicker::before{content:""; width:26px; height:2px; background:var(--lime); display:block}
+h1{font-size:clamp(38px,7vw,104px); line-height:.94; margin:0; letter-spacing:-.03em; font-weight:800}
+h2{font-size:clamp(26px,4.4vw,60px); line-height:1.02; margin:0; letter-spacing:-.02em; font-weight:800}
+h3{font-size:clamp(16px,1.5vw,22px); margin:0; font-weight:700; letter-spacing:-.01em}
+p{font-size:clamp(14px,1.25vw,19px); line-height:1.5; color:#d9d6cd; max-width:60ch; margin:0}
+.lead{font-size:clamp(16px,1.6vw,23px); color:var(--ink)}
+.muted{color:var(--muted)}
+.dim{color:var(--dim)}
+.accent{color:var(--lime)}
+.coral{color:var(--coral)}
+b,strong{color:#fff}
+.mono{font-family:var(--mono)}
+sup{font-size:.55em; color:var(--muted); font-weight:400}
+
+/* ============ 2. Панели и сетки ============ */
+.grid{display:grid; gap:clamp(10px,1.2vw,18px)}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.panel{
+  background:var(--bg2); border:1px solid var(--line); border-radius:var(--r);
+  padding:clamp(12px,1.5vw,22px); display:flex; flex-direction:column; gap:8px;
+}
+.panel--lime{background:rgba(232,255,58,.07); border-color:rgba(232,255,58,.35)}
+.panel--coral{background:rgba(255,92,56,.08); border-color:rgba(255,92,56,.35)}
+.num{font-size:clamp(26px,3.4vw,46px); font-weight:800; line-height:1; letter-spacing:-.03em}
+.panel .lbl{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+
+/* ============ 3. Бейджи, чипы, кнопки ============ */
+.badge{
+  display:inline-flex; align-items:center; gap:6px; font-family:var(--mono);
+  font-size:10.5px; letter-spacing:.06em; padding:3px 9px; border-radius:999px;
+  border:1px solid var(--line); color:var(--muted); white-space:nowrap; text-transform:uppercase;
+}
+.badge--ok{color:#0b0b0f; background:var(--lime); border-color:var(--lime); font-weight:700}
+.badge--warn{color:#0b0b0f; background:#ffc95c; border-color:#ffc95c; font-weight:700}
+.badge--old{color:#fff; background:rgba(255,92,56,.22); border-color:var(--coral)}
+.badge--live{color:var(--lime); border-color:rgba(232,255,58,.5)}
+.dot{width:6px;height:6px;border-radius:99px;background:currentColor;display:inline-block}
+.dot--pulse{animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.chip{
+  display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:999px;
+  background:var(--bg3); border:1px solid var(--line); font-size:12.5px; color:#e7e4db;
+}
+.chip--on{background:var(--ink); color:#0b0b0f; border-color:var(--ink); font-weight:700}
+.btn{
+  display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border-radius:10px;
+  font-size:13px; font-weight:700; background:var(--ink); color:#0b0b0f; border:1px solid var(--ink);
+}
+.btn--ghost{background:transparent; color:var(--ink); border-color:var(--line)}
+.btn--lime{background:var(--lime); border-color:var(--lime); color:#0b0b0f}
+.btn--sm{padding:6px 11px; font-size:11.5px; border-radius:8px}
+ul{margin:0; padding-left:18px; display:grid; gap:7px}
+li{font-size:clamp(13px,1.15vw,17px); line-height:1.45; color:#d9d6cd}
+li::marker{color:var(--lime)}
+.fact{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; align-items:baseline}
+.fact dt{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+.fact dd{margin:0; font-size:clamp(13px,1.15vw,17px)}
+</style>
+<style>
+/* ============ 4. Макеты страниц (браузерное окно) ============ */
+.browser{
+  background:#15151d; border:1px solid var(--line); border-radius:14px; overflow:hidden;
+  box-shadow:0 24px 60px rgba(0,0,0,.5); width:100%;
+}
+.browser__bar{display:flex;align-items:center;gap:9px;padding:8px 11px;background:#1d1d27;border-bottom:1px solid var(--line)}
+.browser__dots{display:flex;gap:5px}
+.browser__dots i{width:7px;height:7px;border-radius:99px;background:#3a3a49;display:block}
+.browser__dots i:first-child{background:#5a3a3a}
+.browser__url{flex:1;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--muted);background:#0f0f16;border-radius:6px;padding:3px 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.site{font-size:12px;line-height:1.45;color:#d9d6cd}
+.site__nav{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 15px;border-bottom:1px solid var(--line2)}
+.site__logo{font-weight:800;letter-spacing:.16em;font-size:12.5px}
+.site__menu{display:flex;gap:13px;color:var(--muted);font-size:11px}
+.site__menu .on{color:var(--ink);font-weight:700}
+.site__hero{padding:16px 15px;display:grid;gap:9px;background:linear-gradient(180deg,rgba(232,255,58,.07),transparent 75%)}
+.site__hero h4{margin:0;font-size:21px;line-height:1;letter-spacing:-.025em;font-weight:800;max-width:24ch;color:#fff}
+.meta{display:flex;flex-wrap:wrap;gap:7px;font-size:10.5px;color:var(--muted)}
+.cta{display:flex;gap:7px;flex-wrap:wrap;margin-top:2px}
+.site__sec{padding:11px 15px;border-top:1px solid var(--line2)}
+.site__sec .h{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.tabs{display:flex;gap:5px;margin-bottom:9px}
+.tab{padding:4px 11px;border-radius:7px;border:1px solid var(--line);font-size:10.5px;color:var(--muted)}
+.tab--on{background:var(--ink);color:#0b0b0f;font-weight:700;border-color:var(--ink)}
+.rows{display:grid;gap:5px}
+.row{display:grid;grid-template-columns:74px 1fr auto;gap:9px;align-items:center;padding:7px 9px;border-radius:8px;background:var(--bg3);border:1px solid var(--line2)}
+.row--now{background:rgba(232,255,58,.09);border-color:rgba(232,255,58,.45);box-shadow:inset 3px 0 0 var(--lime)}
+.row--done{opacity:.55}
+.row__t{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.row--now .row__t{color:var(--lime)}
+.row__n{font-size:11.5px;font-weight:600;color:#fff;display:block}
+.row__s{font-size:9.5px;color:var(--muted);display:block}
+.cards3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.mini{background:var(--bg3);border:1px solid var(--line2);border-radius:8px;padding:8px}
+.mini b{display:block;font-size:11px;margin-bottom:1px;color:#fff}
+.mini span{font-size:9.5px;color:var(--muted)}
+.table{width:100%;border-collapse:collapse;font-size:10.8px}
+.table th{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:5px 7px;border-bottom:1px solid var(--line)}
+.table td{padding:6px 7px;border-bottom:1px solid var(--line2)}
+.table tr:last-child td{border-bottom:0}
+.up{color:var(--lime);font-family:var(--mono);font-size:10px}
+.down{color:var(--coral);font-family:var(--mono);font-size:10px}
+.avatar{width:32px;height:32px;border-radius:99px;background:rgba(232,255,58,.14);border:1px solid rgba(232,255,58,.4);display:grid;place-items:center;font-weight:800;font-size:10.5px;color:var(--lime);flex:none}
+.avatar--grey{background:#2a2a36;border-color:var(--line);color:var(--muted)}
+.pcard{display:flex;gap:9px;align-items:center}
+.pcard b{display:block;font-size:11.5px;color:#fff}
+.pcard span{font-size:10px;color:var(--muted)}
+.map{height:88px;border:1px solid var(--line2);border-radius:8px;position:relative;overflow:hidden;background:
+  repeating-linear-gradient(0deg,transparent 0 10px,rgba(244,241,234,.055) 10px 11px),
+  repeating-linear-gradient(90deg,transparent 0 10px,rgba(244,241,234,.055) 10px 11px),#101018}
+.map i{position:absolute;left:52%;top:46%;width:9px;height:9px;border-radius:99px;background:var(--lime);box-shadow:0 0 0 6px rgba(232,255,58,.16)}
+.map u{position:absolute;left:52%;top:calc(46% + 14px);transform:translateX(-50%);font-size:9px;color:var(--ink);text-decoration:none;font-family:var(--mono);background:rgba(11,11,15,.75);padding:1px 5px;border-radius:4px;white-space:nowrap}
+</style>
+<style>
+/* ============ 5. Телефон, таймлайн, навигация ============ */
+.phone{width:212px;flex:none;background:#0f0f16;border:1px solid var(--line);border-radius:24px;padding:6px;box-shadow:0 22px 44px rgba(0,0,0,.5)}
+.phone__scr{background:#0b0b0f;border-radius:18px;overflow:hidden;border:1px solid var(--line2)}
+.phone__notch{height:14px;display:grid;place-items:center}
+.phone__notch i{width:46px;height:4px;border-radius:99px;background:#2c2c38;display:block}
+.tl{display:grid;grid-template-columns:126px 1fr 54px;gap:12px;align-items:center}
+.bar{height:8px;border-radius:99px;background:var(--bg3);border:1px solid var(--line2);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--lime),#b6d400)}
+.bar i.c{background:linear-gradient(90deg,var(--coral),#c93c1d)}
+.flow{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.node{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:11px;color:#e7e4db}
+.node b{display:block;font-size:9px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.arrow{color:var(--dim);font-size:12px}
+.hint{position:fixed;left:18px;bottom:16px;font-family:var(--mono);font-size:10px;color:var(--dim);z-index:50;letter-spacing:.05em}
+.nav{position:fixed;right:18px;bottom:14px;display:flex;align-items:center;gap:6px;background:rgba(15,15,22,.92);border:1px solid var(--line);border-radius:999px;padding:6px 8px;z-index:50;backdrop-filter:blur(10px)}
+.nav button{width:26px;height:26px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:13px;cursor:pointer;display:grid;place-items:center;padding:0}
+.nav button:hover{background:var(--bg3)}
+.nav .cnt{font-family:var(--mono);font-size:10.5px;color:var(--muted);min-width:44px;text-align:center}
+.progress{position:fixed;top:0;left:0;height:2px;background:var(--lime);width:0;z-index:60;transition:width .18s}
+.pagenum{position:absolute;right:clamp(18px,3vw,56px);top:clamp(16px,2vw,44px);font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.1em}
+.hr{height:1px;background:var(--line);border:0;margin:0;width:100%}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:860px){
+  .g2,.g3,.g4,.kpi{grid-template-columns:1fr 1fr}
+  .cards3{grid-template-columns:1fr}
+  .tl{grid-template-columns:96px 1fr 46px}
+  .slide{min-height:auto}
+  .deck{scroll-snap-type:none}
+}
+@media (max-width:900px){
+  .slide div[style*="grid-template-columns:1.5fr"],
+  .slide div[style*="grid-template-columns:1.15fr"],
+  .slide div[style*="grid-template-columns:1.25fr"],
+  .slide div[style*="grid-template-columns:1fr 220px"]{grid-template-columns:1fr !important}
+  .phone{width:100%;max-width:260px}
+}
+@media print{
+  @page{size:A4 landscape;margin:0}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#0b0b0f}
+  .deck{height:auto;overflow:visible}
+  .slide{min-height:auto;page-break-after:always;padding:8mm;zoom:.72}
+  .nav,.hint,.progress{display:none}
+  .pagenum{color:#666}
+}
+</style>
+</head>
+<body>
+<div class="deck">
+<section class="slide slide--center" id="s01">
+  <div class="pagenum">01 / 15</div>
+  <div class="kicker">Фанатский проект · Тюмень · 2026</div>
+  <h1>ЗАРУБА<br><span class="accent">сайт,</span><br>которого нет</h1>
+  <p class="lead">Информационный хаб танцевального чемпионата: расписание, выступления,
+  участники, рейтинги, площадка и билеты — в одном месте, за 20 секунд.</p>
+  <div class="grid g3" style="width:100%;max-width:1000px;margin-top:8px">
+    <div class="panel"><span class="lbl">собственного сайта</span><div class="num">0</div>
+      <span class="dim">все 7 доменов бренда — NXDOMAIN</span></div>
+    <div class="panel"><span class="lbl">дня в программе</span><div class="num">2</div>
+      <span class="dim">впервые в 2025: solo/duet → show/team</span></div>
+    <div class="panel panel--lime"><span class="lbl">зрителей в зале</span><div class="num">850</div>
+      <span class="dim">КТЗ «Золотые ворота Сибири»</span></div>
+  </div>
+  <div class="meta"><span class="badge">этап 1 — информационный блок</span>
+    <span class="badge">юбилейный выпуск 2025</span>
+    <span class="badge">данные на 23.10.2026</span></div>
+</section>
+
+<section class="slide" id="s02">
+  <div class="pagenum">02 / 15</div>
+  <div class="kicker">Проблема</div>
+  <h2>Событие есть.<br>Ответов на вопросы — нет.</h2>
+  <div class="grid g2" style="margin-top:6px">
+    <div class="panel panel--coral"><h3>Зритель</h3>
+      <p class="muted" style="font-size:15px">«Во сколько выступает моя племянница?» — ответ только в
+      переписке с тренером или в ленте VK, которую надо листать.</p></div>
+    <div class="panel panel--coral"><h3>Родитель</h3>
+      <p class="muted" style="font-size:15px">Нужны время блока, вход, парковка и цена билета — три разных
+      источника, два из них устарели.</p></div>
+    <div class="panel panel--coral"><h3>Студия</h3>
+      <p class="muted" style="font-size:15px">Хочет показать своих участников, но ссылаться некуда —
+      нет ни страницы участника, ни архива результатов.</p></div>
+    <div class="panel panel--coral"><h3>Гость из другого города</h3>
+      <p class="muted" style="font-size:15px">«А что там вообще происходит и стоит ли ехать?» —
+      понять можно только по 30-секундным клипам.</p></div>
+  </div>
+  <p class="lead" style="margin-top:6px">Итог: <b>интерес есть, информации нет.</b> Каждый год всё
+  заново переспрашивают в комментариях — это и есть упущенный охват.</p>
+</section>
+
+<section class="slide" id="s03">
+  <div class="pagenum">03 / 15</div>
+  <div class="kicker">Что известно точно</div>
+  <h2>Факты, на которых<br>можно строить</h2>
+  <div class="grid g2" style="align-items:start">
+    <dl class="fact">
+      <dt>Событие</dt><dd>«ЗАРУБА» / «ЗАРУБА DANCE CHAMP», Тюмень — ежегодный</dd>
+      <dt>Последний выпуск</dt><dd>6–7 декабря 2025, впервые два дня</dd>
+      <dt>Площадка</dt><dd>КТЗ «Золотые ворота Сибири», ул. Герцена, 87</dd>
+      <dt>Зал</dt><dd>до 850 гостей</dd>
+      <dt>Форматы</dt><dd>Solo / Duet — день 1, Show / Team / mini group — день 2</dd>
+      <dt>Билеты</dt><dd>через <span class="mono">kassy.ru</span> (официальный канал)</dd>
+      <dt>Жюри 2025</dt><dd>Анастасия Юрасова (MATÈ), Андрей Морыженков, Наталья Мафия · MC — GEO</dd>
+      <dt>Ценз</dt><dd>6+ · каналы: <span class="mono">vk.com/zaruba72champ</span></dd>
+    </dl>
+    <div class="panel">
+      <h3>Чего не знает никто снаружи</h3>
+      <ul>
+        <li>«Положение»: номинации, возрастные группы, критерии судейства</li>
+        <li>взносы участников и правила возврата билетов</li>
+        <li>статистика прошлых лет: участники, города, зрители</li>
+        <li>даты следующего выпуска и права на бренд/домен</li>
+      </ul>
+      <hr class="hr">
+      <p style="font-size:14px"><span class="badge badge--warn">правило</span>&nbsp; Ни один
+      неподтверждённый факт не выдумывается: он либо скрыт, либо помечен и снабжён ссылкой
+      на первоисточник.</p>
+    </div>
+  </div>
+</section>
+<section class="slide" id="s04">
+  <div class="pagenum">04 / 15</div>
+  <div class="kicker">Для кого</div>
+  <h2>Три ядра аудитории</h2>
+  <div class="grid g3" style="align-items:start">
+    <div class="panel"><span class="badge">ядро 1</span><h3>Дети 6–11<br>и их родители</h3>
+      <ul><li>платят родители, решают родители</li>
+          <li>нужны время блока, вход, где ждать</li>
+          <li>боятся «не найти своего ребёнка»</li></ul>
+      <p style="font-size:13px" class="dim">Решение: страница участника + расписание с якорями.</p></div>
+    <div class="panel"><span class="badge">ядро 2</span><h3>Подростки 12–17</h3>
+      <ul><li>смотрят клипы, делятся карточками</li>
+          <li>хотят сравнения и признания</li>
+          <li>приходят со студией, приводят друзей</li></ul>
+      <p style="font-size:13px" class="dim">Решение: карточка бойца 1080×1920, рейтинг по группе.</p></div>
+    <div class="panel panel--lime"><span class="badge">ядро 3</span><h3>Взрослые<br>и зрители</h3>
+      <ul><li>решают «идти или нет» за минуту</li>
+          <li>нужны цена, время, как добраться</li>
+          <li>именно они дают охват в соцсетях</li></ul>
+      <p style="font-size:13px" class="dim">Решение: главная = ответ на 4 вопроса.</p></div>
+  </div>
+  <p class="lead">Сайт не пытается быть всем. Он отвечает на <b>один</b> вопрос:
+  «что, когда и где происходит — и как мне это увидеть».</p>
+</section>
+
+<section class="slide" id="s05">
+  <div class="pagenum">05 / 15</div>
+  <div class="kicker">Идея продукта</div>
+  <h2>20 секунд.<br>3 тапа до расписания.</h2>
+  <div class="grid g2" style="align-items:start">
+    <div class="panel">
+      <h3>Что должно быть понятно сразу</h3>
+      <ul>
+        <li><b>что</b> это — чемпионат по современным танцам</li>
+        <li><b>когда</b> — даты и «сейчас идёт блок N»</li>
+        <li><b>где</b> — площадка, вход, как добраться</li>
+        <li><b>сколько</b> — цена билета или честная ссылка на официальный канал</li>
+      </ul>
+    </div>
+    <div class="panel panel--lime">
+      <h3>Чего на сайте не будет</h3>
+      <ul>
+        <li>продажи билетов и приёма денег</li>
+        <li>ощущения «официальный сайт» — только дисклеймер</li>
+        <li>регистрации и логина для зрителя</li>
+        <li>пустых блоков «скоро» без альтернативы</li>
+      </ul>
+    </div>
+  </div>
+  <div class="grid g4" style="margin-top:4px">
+    <div class="panel"><span class="lbl">без JS</span><div class="num" style="font-size:26px">100%</div>
+      <span class="dim" style="font-size:12px">инфо-страницы</span></div>
+    <div class="panel"><span class="lbl">вес первого экрана</span><div class="num" style="font-size:26px">≤300 КБ</div>
+      <span class="dim" style="font-size:12px">без hero-видео</span></div>
+    <div class="panel"><span class="lbl">LCP на 4G</span><div class="num" style="font-size:26px">&lt;2.5 с</div>
+      <span class="dim" style="font-size:12px">Lighthouse mobile ≥ 90</span></div>
+    <div class="panel"><span class="lbl">фактов с источником</span><div class="num" style="font-size:26px">100%</div>
+      <span class="dim" style="font-size:12px">иначе не публикуется</span></div>
+  </div>
+</section>
+<section class="slide" id="s06">
+  <div class="pagenum">06 / 15</div>
+  <div class="kicker">Конечный вид · главная</div>
+  <h2 style="font-size:clamp(22px,3.2vw,40px)">Один экран — четыре ответа</h2>
+  <div style="display:grid;grid-template-columns:1.5fr .5fr;gap:16px;align-items:start">
+    <div class="browser">
+      <div class="browser__bar"><div class="browser__dots"><i></i><i></i><i></i></div>
+        <div class="browser__url">tmn-dance-champ.ru</div><span class="badge">неофициальный</span></div>
+      <div class="site">
+        <div class="site__nav">
+          <div class="site__logo">ЗАРУБА<span class="accent">.</span></div>
+          <div class="site__menu"><span class="on">Главная</span><span>Расписание</span>
+            <span>Выступления</span><span>Участники</span><span>Площадка</span></div>
+          <span class="btn btn--sm btn--lime">Билеты →</span>
+        </div>
+        <div class="site__hero">
+          <h4>Чемпионат по современным танцам.<br>Два дня. Один большой зал.</h4>
+          <div class="meta"><span>6–7 декабря</span><span>·</span><span>КТЗ «Золотые ворота Сибири»</span>
+            <span>·</span><span>850 мест</span><span class="badge badge--ok">подтверждено</span></div>
+          <div class="cta"><span class="btn btn--sm">Расписание</span>
+            <span class="btn btn--sm btn--ghost">Как добраться</span>
+            <span class="btn btn--sm btn--ghost">Купить билет</span></div>
+        </div>
+        <div class="site__sec" style="background:rgba(232,255,58,.05)">
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px">
+            <span class="badge badge--live"><span class="dot dot--pulse"></span>сейчас идёт</span>
+            <b style="color:#fff">13:30–15:00 · Solo hip-hop 12–17</b>
+            <span class="dim">сцена A · блок 3 из 6</span></div>
+        </div>
+        <div class="site__sec">
+          <div class="cards3">
+            <div class="mini"><b>Расписание</b><span>2 дня · 12 блоков · якоря</span></div>
+            <div class="mini"><b>Участники</b><span>8 человек · 3 студии</span></div>
+            <div class="mini"><b>Площадка</b><span>вход, зал, парковка</span></div>
+          </div>
+        </div>
+        <div class="site__sec" style="font-size:9.5px;color:var(--dim)">
+          Неофициальный сайт, ведётся фанатами · официальные анонсы — VK
+        </div>
+      </div>
+    </div>
+    <div class="grid" style="gap:8px">
+      <div class="panel" style="padding:11px"><span class="lbl">1 · герой</span>
+        <span style="font-size:12.5px">что, когда, где, сколько — без скролла</span></div>
+      <div class="panel" style="padding:11px"><span class="lbl">2 · live-строка</span>
+        <span style="font-size:12.5px">«где я сейчас» в день события</span></div>
+      <div class="panel" style="padding:11px"><span class="lbl">3 · три карточки</span>
+        <span style="font-size:12.5px">три тапа — три вопроса</span></div>
+      <div class="panel" style="padding:11px"><span class="lbl">4 · футер</span>
+        <span style="font-size:12.5px">честный статус: фанатский сайт</span></div>
+    </div>
+  </div>
+  <p class="dim" style="font-size:12px;max-width:90ch">Макеты — про структуру: имена, номера и время
+  условные, реальные значения придут из YAML и будут помечены источниками. Цвет, сетка и
+  типографика — финальные.</p>
+</section>
+<section class="slide" id="s07">
+  <div class="pagenum">07 / 15</div>
+  <div class="kicker">Конечный вид · самый важный экран</div>
+  <h2 style="font-size:clamp(22px,3.2vw,40px)">Расписание, которое отвечает на вопрос</h2>
+  <div style="display:grid;grid-template-columns:1fr 220px;gap:18px;align-items:start">
+    <div class="browser">
+      <div class="browser__bar"><div class="browser__dots"><i></i><i></i><i></i></div>
+        <div class="browser__url">/schedule#block-solo-hip-hop-12-17</div>
+        <span class="badge">обновлено 12:40</span></div>
+      <div class="site">
+        <div class="site__sec">
+          <div class="tabs"><span class="tab tab--on">6 декабря · день 1</span>
+            <span class="tab">7 декабря · день 2</span>
+            <span class="tab">печать</span><span class="tab">.ics</span></div>
+          <div class="rows">
+            <div class="row row--done"><span class="row__t">10:00–11:30</span>
+              <span><span class="row__n">Регистрация и разминка</span>
+                <span class="row__s">фойе · вход со стороны Герцена</span></span>
+              <span class="badge">завершён</span></div>
+            <div class="row row--done"><span class="row__t">11:30–13:00</span>
+              <span><span class="row__n">Solo · hip-hop · 6–11 лет</span>
+                <span class="row__s">сцена A · 42 выступления</span></span>
+              <span class="badge">завершён</span></div>
+            <div class="row row--now"><span class="row__t">13:30–15:00</span>
+              <span><span class="row__n">Solo · hip-hop · 12–17 лет</span>
+                <span class="row__s">сцена A · идёт сейчас · #block-solo-hip-hop-12-17</span></span>
+              <span class="badge badge--live"><span class="dot dot--pulse"></span>идёт</span></div>
+            <div class="row"><span class="row__t">15:00–15:40</span>
+              <span><span class="row__n">Перерыв · музыка в фойе</span>
+                <span class="row__s">кафе и фотозона</span></span>
+              <span class="badge">далее</span></div>
+            <div class="row"><span class="row__t">15:40–17:10</span>
+              <span><span class="row__n">Duet · все направления</span>
+                <span class="row__s">сцена A · 26 пар</span></span>
+              <span class="badge">далее</span></div>
+            <div class="row"><span class="row__t">18:00–19:30</span>
+              <span><span class="row__n">Финал дня · награждение</span>
+                <span class="row__s">сцена A · вход по билету дня</span></span>
+              <span class="badge">далее</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="phone"><div class="phone__scr">
+      <div class="phone__notch"><i></i></div>
+      <div style="padding:8px 10px 10px">
+        <div style="font-weight:800;font-size:12px;letter-spacing:.1em;margin-bottom:7px">ЗАРУБА<span class="accent">.</span>
+          <span class="dim" style="font-weight:400;font-size:8.5px;letter-spacing:0"> · расписание</span></div>
+        <div class="tabs" style="margin-bottom:6px"><span class="tab tab--on" style="padding:3px 8px;font-size:9px">6 дек</span>
+          <span class="tab" style="padding:3px 8px;font-size:9px">7 дек</span></div>
+        <div class="rows" style="gap:4px">
+          <div class="row row--now" style="grid-template-columns:1fr;padding:6px 7px;gap:2px">
+            <span class="row__t" style="font-size:8.5px">13:30–15:00 · идёт</span>
+            <span class="row__n" style="font-size:10px">Solo hip-hop 12–17</span>
+            <span class="row__s" style="font-size:8px">сцена A</span></div>
+          <div class="row" style="grid-template-columns:1fr;padding:6px 7px;gap:2px;opacity:.75">
+            <span class="row__t" style="font-size:8.5px">15:40–17:10</span>
+            <span class="row__n" style="font-size:10px">Duet · все стили</span>
+            <span class="row__s" style="font-size:8px">сцена A</span></div>
+          <div class="row" style="grid-template-columns:1fr;padding:6px 7px;gap:2px;opacity:.75">
+            <span class="row__t" style="font-size:8.5px">18:00–19:30</span>
+            <span class="row__n" style="font-size:10px">Финал дня</span>
+            <span class="row__s" style="font-size:8px">награждение</span></div>
+        </div>
+        <div style="margin-top:7px;font-size:8px;color:var(--dim)">обновлено 12:40 · печать · .ics</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="grid g4">
+    <div class="panel" style="padding:10px"><span class="lbl">иерархия</span>
+      <span style="font-size:12.5px">день → блок → слот</span></div>
+    <div class="panel" style="padding:10px"><span class="lbl">якоря</span>
+      <span style="font-size:12.5px">ссылка «мы в 13:30» в чат студии</span></div>
+    <div class="panel" style="padding:10px"><span class="lbl">честность</span>
+      <span style="font-size:12.5px">время окончания + «обновлено в …»</span></div>
+    <div class="panel" style="padding:10px"><span class="lbl">офлайн</span>
+      <span style="font-size:12.5px">печать на A4 и календарь .ics</span></div>
+  </div>
+</section>
+<section class="slide" id="s08">
+  <div class="pagenum">08 / 15</div>
+  <div class="kicker">Конечный вид · выступления</div>
+  <h2 style="font-size:clamp(22px,3.2vw,40px)">Каждое выступление — отдельная страница</h2>
+  <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:16px;align-items:start">
+    <div class="browser">
+      <div class="browser__bar"><div class="browser__dots"><i></i><i></i><i></i></div>
+        <div class="browser__url">/performances?solo&amp;hip-hop&amp;12-17</div><span class="badge">12 из 42</span></div>
+      <div class="site">
+        <div class="site__sec">
+          <div class="tabs"><span class="tab tab--on">все</span><span class="tab">solo</span>
+            <span class="tab">duet</span><span class="tab">team</span><span class="tab">6–11</span>
+            <span class="tab">12–17</span><span class="tab">18+</span></div>
+          <div class="rows">
+            <div class="row"><span class="row__t">13:34</span>
+              <span><span class="row__n">№12 · Алиса К. — «Ritmo»</span>
+                <span class="row__s">Solo hip-hop 12–17 · студия «Ритм»</span></span>
+              <span class="badge badge--ok">видео</span></div>
+            <div class="row"><span class="row__t">13:37</span>
+              <span><span class="row__n">№13 · Марк В. — «Pressure»</span>
+                <span class="row__s">Solo hip-hop 12–17 · студия «Импульс»</span></span>
+              <span class="badge">без видео</span></div>
+            <div class="row"><span class="row__t">13:40</span>
+              <span><span class="row__n">№14 · Дана Л. — «Switch»</span>
+                <span class="row__s">Solo hip-hop 12–17 · студия «Ритм»</span></span>
+              <span class="badge badge--ok">видео</span></div>
+            <div class="row"><span class="row__t">13:43</span>
+              <span><span class="row__n">№15 · Тимур А. — «Bounce»</span>
+                <span class="row__s">Solo hip-hop 12–17 · студия «Шаг»</span></span>
+              <span class="badge badge--ok">видео</span></div>
+          </div>
+        </div>
+        <div class="site__sec" style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--dim)">
+          <span>фильтры сохраняются в ссылке — можно отправить тренеру</span>
+          <span>№14 из 42 →</span></div>
+      </div>
+    </div>
+    <div class="browser">
+      <div class="browser__bar"><div class="browser__dots"><i></i><i></i><i></i></div>
+        <div class="browser__url">/performances/2025/solo-hip-hop-12-17/alisa-k</div></div>
+      <div class="site">
+        <div class="site__sec">
+          <div class="meta" style="margin-bottom:8px"><span class="badge">№12</span>
+            <span class="badge">13:52</span><span class="badge">сцена A</span>
+            <span class="badge badge--ok">подтверждено</span></div>
+          <h4 style="margin:0 0 6px;font-size:17px;line-height:1.1;color:#fff">Алиса К. — «Ritmo»</h4>
+          <p style="font-size:11px;color:var(--muted);margin:0 0 10px">Solo · hip-hop · 12–17 лет ·
+            студия «Ритм», Тюмень</p>
+          <div style="border:1px solid var(--line2);border-radius:8px;padding:8px 10px;background:var(--bg3)">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:4px">баллы судей</div>
+            <div style="font-size:11px">Официальные результаты появятся после блока.
+              <span class="dim">Пока — результаты 2025 года.</span></div>
+          </div>
+          <div class="cta" style="margin-top:9px"><span class="btn btn--sm btn--ghost">Смотреть видео</span>
+            <span class="btn btn--sm btn--ghost">Страница участника</span>
+            <span class="btn btn--sm btn--ghost">Поделиться</span></div>
+        </div>
+        <div class="site__sec" style="font-size:9.5px;color:var(--dim)">
+          источник: анонс VK, 12.11.2025 · обновлено 23.10.2026
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="lead" style="font-size:15px">Ссылка на фильтр и на выступление — это то, что студии
+  пересылают в чаты. Поэтому фильтры живут в URL, а не в состоянии страницы.</p>
+</section>
+<section class="slide" id="s09">
+  <div class="pagenum">09 / 15</div>
+  <div class="kicker">Приватность · не обсуждается</div>
+  <h2 style="font-size:clamp(22px,3.2vw,40px)">Дети — не контент</h2>
+  <div class="grid g2" style="align-items:start">
+    <div class="browser">
+      <div class="browser__bar"><div class="browser__dots"><i></i><i></i><i></i></div>
+        <div class="browser__url">/participants/mark-v · 18+</div><span class="badge badge--ok">индексируется</span></div>
+      <div class="site"><div class="site__sec">
+        <div class="pcard"><div class="avatar">МВ</div>
+          <div><b>Марк Волков</b><span>студия «Импульс» · Тюмень · 18+</span></div></div>
+        <div class="meta" style="margin-top:8px"><span class="badge">3 выступления</span>
+          <span class="badge badge--live">рейтинг 1042</span><span class="badge">фото</span>
+          <span class="badge">видео</span></div>
+        <p style="font-size:10.5px;margin:8px 0 0">Полное имя, фото, клипы и разметка
+          <span class="mono">Person</span> — только при личном согласии.</p>
+      </div></div>
+    </div>
+    <div class="browser">
+      <div class="browser__bar"><div class="browser__dots"><i></i><i></i><i></i></div>
+        <div class="browser__url">/participants/alisa-k · 12–17</div><span class="badge badge--old">noindex</span></div>
+      <div class="site"><div class="site__sec">
+        <div class="pcard"><div class="avatar avatar--grey">АК</div>
+          <div><b>Алиса К.</b><span>студия «Ритм» · Тюмень · 12–17</span></div></div>
+        <div class="meta" style="margin-top:8px"><span class="badge">3 выступления</span>
+          <span class="badge">без фото</span><span class="badge">без видео</span>
+          <span class="badge">рейтинг скрыт</span></div>
+        <p style="font-size:10.5px;margin:8px 0 0">Согласия родителей нет → инициалы,
+          нет фото и клипов, страница не попадает в поиск.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="grid g3" style="align-items:start">
+    <div class="panel" style="padding:12px"><span class="lbl">статусы</span>
+      <span style="font-size:12.5px">есть согласие / нет / отозвано — три состояния, а не переключатель</span></div>
+    <div class="panel" style="padding:12px"><span class="lbl">границы</span>
+      <span style="font-size:12.5px">дуэли и «рейтинги снизу» — только 18+; для детей лишь «поддержка»</span></div>
+    <div class="panel" style="padding:12px"><span class="lbl">удаление</span>
+      <span style="font-size:12.5px">форма `/takedown`: снимаем страницу в течение 24 часов, без вопросов</span></div>
+  </div>
+</section>
+<section class="slide" id="s10">
+  <div class="pagenum">10 / 15</div>
+  <div class="kicker">Конечный вид · площадка</div>
+  <h2 style="font-size:clamp(22px,3.2vw,40px)">«Как добраться» без звонка организатору</h2>
+  <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:16px;align-items:start">
+    <div class="browser">
+      <div class="browser__bar"><div class="browser__dots"><i></i><i></i><i></i></div>
+        <div class="browser__url">/venue</div><span class="badge">проверено 23.10.2026</span></div>
+      <div class="site">
+        <div class="site__hero" style="padding-bottom:6px">
+          <h4 style="font-size:16px">КТЗ «Золотые ворота Сибири»</h4>
+          <div class="meta"><span>ул. Герцена, 87 · Тюмень</span><span>·</span>
+            <span>до 850 мест</span><span class="badge badge--ok">подтверждено</span></div>
+        </div>
+        <div class="site__sec" style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <div class="map"><i></i><u>Герцена, 87</u></div>
+          <div style="display:grid;gap:5px;font-size:10.5px">
+            <div><span class="dim">Вход</span> · центральный, со стороны Герцена</div>
+            <div><span class="dim">Гардероб</span> · сразу справа от входа</div>
+            <div><span class="dim">Зал</span> · партер + балкон</div>
+            <div><span class="dim">Коляска</span> · пандус у главного входа</div>
+            <div><span class="dim">Парковка</span> · во дворе, бесплатно</div>
+          </div>
+        </div>
+        <div class="site__sec">
+          <div class="h">рядом</div>
+          <div class="cards3">
+            <div class="mini"><b>Кофейня</b><span>2 минуты, до 22:00</span></div>
+            <div class="mini"><b>Отель</b><span>для гостей из области</span></div>
+            <div class="mini"><b>Магазин</b><span>вода, перекус</span></div>
+          </div>
+        </div>
+        <div class="site__sec" style="font-size:9.5px;color:var(--muted)">
+          <b style="color:#fff">Правила:</b> вода в пластике — можно · еда — только в фойе ·
+          съёмка без вспышки · дети до 12 — в сопровождении взрослого
+        </div>
+      </div>
+    </div>
+    <div class="grid" style="gap:8px">
+      <div class="panel" style="padding:11px"><span class="lbl">фото входа</span>
+        <span style="font-size:12.5px">обязательно: снимает половину вопросов в ЛС</span></div>
+      <div class="panel" style="padding:11px"><span class="lbl">карта</span>
+        <span style="font-size:12.5px">статичная картинка + ссылка в Яндекс.Карты, без API-ключей</span></div>
+      <div class="panel" style="padding:11px"><span class="lbl">время</span>
+        <span style="font-size:12.5px">открытие дверей, перерывы, «когда лучше прийти на финал»</span></div>
+      <div class="panel panel--lime" style="padding:11px"><span class="lbl">эффект</span>
+        <span style="font-size:12.5px">родитель не пишет организатору — а организатор не отвечает 50 раз одно и то же</span></div>
+    </div>
+  </div>
+</section>
+<section class="slide" id="s11">
+  <div class="pagenum">11 / 15</div>
+  <div class="kicker">Конечный вид · рейтинги</div>
+  <h2 style="font-size:clamp(22px,3.2vw,40px)">Рейтинг — игра для зрителя,<br>а не отбор</h2>
+  <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:16px;align-items:start">
+    <div class="browser">
+      <div class="browser__bar"><div class="browser__dots"><i></i><i></i><i></i></div>
+        <div class="browser__url">/ratings#group-12-17</div><span class="badge">сезон 2025</span></div>
+      <div class="site">
+        <div class="site__sec">
+          <div class="tabs"><span class="tab">6–11</span><span class="tab tab--on">12–17</span>
+            <span class="tab">18+</span><span class="tab">студии</span><span class="tab">#method</span></div>
+          <table class="table">
+            <thead><tr><th>#</th><th>участник</th><th>студия</th><th>очки</th><th>голоса</th><th>±</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td><b style="color:#fff">Алиса К.</b></td><td class="muted">Ритм</td>
+                <td>1084</td><td class="dim">37</td><td class="up">↑2</td></tr>
+              <tr><td>2</td><td><b style="color:#fff">Дана Л.</b></td><td class="muted">Ритм</td>
+                <td>1071</td><td class="dim">34</td><td class="down">↓1</td></tr>
+              <tr><td>3</td><td><b style="color:#fff">Марк В.</b></td><td class="muted">Импульс</td>
+                <td>1058</td><td class="dim">29</td><td class="up">↑1</td></tr>
+              <tr><td>4</td><td><b style="color:#fff">Тимур А.</b></td><td class="muted">Шаг</td>
+                <td>1033</td><td class="dim">22</td><td class="dim">—</td></tr>
+              <tr><td>5</td><td><b style="color:#fff">Ева С.</b></td><td class="muted">Ритм</td>
+                <td>1012</td><td class="dim">19</td><td class="up">↑3</td></tr>
+            </tbody>
+          </table>
+          <div style="font-size:9px;color:var(--dim);margin-top:6px">
+            Эло · K=24 · старт 1000 · минимум 3 выступления · доверие ±28 на 19 голосах</div>
+        </div>
+        <div class="site__sec" style="display:flex;gap:10px;font-size:9.5px;color:var(--muted)">
+          <span>№1 — Алиса К.</span><span>·</span><span>обновлено сегодня 06:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid" style="gap:8px">
+      <div class="panel panel--lime" style="padding:12px"><h3 style="font-size:15px">Что рейтинг не значит</h3>
+        <ul style="gap:4px"><li style="font-size:12px">не отбор и не оценка тренера</li>
+          <li style="font-size:12px">не сравнение детей и взрослых</li>
+          <li style="font-size:12px">не приговор на 5 голосах</li></ul></div>
+      <div class="panel" style="padding:12px"><span class="lbl">методика</span>
+        <span style="font-size:12.5px">версия <span class="mono">v1</span> от 23.10.2026, список исключений,
+        кнопка «оспорить»</span></div>
+      <div class="panel" style="padding:12px"><span class="lbl">возраст</span>
+        <span style="font-size:12.5px">6–11 · 12–17 · 18+ — три отдельные таблицы, никогда не смешиваются</span></div>
+      <div class="panel" style="padding:12px"><span class="lbl">студии</span>
+        <span style="font-size:12.5px">медиана топ-3 участников: глубина состава важнее размера</span></div>
+    </div>
+  </div>
+  <p class="lead" style="font-size:15px">Фан-голосование включается только вместе с механикой из
+  <span class="mono">05</span> — иначе таблица показывает выдуманные цифры.</p>
+</section>
+<section class="slide" id="s12">
+  <div class="pagenum">12 / 15</div>
+  <div class="kicker">Доверие</div>
+  <h2 style="font-size:clamp(22px,3.2vw,40px)">Каждый факт знает, откуда он</h2>
+  <div class="grid g2" style="align-items:start">
+    <div class="panel">
+      <h3>Три статуса — на каждой странице</h3>
+      <div style="display:grid;gap:7px;margin-top:4px">
+        <div><span class="badge badge--ok">подтверждено</span>
+          <span class="muted" style="font-size:12.5px;margin-left:6px">есть публичный источник, ссылка в футере блока</span></div>
+        <div><span class="badge badge--warn">не подтверждено</span>
+          <span class="muted" style="font-size:12.5px;margin-left:6px">данные из обсуждений — помечены, не выдаются за факт</span></div>
+        <div><span class="badge badge--old">устарело</span>
+          <span class="muted" style="font-size:12.5px;margin-left:6px">прошлый выпуск: показываем, но честно предупреждаем</span></div>
+      </div>
+      <hr class="hr" style="margin:8px 0">
+      <p style="font-size:13px">У цены — ещё и дата проверки: «проверено 12.11.2025».
+      У расписания — «обновлено в 12:40» и номер версии.</p>
+    </div>
+    <div class="panel">
+      <h3>Вместо «скоро» — выход</h3>
+      <div style="display:grid;gap:6px;font-size:12.5px">
+        <div><span class="dim">нет расписания →</span> прошлогоднее + дата появления</div>
+        <div><span class="dim">нет результатов →</span> «появятся после блока» + прошлый год</div>
+        <div><span class="dim">нет фото →</span> карточка с инициалами, без серых заглушек</div>
+        <div><span class="dim">нет цены →</span> ссылка на официальный анонс</div>
+        <div><span class="dim">нет жюри →</span> критерии судейства (они есть всегда)</div>
+      </div>
+      <p class="dim" style="font-size:12px;margin-top:8px">Пустое состояние без альтернативы =
+      потерянный посетитель. Это блокер приёмки, а не «мелочь на потом».</p>
+    </div>
+  </div>
+  <div class="grid g4">
+    <div class="panel" style="padding:10px"><span class="lbl">20 секунд</span>
+      <span style="font-size:12.5px">на понимание, что это за событие</span></div>
+    <div class="panel" style="padding:10px"><span class="lbl">≤ 3 тапа</span>
+      <span style="font-size:12.5px">до времени любого блока</span></div>
+    <div class="panel" style="padding:10px"><span class="lbl">0 логинов</span>
+      <span style="font-size:12.5px">зрителю не нужно регистрироваться</span></div>
+    <div class="panel" style="padding:10px"><span class="lbl">1 лист A4</span>
+      <span style="font-size:12.5px">расписание дня на печать</span></div>
+  </div>
+</section>
+<section class="slide" id="s13">
+  <div class="pagenum">13 / 15</div>
+  <div class="kicker">Как это устроено</div>
+  <h2 style="font-size:clamp(22px,3.2vw,40px)">Контент как код,<br>страницы как HTML</h2>
+  <div class="flow" style="margin:2px 0 6px">
+    <div class="node"><b>данные</b>content/*.yaml</div><span class="arrow">→</span>
+    <div class="node"><b>проверка</b>pydantic-схемы</div><span class="arrow">→</span>
+    <div class="node"><b>логика</b>FastAPI routers</div><span class="arrow">→</span>
+    <div class="node"><b>вид</b>Jinja2 + CSS</div><span class="arrow">→</span>
+    <div class="node" style="border-color:rgba(232,255,58,.45)"><b>результат</b>HTML без JS</div>
+  </div>
+  <div class="grid g2" style="align-items:start">
+    <div class="panel">
+      <h3>Структура проекта</h3>
+      <pre class="mono" style="font-size:11px;line-height:1.55;margin:4px 0 0;color:#cfcabb;white-space:pre-wrap">Zaruba/
+  content/editions/2025.yaml   ← данные
+  src/zaruba/
+    main.py        app factory
+    models.py      схемы выпуска
+    content.py     импорт + проверки
+    routers/       public, schedule, catalogue
+    services/      ratings, search
+    templates/     base + 18 страниц
+    static/        style.css, print.css
+  tests/           pytest: роуты, приватность, YAML</pre>
+    </div>
+    <div class="grid" style="gap:8px">
+      <div class="panel" style="padding:11px"><span class="lbl">почему YAML</span>
+        <span style="font-size:12.5px">правка расписания = коммит: видно, кто и когда изменил,
+        можно откатить за 10 секунд. Админка не нужна на старте.</span></div>
+      <div class="panel" style="padding:11px"><span class="lbl">когда появится БД</span>
+        <span style="font-size:12.5px">только для голосов и рейтингов (PostgreSQL + Alembic).
+        Просмотр страниц БД не требует.</span></div>
+      <div class="panel" style="padding:11px"><span class="lbl">стек</span>
+        <span style="font-size:12.5px">FastAPI · Jinja2 · HTMX (точечно) · pydantic · pytest · ruff ·
+        Docker + Caddy (HTTPS)</span></div>
+      <div class="panel panel--lime" style="padding:11px"><span class="lbl">SEO-обвязка</span>
+        <span style="font-size:12.5px">canonical, JSON-LD <span class="mono">Event</span>,
+        sitemap из БД, <span class="mono">noindex</span> для детей без согласия</span></div>
+    </div>
+  </div>
+</section>
+<section class="slide" id="s14">
+  <div class="pagenum">14 / 15</div>
+  <div class="kicker">План</div>
+  <h2 style="font-size:clamp(22px,3.2vw,40px)">9–12 дней до запуска</h2>
+  <div class="grid" style="gap:7px;max-width:1000px">
+    <div class="tl"><span class="mono" style="font-size:11.5px">M0 · фундамент</span>
+      <div class="bar"><i style="width:8%"></i></div><span class="dim mono" style="font-size:10.5px">1 д</span></div>
+    <div class="tl"><span class="mono" style="font-size:11.5px">M1 · данные</span>
+      <div class="bar"><i style="width:12%"></i></div><span class="dim mono" style="font-size:10.5px">1,5 д</span></div>
+    <div class="tl"><span class="mono" style="font-size:11.5px">M2 · ядро P0</span>
+      <div class="bar"><i style="width:24%"></i></div><span class="dim mono" style="font-size:10.5px">3 д</span></div>
+    <div class="tl"><span class="mono" style="font-size:11.5px">M3 · SEO/тесты</span>
+      <div class="bar"><i style="width:8%"></i></div><span class="dim mono" style="font-size:10.5px">1 д</span></div>
+    <div class="tl"><span class="mono" style="font-size:11.5px">M4 · каталоги</span>
+      <div class="bar"><i style="width:24%"></i></div><span class="dim mono" style="font-size:10.5px">3 д</span></div>
+    <div class="tl"><span class="mono" style="font-size:11.5px">M5 · рейтинги</span>
+      <div class="bar"><i style="width:16%"></i></div><span class="dim mono" style="font-size:10.5px">2 д</span></div>
+    <div class="tl"><span class="mono" style="font-size:11.5px">M6 · деплой</span>
+      <div class="bar"><i class="c" style="width:8%"></i></div><span class="dim mono" style="font-size:10.5px">1 д</span></div>
+  </div>
+  <div class="grid g3" style="margin-top:6px">
+    <div class="panel panel--lime"><span class="lbl">день 5–6</span>
+      <h3>уже работающий сайт</h3>
+      <p class="muted" style="font-size:12.5px">расписание + выступления + участник + площадка.
+      Можно давать ссылку в VK и чаты студий.</p></div>
+    <div class="panel"><span class="lbl">блокеры снаружи</span>
+      <h3>ни одного до M4</h3>
+      <p class="muted" style="font-size:12.5px">данные, домен и хостинг нужны только к деплою;
+      до этого сайт живёт на локальном адресе.</p></div>
+    <div class="panel"><span class="lbl">дальше</span>
+      <h3>интерактив из 05</h3>
+      <p class="muted" style="font-size:12.5px">дуэли, прогнозы, «собери команду» — поверх готовых
+      данных, без переделки страниц.</p></div>
+  </div>
+</section>
+<section class="slide" id="s15">
+  <div class="pagenum">15 / 15</div>
+  <div class="kicker">Результат</div>
+  <h2 style="font-size:clamp(24px,3.6vw,48px)">Сайт, который отвечает<br>вместо организатора</h2>
+  <div class="kpi">
+    <div class="panel"><span class="lbl">визитов за сезон</span><div class="num">3 000</div>
+      <span class="dim" style="font-size:12px">цель, гипотеза</span></div>
+    <div class="panel"><span class="lbl">открывают расписание</span><div class="num">60%</div>
+      <span class="dim" style="font-size:12px">главный сценарий</span></div>
+    <div class="panel"><span class="lbl">переход в VK / kassy</span><div class="num">25%</div>
+      <span class="dim" style="font-size:12px">из карточки события</span></div>
+    <div class="panel panel--lime"><span class="lbl">время до ответа</span><div class="num">20 с</div>
+      <span class="dim" style="font-size:12px">вместо «спрошу в ЛС»</span></div>
+  </div>
+  <div class="grid g2" style="align-items:start">
+    <div class="panel">
+      <h3>Что нужно от вас</h3>
+      <ul>
+        <li><b>8 участников и 3 блока расписания</b> — можно на примерах, дальше заменим</li>
+        <li><b>домен и хостинг</b> — нужны только к этапу деплоя</li>
+        <li><b>правило по именам</b>: только имя + студия или ждём согласия по каждому</li>
+      </ul>
+    </div>
+    <div class="panel panel--lime">
+      <h3>Следующий шаг</h3>
+      <p style="font-size:13.5px">M0: <span class="mono">pyproject.toml</span>, пакет
+      <span class="mono">src/zaruba</span>, <span class="mono">base.html</span>,
+      первый зелёный тест. Полдня — и появляется работающий адрес.</p>
+      <div class="meta" style="margin-top:6px"><span class="badge">спецификация 06 готова</span>
+        <span class="badge">дальше — код</span></div>
+    </div>
+  </div>
+  <div class="meta" style="margin-top:4px"><span class="badge">ЗАРУБА · Тюмень</span>
+    <span class="badge">неофициальный фанатский проект</span>
+    <span class="badge">docs/01–06 · C:\well-service-platform\Zaruba</span></div>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+</div>
+<div class="progress" id="prog"></div>
+<div class="hint">← → / пробел · F — полный экран · P — печать</div>
+<div class="nav">
+  <button id="prev" aria-label="Назад">‹</button>
+  <span class="cnt" id="cnt">1 / 15</span>
+  <button id="next" aria-label="Вперёд">›</button>
+</div>
+<script>
+  const deck = document.querySelector('.deck');
+  const slides = [...document.querySelectorAll('.slide')];
+  const cnt = document.getElementById('cnt');
+  const prog = document.getElementById('prog');
+  let i = 0;
+  function paint() {
+    cnt.textContent = (i + 1) + ' / ' + slides.length;
+    prog.style.width = ((i + 1) / slides.length * 100) + '%';
+    try { history.replaceState(null, '', '#' + slides[i].id); } catch (err) { /* file:// */ }
+  }
+  function go(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    paint();
+  }
+  deck.addEventListener('scroll', () => {
+    const mid = deck.getBoundingClientRect().top + deck.clientHeight / 2;
+    let best = i, bd = Infinity;
+    slides.forEach((s, k) => {
+      const r = s.getBoundingClientRect();
+      const d = Math.abs((r.top + r.height / 2) - mid);
+      if (d < bd) { bd = d; best = k; }
+    });
+    if (best !== i) { i = best; paint(); }
+  }, { passive: true });
+  document.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(k)) { e.preventDefault(); go(i + 1); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(k)) { e.preventDefault(); go(i - 1); }
+    else if (k === 'Home') { go(0); }
+    else if (k === 'End') { go(slides.length - 1); }
+    else if (k === 'f' || k === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+    else if (k === 'p' || k === 'P') { window.print(); }
+  });
+  document.getElementById('prev').onclick = () => go(i - 1);
+  document.getElementById('next').onclick = () => go(i + 1);
+  const h = location.hash.slice(1);
+  if (h) {
+    const k = slides.findIndex(s => s.id === h);
+    if (k >= 0) { i = k; slides[k].scrollIntoView({ block: 'start' }); }
+  }
+  paint();
+</script>
+</body>
+</html>

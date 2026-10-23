@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Площадка — {{ venue.name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Площадка</h1>
+  <p class="lead">{{ venue.name }} · {{ venue.address_line }}</p>
+</div>
+
+<section class="section">
+  <h2>Что известно точно</h2>
+  <ul class="facts">
+    <li><span class="lbl">адрес</span> {{ venue.address_line }}</li>
+    {% if venue.capacity %}<li><span class="lbl">вместимость</span> до {{ venue.capacity }} гостей</li>{% endif %}
+    <li><span class="lbl">даты</span> {{ edition.dates|fmt_dates }}</li>
+  </ul>
+  {% if venue.map_url %}
+  <p><a class="btn" href="{{ venue.map_url }}" rel="noopener noreferrer nofollow">Открыть точку на карте</a></p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <h2>Вход, гардероб, парковка</h2>
+  <p class="muted">Публичного описания входа и парковки у площадки нет, поэтому мы его
+  не придумываем. Уточнить можно в
+  <a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">сообществе «ЗАРУБА72»</a>:
+  организаторы отвечают там быстрее всего.</p>
+</section>
+
+<section class="section">
+  <h2>Зачем ехать</h2>
+  <p class="lead">Два дня: день 1 — соло и дуэты, день 2 — команды, мини-группы и шоу.
+  Вход по билетам «Касс Ру», возрастной ценз {{ edition.age_rating }}.</p>
+  <p class="section-link"><a href="/schedule">расписание блоков →</a></p>
+</section>
+
+<section class="sources">
+  <h2>Источники</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

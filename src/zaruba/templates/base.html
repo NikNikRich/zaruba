@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if page_title %}{{ page_title }} — {% endif %}ЗАРУБА · фан-сайт чемпионата</title>
+<meta name="description" content="{% block description %}Неофициальный сайт чемпионата по современным танцам «ЗАРУБА» в Тюмени: расписание, участники, площадка, источники данных.{% endblock %}">
+<link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='print.css') }}" media="print">
+</head>
+<body>
+<a class="skip-link" href="#main">Перейти к содержанию</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">ЗАРУБА <span aria-hidden="true">·</span> Тюмень</a>
+    <nav class="nav" aria-label="Основная навигация">
+      {% for item in nav %}
+      <a href="{{ item.url }}"{% if current_path == item.url %} aria-current="page"{% endif %}>{{ item.label }}</a>
+      {% endfor %}
+    </nav>
+  </div>
+</header>
+
+{% if notice %}
+<div class="notice">
+  <div class="wrap">{{ notice }}</div>
+</div>
+{% endif %}
+
+<main id="main" class="wrap">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>Неофициальный фанатский проект.</strong> Не связан с организаторами
+    чемпионата «ЗАРУБА» и не продаёт билеты.</p>
+    <p class="footer-links">
+      <a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">Сообщество «ЗАРУБА72» во ВКонтакте</a>
+      <a href="https://tyumen.kassy.ru/" rel="noopener noreferrer nofollow">Билеты на «Кассах Ру»</a>
+    </p>
+    <p class="muted small">Все факты получены из публичных источников и помечены статусом.
+    Нашли ошибку — напишите в сообщество, мы исправим и укажем источник.</p>
+  </div>
+</footer>
+</body>
+</html>

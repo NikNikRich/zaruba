@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Расписание — {{ edition.title }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Расписание</h1>
+  <p class="lead">{{ edition.dates|fmt_dates }} · {{ venue.name }} · {{ venue.address }}</p>
+  <p class="muted small">Обновлено {{ edition.updated_at|fmt_dt }}, {{ edition.updated_at|fmt_time }}.
+  Источники и статус блоков — под таблицами.</p>
+</div>
+
+<nav class="day-tabs" aria-label="Дни чемпионата">
+  <a href="/schedule"{% if active_day is none %} aria-current="page"{% endif %}>Все дни</a>
+  {% for item in all_days %}
+  <a href="/schedule?day={{ item.day }}"{% if active_day == item.day %} aria-current="page"{% endif %}>День {{ item.day }}</a>
+  {% endfor %}
+</nav>
+
+{% for day in days %}
+<section class="day" id="day-{{ day.day }}">
+  <h2>День {{ day.day }} · {{ day.date|fmt_weekday }}, {{ day.date|fmt_date }}</h2>
+
+  {% for block in day.blocks %}
+  <article class="block" id="block-{{ block.block.slug }}">
+    <header class="block-head">
+      <span class="block-time">{{ block.block.starts_at|fmt_time }}–{{ block.block.ends_at|fmt_time }}</span>
+      <h3>{{ block.block.title }}</h3>
+      <span class="badge">{{ block.block.stage }}</span>
+    </header>
+
+    <table class="table">
+      <caption class="sr-only">Номинации блока «{{ block.block.title }}»</caption>
+      <thead>
+        <tr>
+          <th scope="col">Время</th>
+          <th scope="col">Номинация</th>
+          <th scope="col">Выступлений</th>
+          <th scope="col">Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in block.nominations %}
+        <tr>
+          <td class="mono">{{ row.nomination.starts_at|fmt_time }}–{{ row.nomination.ends_at|fmt_time }}</td>
+          <td>{{ row.nomination.title }}</td>
+          <td>{% if row.performances %}{{ row.performances|length }}{% else %}<span class="muted">уточняется</span>{% endif %}</td>
+          <td><span class="badge">{{ row.nomination.status.label }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if block.block.note %}<p class="muted small">{{ block.block.note }}</p>{% endif %}
+  </article>
+  {% endfor %}
+
+  {% if not day.blocks %}
+  <p class="empty">В этот день блоков пока нет. <a href="/schedule">Посмотреть все дни</a>
+  или <a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">анонсы в сообществе</a>.</p>
+  {% endif %}
+</section>
+{% endfor %}
+
+<section class="sources">
+  <h2>Источники расписания</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Тайминг блоков и номинаций — демонстрационный (нужен, чтобы собрать
+  страницу). Реальное расписание появится из официального «Положения»; тогда же у каждой
+  строки появится ссылка на источник.</p>
+</section>
+{% endblock %}

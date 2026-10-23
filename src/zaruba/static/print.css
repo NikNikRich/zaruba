@@ -1,0 +1,36 @@
+/* Печать расписания: один день — один лист A4 (docs/06 §6.22, п.2) */
+
+@page { size: A4 portrait; margin: 12mm; }
+
+body { background: #fff; color: #111; }
+
+.site-header, .site-footer, .day-tabs, .notice, .actions, .sources, .skip-link { display: none; }
+
+main { padding: 0; max-width: none; }
+.wrap { max-width: none; padding: 0; }
+
+h1 { font-size: 20pt; margin-bottom: 4mm; }
+h2 { font-size: 13pt; margin: 6mm 0 2mm; }
+h3 { font-size: 11pt; }
+
+.lead, .muted, .small { color: #333; }
+.block {
+  border: 0;
+  border-top: 1px solid #999;
+  border-radius: 0;
+  background: none;
+  padding: 3mm 0;
+  break-inside: avoid;
+}
+.block-head { margin-bottom: 2mm; }
+.block-time { color: #111; font-weight: 700; }
+
+.table { font-size: 9.5pt; }
+.table th { color: #555; border-bottom: 1px solid #999; }
+.table td { border-bottom: 1px solid #ddd; }
+
+.badge { border-color: #999; color: #333; }
+
+.day { break-inside: avoid; page-break-inside: avoid; }
+
+a { color: #111; text-decoration: none; }
