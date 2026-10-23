@@ -13,6 +13,7 @@
   </ul>
   <div class="actions">
     <a class="btn btn--primary" href="/schedule">Смотреть расписание</a>
+    <a class="btn" href="/performances">Выступления</a>
     <a class="btn" href="/venue">Как добраться</a>
   </div>
 </section>
@@ -40,15 +41,16 @@
   организаторы опубликуют списки. Участники младше 18 лет — только инициалы.</p>
   <div class="person-grid">
     {% for participant in participants %}
-    <article class="person-card">
+    <a class="person-card" href="/participants/{{ participant.slug }}">
       <span class="avatar" aria-hidden="true">{{ participant.display_name }}</span>
       <strong>{{ participant.display_name }}</strong>
       <span class="muted">{{ studios[participant.studio].name }}</span>
       <span class="muted small">{{ participant.age_group.label }}</span>
       {% if participant.demo %}<span class="badge">пример</span>{% endif %}
-    </article>
+    </a>
     {% endfor %}
   </div>
+  <p class="section-link"><a href="/performances">все выступления →</a></p>
 </section>
 
 <section class="section">

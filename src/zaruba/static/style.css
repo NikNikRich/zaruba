@@ -204,7 +204,9 @@ main { display: block; padding: 32px 0 56px; }
   border: 1px solid var(--line2);
   border-radius: var(--r);
   background: var(--bg2);
+  color: var(--ink);
 }
+a.person-card:hover { border-color: rgba(232, 255, 58, 0.45); text-decoration: none; }
 .avatar {
   width: 44px;
   height: 44px;
@@ -318,6 +320,110 @@ main { display: block; padding: 32px 0 56px; }
 .source-list { list-style: none; padding: 0; display: grid; gap: 8px; }
 .source-list li { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
 
+/* фильтры каталога (§6.7): форма на GET, без JS */
+.filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: end;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line2);
+}
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.filters select {
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg2);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.filters .actions { margin-left: auto; }
+.filters button { font: inherit; font-size: 14px; cursor: pointer; }
+
+/* чипы направлений */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+}
+.chip .muted { font-family: var(--mono); font-size: 11px; }
+
+/* карточки выступлений */
+.perf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.perf-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg2);
+}
+.perf-card:hover { border-color: rgba(232, 255, 58, 0.45); }
+.perf-link { display: flex; flex-direction: column; gap: 4px; color: var(--ink); }
+.perf-link:hover { text-decoration: none; }
+.perf-when { font-family: var(--mono); font-size: 12px; color: var(--lime); }
+.perf-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge--lime { border-color: var(--lime); color: var(--lime); }
+
+/* пагинация */
+.pager { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+.pager a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 14px;
+}
+.pager a[aria-current="page"] {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: #0b0b0f;
+  font-weight: 700;
+}
+
+/* хлебные крошки и врезка приватности */
+.breadcrumbs { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.callout {
+  border-left: 3px solid var(--amber);
+  background: rgba(255, 201, 92, 0.08);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: 12px 14px;
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+.callout p { margin: 0; }
+
+/* список ссылок пустых состояний */
+.link-list { list-style: none; padding: 0; display: grid; gap: 8px; }
+
 /* футер */
 .site-footer {
   border-top: 1px solid var(--line2);
@@ -353,6 +459,9 @@ main { display: block; padding: 32px 0 56px; }
   .table td:nth-child(3) { grid-column: 2; font-size: 12.5px; color: var(--muted); }
   .table td:nth-child(4) { grid-column: 2; }
   .block { padding: 14px; }
+  .filters label { flex: 1 1 140px; }
+  .filters select { width: 100%; }
+  .filters .actions { margin-left: 0; width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

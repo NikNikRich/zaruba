@@ -1,6 +1,16 @@
 from fastapi.testclient import TestClient
 
-NAV_WITHOUT_IMPLEMENTATION = ("/performances", "/participants", "/ratings")
+NAV_WITHOUT_IMPLEMENTATION = ("/participants", "/ratings")
+
+PAGES = (
+    "/",
+    "/event",
+    "/schedule",
+    "/performances",
+    "/performances/perf-01-hip-hop-6-11",
+    "/participants/v-m",
+    "/venue",
+)
 
 
 def test_home_shows_key_facts_without_js(client: TestClient) -> None:
@@ -22,6 +32,8 @@ def test_home_does_not_link_to_missing_pages(client: TestClient) -> None:
 
     assert 'href="/schedule"' in html
     assert 'href="/venue"' in html
+    assert 'href="/event"' in html
+    assert 'href="/performances"' in html
     for path in NAV_WITHOUT_IMPLEMENTATION:
         assert f'href="{path}"' not in html
 
@@ -61,7 +73,7 @@ def test_venue_page_states_unknowns_honestly(client: TestClient) -> None:
 def test_pages_warn_about_past_edition(client: TestClient) -> None:
     """§6.3: если ключевой факт не актуален — сверху честная полоса, а не тишина."""
 
-    for path in ("/", "/schedule", "/venue"):
+    for path in PAGES:
         assert "Выпуск 2025 завершён" in client.get(path).text, path
 
 
@@ -75,8 +87,16 @@ def test_demo_rows_are_marked(client: TestClient) -> None:
 
 
 def test_pages_have_no_none_artifacts(client: TestClient) -> None:
-    for path in ("/", "/schedule", "/venue"):
+    for path in PAGES:
         html = client.get(path).text
         assert "None" not in html, path
         assert "&lt;None&gt;" not in html, path
+
+
+def test_every_page_has_canonical(client: TestClient) -> None:
+    """§6.19: canonical на всех страницах, без query-хвостов."""
+
+    for path in PAGES:
+        html = client.get(path).text
+        assert f'<link rel="canonical" href="http://testserver{path}">' in html, path
 

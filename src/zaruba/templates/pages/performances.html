@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Выступления — {{ edition.title }}{% endblock %}
+{% block description %}Каталог выступлений «ЗАРУБА» {{ edition.edition }}: номинации, участники, студии, дни и время.{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Выступления</h1>
+  <p class="lead">Что показывают на «Зарубе»: {{ total }} выступлений в {{ edition.nominations|length }} номинациях.</p>
+  <p class="muted small">Карточки собираются из сетки номинаций и заявок. Пока заявки
+  демонстрационные, у каждой карточки стоит бейдж «пример».</p>
+</div>
+
+<form class="filters" method="get" action="/performances" role="search" aria-label="Фильтры каталога">
+  <label>День
+    <select name="day">
+      <option value="">все дни</option>
+      {% for option in filters.days %}
+      <option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Направление
+    <select name="style">
+      <option value="">все</option>
+      {% for option in filters.styles %}
+      <option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Формат
+    <select name="format">
+      <option value="">все</option>
+      {% for option in filters.formats %}
+      <option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Возраст
+    <select name="age">
+      <option value="">все</option>
+      {% for option in filters.ages %}
+      <option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Студия
+    <select name="studio">
+      <option value="">все</option>
+      {% for option in filters.studios %}
+      <option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Видео
+    <select name="video">
+      <option value="">любое</option>
+      <option value="1"{% if current.video %} selected{% endif %}>только с клипом</option>
+    </select>
+  </label>
+  <div class="actions">
+    <button class="btn btn--primary" type="submit">Показать</button>
+    <a class="btn" href="/performances">Сбросить</a>
+  </div>
+</form>
+
+{% if views %}
+<div class="perf-grid">
+  {% for view in views %}
+  <article class="perf-card">
+    <a class="perf-link" href="/performances/{{ view.performance.slug }}">
+      <span class="perf-when">День {{ view.day }} · {{ view.performance.scheduled_at|fmt_time }} · {{ view.nomination.stage }}</span>
+      <strong>{{ view.performance.title }}</strong>
+      <span class="muted">{{ view.participant_names }}</span>
+      <span class="muted small">{{ view.studio_names }}</span>
+    </a>
+    <div class="perf-tags">
+      <span class="badge">{{ view.nomination.status.label }}</span>
+      {% if view.performance.video_url %}<span class="badge badge--lime">клип</span>{% endif %}
+      {% if view.performance.demo %}<span class="badge">пример</span>{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">Под такие фильтры ничего не нашлось. <a href="/performances">Сбросить фильтры</a>
+или посмотреть <a href="/schedule">всё расписание</a> — там блоки без отбора по участникам.</p>
+{% endif %}
+
+{% if pager %}
+<nav class="pager" aria-label="Страницы каталога">
+  {% for link in pager.links %}
+  <a href="{{ link.url }}"{% if link.page == pager.page %} aria-current="page"{% endif %}>{{ link.page }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+<section class="sources">
+  <h2>Источники и статус</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Состав участников и порядок выступлений — демонстрационные: официальные
+  заявки публикуются вместе с «Положением». Мы не подставляем правдоподобные имена вместо
+  настоящих и не показываем баллы, пока они не официальные.</p>
+  <p class="section-link"><a href="/event">о событии и формате →</a></p>
+</section>
+{% endblock %}

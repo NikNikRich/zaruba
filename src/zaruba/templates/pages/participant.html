@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}{{ view.participant.display_name }} — участник «ЗАРУБА»{% endblock %}
+{% block description %}{{ view.participant.display_name }}: {{ view.studio.name }}, {{ view.participant.city }}, {{ view.participant.age_group.label }}. Выступления на «Зарубе».{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <p class="breadcrumbs"><a href="/performances">Выступления</a> / участник</p>
+  <h1>{{ view.participant.display_name }}</h1>
+  <p class="lead">{{ view.participant.city }} · {{ view.participant.age_group.label }} · {{ view.studio.name }}</p>
+  {% if view.participant.demo %}<span class="badge">пример</span>{% endif %}
+</div>
+
+{% if not view.participant.is_public_person %}
+<div class="callout">
+  <strong>Публикуем только инициалы.</strong> Участник младше 18 лет, согласия родителя нет —
+  поэтому на странице нет фото и клипов, а сама страница закрыта от индексации поисковиками.
+  Родитель может попросить убрать данные в
+  <a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">сообществе «ЗАРУБА72»</a>.
+</div>
+{% endif %}
+
+<section class="section">
+  <h2>Кто это</h2>
+  <ul class="facts">
+    <li><span class="lbl">город</span> {{ view.participant.city }}</li>
+    <li><span class="lbl">возрастная группа</span> {{ view.participant.age_group.label }}</li>
+    <li><span class="lbl">студия</span> {{ view.studio.name }}</li>
+    <li><span class="lbl">на «Зарубе»</span> {{ view.years|join(", ") }} ·
+      {{ view.performances|length }} выступлений</li>
+  </ul>
+  <p class="muted small">Страницы студий появятся в следующем обновлении: категории студий и
+  тренеров — этап P1. Ссылку в пустоту не ставим.</p>
+</section>
+
+<section class="section">
+  <h2>Выступления</h2>
+  {% if view.performances %}
+  <table class="table">
+    <caption class="sr-only">Выступления участника {{ view.participant.display_name }}</caption>
+    <thead>
+      <tr>
+        <th scope="col">Год</th>
+        <th scope="col">Номинация</th>
+        <th scope="col">Когда</th>
+        <th scope="col">Карточка</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in view.performances %}
+      <tr>
+        <td class="mono">{{ item.year }}</td>
+        <td>{{ item.nomination.title }}</td>
+        <td>День {{ item.day }} · {{ item.performance.scheduled_at|fmt_date }},
+          {{ item.performance.scheduled_at|fmt_time }}</td>
+        <td><a href="/performances/{{ item.performance.slug }}">открыть</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">Выступлений в загруженных выпусках нет. <a href="/performances">Каталог
+  выступлений</a> или <a href="/schedule">расписание</a> — там видно, кто выходит на сцену.</p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <h2>Лучший результат</h2>
+  <p class="empty">Места и баллы не показываем: официальных протоколов этого выпуска нет.
+  Когда организаторы их опубликуют, здесь появятся место, номинация и ссылка на источник —
+  без «примерно» и оценок зрителей.</p>
+</section>
+
+<section class="section">
+  <h2>Это моя страница</h2>
+  <p>Напишите в <a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">сообщество
+  «ЗАРУБА72»</a> — исправим имя, студию или уберём страницу. Форма правок появится позже;
+  пока работает сообщество, там отвечают быстрее всего.</p>
+  <p class="muted small">Данные собраны из публичных источников. Полное имя, фото и клипы
+  публикуем только для совершеннолетних или при согласии родителя.</p>
+</section>
+
+<section class="sources">
+  <h2>Источники</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

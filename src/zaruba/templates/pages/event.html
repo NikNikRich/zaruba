@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}О событии — {{ edition.title }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>О событии</h1>
+  <p class="lead">{{ edition.title }} · {{ edition.dates|fmt_dates }} · {{ venue.name }}, {{ venue.address_line }}</p>
+</div>
+
+<section class="section">
+  <h2>Что это</h2>
+  <p>«ЗАРУБА» — чемпионат по современным направлениям танца в Тюмени. В 2025 году он
+  проходит в концертно-танцевальном зале «{{ venue.name }}»: два дня, вход по билетам
+  официального канала «Кассы Ру», возрастной ценз {{ edition.age_rating }}.</p>
+  <p>На сцене — сольные номера, дуэты, мини-группы, команды и шоу-постановки. Зритель
+  приходит не на один «гала-концерт», а на два дня отборов: расписание блоков важнее
+  афиши, поэтому мы держим его отдельной страницей и печатаем на A4.</p>
+</section>
+
+<section class="section">
+  <h2>Формат: два дня</h2>
+  <table class="table">
+    <caption class="sr-only">Программа по дням</caption>
+    <thead>
+      <tr>
+        <th scope="col">День</th>
+        <th scope="col">Блоки</th>
+        <th scope="col">Номинации</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for day in days %}
+      <tr>
+        <td class="mono">День {{ day.day }}<br>{{ day.date|fmt_date }}</td>
+        <td>
+          {% for block in day.blocks %}
+          <div>{{ block.block.starts_at|fmt_time }}–{{ block.block.ends_at|fmt_time }} · {{ block.block.title }}</div>
+          {% endfor %}
+        </td>
+        <td>{{ day.nominations_count }} в {{ day.blocks|length }} блоках</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted small">Сетка блоков и номинаций — демонстрационная: она нужна, чтобы страница
+  работала до публикации официального «Положения». Даты, место и ценз подтверждены источниками
+  внизу страницы.</p>
+  <p class="section-link"><a href="/schedule">расписание по блокам →</a></p>
+</section>
+
+<section class="section">
+  <h2>Направления</h2>
+  <div class="chips">
+    {% for item in directions %}
+    <span class="chip">{{ item.label }} <span class="muted">{{ item.count }}</span></span>
+    {% endfor %}
+  </div>
+  <p class="muted small">Названия стилей взяты из сетки номинаций, а не из постов в соцсетях.
+  Отдельные страницы глоссария появятся позже — ссылок в пустоту мы не ставим.</p>
+</section>
+
+<section class="section">
+  <h2>Кто участвует</h2>
+  <ul class="facts">
+    {% for item in ages %}
+    <li><span class="lbl">возраст</span> {{ item.label }} — {{ item.count }} участников</li>
+    {% endfor %}
+    <li><span class="lbl">города</span> {{ cities|join(", ") }}</li>
+    <li><span class="lbl">студии</span> {{ studios|length }} в демонстрационном наборе</li>
+  </ul>
+  <p class="muted small">Участники младше 18 лет публикуются только инициалами, без фото и клипа.
+  Полные имена и клипы — только при согласии родителя.</p>
+</section>
+
+<section class="section">
+  <h2>Цифры</h2>
+  <ul class="facts">
+    <li><span class="lbl">выступлений</span> {{ edition.performances|length }}{% if demo.performances %} <span class="badge">пример</span>{% endif %}</li>
+    <li><span class="lbl">номинаций</span> {{ edition.nominations|length }}</li>
+    <li><span class="lbl">участников</span> {{ edition.participants|length }}{% if demo.participants %} <span class="badge">пример</span>{% endif %}</li>
+    <li><span class="lbl">студий</span> {{ edition.studios|length }}{% if demo.studios %} <span class="badge">пример</span>{% endif %}</li>
+  </ul>
+  <p class="muted small">Это цифры текущего выпуска, а не «за всё время». Статистику прошлых
+  сезонов покажем, когда появятся официальные протоколы.</p>
+</section>
+
+<section class="section">
+  <h2>Хронология</h2>
+  <table class="table">
+    <caption class="sr-only">Выпуски чемпионата</caption>
+    <thead>
+      <tr>
+        <th scope="col">Год</th>
+        <th scope="col">Даты</th>
+        <th scope="col">Особенность</th>
+        <th scope="col">Источник</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in chronology %}
+      <tr>
+        <td class="mono">{{ row.year }}</td>
+        <td>{{ row.dates|fmt_dates }}</td>
+        <td>{{ row.feature }}</td>
+        <td>
+          {% if row.source %}<a href="{{ row.source.url }}" rel="noopener noreferrer nofollow">публичный анонс</a>
+          {% else %}<span class="muted">не указан</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted small">Год без подтверждённых данных в таблицу не попадает: пустая строка
+  выглядит как «архив», а архив должен быть настоящим.</p>
+</section>
+
+<section class="section">
+  <h2>Дальше</h2>
+  <ul class="link-list">
+    <li><a href="/schedule">Расписание блоков и дней</a> — что и когда смотреть.</li>
+    <li><a href="/performances">Выступления</a> — кто и с чем выходит.</li>
+    <li><a href="/venue">Площадка</a> — адрес, вместимость и как добраться.</li>
+  </ul>
+</section>
+
+<section class="sources">
+  <h2>Источники</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }} · {{ source.trust.label }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

@@ -4,7 +4,8 @@
 
 body { background: #fff; color: #111; }
 
-.site-header, .site-footer, .day-tabs, .notice, .actions, .sources, .skip-link { display: none; }
+.site-header, .site-footer, .day-tabs, .notice, .actions, .sources, .skip-link,
+.filters, .pager, .breadcrumbs, .chips, .link-list, .callout { display: none; }
 
 main { padding: 0; max-width: none; }
 .wrap { max-width: none; padding: 0; }

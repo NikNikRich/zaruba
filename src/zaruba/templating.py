@@ -40,6 +40,7 @@ WEEKDAYS: tuple[str, ...] = ("пн", "вт", "ср", "чт", "пт", "сб", "в
 # ссылка в 404 хуже, чем отсутствие пункта. Ключ — имя эндпоинта,
 # а не путь: в FastAPI 0.161 включённые роутеры не отдают `route.path`.
 NAV_ITEMS: tuple[dict[str, str], ...] = (
+    {"endpoint": "event_page", "label": "О событии"},
     {"endpoint": "schedule", "label": "Расписание"},
     {"endpoint": "performances", "label": "Выступления"},
     {"endpoint": "participants", "label": "Участники"},
@@ -114,11 +115,17 @@ def build_nav(app: FastAPI) -> list[dict[str, str]]:
     return nav
 
 
-def render(request: Request, template_name: str, **context: Any) -> HTMLResponse:
+def render(
+    request: Request, template_name: str, *, status_code: int = 200, **context: Any
+) -> HTMLResponse:
+    # §6.19: canonical на всех страницах — без query, чтобы фильтры не плодили дубли.
+    canonical = f"{str(request.base_url).rstrip('/')}{request.url.path}"
     payload: dict[str, Any] = {
         "nav": request.app.state.nav,
         "settings": request.app.state.settings,
         "current_path": request.url.path,
+        "canonical": canonical,
+        "robots": None,
     }
     payload.update(context)
-    return templates.TemplateResponse(request, template_name, payload)
+    return templates.TemplateResponse(request, template_name, payload, status_code=status_code)
