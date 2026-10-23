@@ -3,10 +3,19 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from zaruba.content import ContentError, load_edition, load_editions, main
-from zaruba.models import Participant
+from zaruba.content import (
+    ContentError,
+    load_edition,
+    load_editions,
+    load_faq,
+    load_glossary,
+    main,
+)
+from zaruba.models import DanceStyle, FaqGroup, GlossaryEntry, Participant
 
 CONTENT_DIR = Path(__file__).resolve().parents[1] / "content" / "editions"
+GLOSSARY_FILE = Path(__file__).resolve().parents[1] / "content" / "glossary.yaml"
+FAQ_FILE = Path(__file__).resolve().parents[1] / "content" / "faq.yaml"
 
 
 def _broken_copy(tmp_path: Path, edition_path: Path, old: str, new: str) -> Path:
@@ -183,3 +192,83 @@ def test_cli_returns_error_code_for_broken_file(
 
     assert main(["check", str(path)]) == 1
     assert "ОШИБКА" in capsys.readouterr().err
+
+
+def test_edition_has_confirmed_judges(edition_path: Path) -> None:
+    """Жюри 2025 — подтверждённый факт (docs/01): три судьи и ведущий."""
+
+    edition = load_edition(edition_path).edition
+
+    assert len(edition.judges) == 4
+    assert {judge.role.value for judge in edition.judges} == {"judge", "mc"}
+    assert all(judge.source_id == "kassy-event" for judge in edition.judges)
+
+
+def test_judge_with_unknown_block_is_reported(tmp_path: Path, edition_path: Path) -> None:
+    path = _broken_copy(
+        tmp_path,
+        edition_path,
+        "regalia: MATÈ",
+        "regalia: MATÈ\n    blocks: [no-such-block]",
+    )
+
+    with pytest.raises(ContentError) as error:
+        load_edition(path)
+
+    assert "нет блоков" in str(error.value)
+
+
+def test_glossary_covers_all_styles_and_terms() -> None:
+    entries = load_glossary(GLOSSARY_FILE)
+    styles = [entry for entry in entries if entry.kind.value == "style"]
+    terms = [entry for entry in entries if entry.kind.value == "term"]
+
+    assert {entry.style for entry in styles} == set(DanceStyle)
+    assert len(terms) == 8
+    assert all(entry.signs for entry in entries)
+
+
+def test_glossary_style_requires_dictionary_value() -> None:
+    with pytest.raises(ValidationError):
+        GlossaryEntry(
+            slug="test-style",
+            term="Тестовое направление",
+            kind="style",
+            what="Достаточно длинное описание, чтобы пройти проверку длины.",
+            signs=["первый признак"],
+        )
+
+
+def test_glossary_term_must_not_have_style() -> None:
+    with pytest.raises(ValidationError):
+        GlossaryEntry(
+            slug="test-term",
+            term="Тестовый термин",
+            kind="term",
+            what="Достаточно длинное описание, чтобы пройти проверку длины.",
+            signs=["первый признак"],
+            style="hip-hop",
+        )
+
+
+def test_faq_has_twelve_items_in_four_groups() -> None:
+    """§6.15: 12 вопросов, четыре группы, у каждого ответа есть статус."""
+
+    items = load_faq(FAQ_FILE)
+
+    assert len(items) == 12
+    assert {item.group for item in items} == set(FaqGroup)
+    assert all(item.status.label for item in items)
+
+
+def test_glossary_file_with_duplicate_style_is_reported(tmp_path: Path) -> None:
+    raw = GLOSSARY_FILE.read_text(encoding="utf-8")
+    broken = raw.replace("style: dancehall", "style: breaking", 1)
+    path = tmp_path / "broken-glossary.yaml"
+    path.write_text(broken, encoding="utf-8")
+
+    with pytest.raises(ContentError) as error:
+        load_glossary(path)
+
+    assert "направление описано дважды" in str(error.value)
+

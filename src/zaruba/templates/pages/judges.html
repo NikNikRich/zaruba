@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Жюри — {{ edition.title }}{% endblock %}
+{% block description %}Кто судит «ЗАРУБУ» {{ edition.edition }}: состав жюри и что оценивают на чемпионате.{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <p class="breadcrumbs"><a href="/event">О событии</a> / жюри</p>
+  <h1>Жюри</h1>
+  <p class="lead">Кто стоит за судейским столом и по каким критериям оценивают номера.</p>
+</div>
+
+<section class="section">
+  <h2>Состав {{ edition.edition }}</h2>
+  {% if cards %}
+  <div class="person-grid">
+    {% for card in cards %}
+    <article class="person-card">
+      <strong>{{ card.judge.name }}</strong>
+      {% if card.judge.regalia %}<span class="muted">{{ card.judge.regalia }}</span>{% endif %}
+      <span class="badge">{{ card.judge.role.label }}</span>
+      {% if card.judge.city %}<span class="muted small">{{ card.judge.city }}</span>{% endif %}
+      {% if card.judge.styles %}
+      <span class="muted small">
+        {% for style in card.judge.styles %}{{ style.label }}{% if not loop.last %}, {% endif %}{% endfor %}
+      </span>
+      {% endif %}
+      {% if card.blocks %}
+      <span class="muted small">блоки:
+        {% for block in card.blocks %}
+        <a href="/schedule#block-{{ block.slug }}">{{ block.title }}</a>{% if not loop.last %}, {% endif %}
+        {% endfor %}
+      </span>
+      {% elif card.judge.role.value == "mc" %}
+      <span class="muted small">ведёт сцену · блоки уточняются</span>
+      {% else %}
+      <span class="muted small">какие блоки судит — уточняется</span>
+      {% endif %}
+      {% if card.source %}
+      <a class="small" href="{{ card.source.url }}" rel="noopener noreferrer nofollow">источник состава</a>
+      {% endif %}
+      {% if card.judge.demo %}<span class="badge">пример</span>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  <p class="muted small">Имена, регалии и роль взяты из официальной страницы события.
+  Города, направления и распределение по блокам там не указаны — поэтому этих полей нет
+  в карточках, а не «примерно».</p>
+  {% else %}
+  <p class="empty">Состав жюри уточняется: официального списка на этот выпуск нет.
+  Следите за <a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">сообществом
+  «ЗАРУБА72»</a> — там публикуют анонсы, или посмотрите
+  <a href="/performances">каталог выступлений</a>.</p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <h2>Что оценивают</h2>
+  <p>Официального списка критериев нет: «Положение» чемпионата не опубликовано.
+  Поэтому мы не пишем «судьи оценивают технику на 40%» — такие проценты берутся
+  только из документа организаторов.</p>
+  <p class="muted small">Что обычно обсуждают в судейских протоколах таких чемпионатов —
+  техника и чистота, музыкальность, подача и образ, композиция номера. Это общее описание,
+  а не правила «Зарубы»: как только появится «Положение», здесь будет список из 4–6 пунктов
+  со ссылкой на источник и датой проверки.</p>
+  <p class="section-link"><a href="/glossary">разобраться в направлениях →</a></p>
+</section>
+
+<section class="sources">
+  <h2>Источники</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Состав жюри — подтверждённый факт выпуска {{ edition.edition }}.
+  Если состав изменится, организаторы объявят это в своём канале; мы обновим страницу
+  и укажем дату проверки.</p>
+</section>
+{% endblock %}

@@ -190,6 +190,103 @@ class Studio(Strict):
     demo: bool = False
 
 
+class JudgeRole(StrEnum):
+    JUDGE = "judge"
+    MC = "mc"
+
+    @property
+    def label(self) -> str:
+        return {"judge": "судья", "mc": "ведущий"}[self.value]
+
+
+class Judge(Strict):
+    """Человек за судейским столом или на сцене как ведущий (`docs/06` §6.11).
+
+    Пустое поле значит «публично не подтверждено»: страница так и пишет,
+    вместо того чтобы подставлять «Тюмень» или «универсал».
+    """
+
+    slug: Slug
+    name: str = Field(min_length=2, max_length=80)
+    role: JudgeRole = JudgeRole.JUDGE
+    city: str | None = Field(default=None, max_length=60)
+    regalia: str | None = Field(default=None, max_length=120)
+    styles: list[DanceStyle] = Field(default_factory=list, max_length=9)
+    blocks: list[Slug] = Field(default_factory=list, max_length=12)
+    source_id: Slug | None = None
+    demo: bool = False
+
+    @model_validator(mode="after")
+    def _unique_marks(self) -> Judge:
+        if len(set(self.styles)) != len(self.styles):
+            raise ValueError("направление указано дважды")
+        if len(set(self.blocks)) != len(self.blocks):
+            raise ValueError("блок указан дважды")
+        return self
+
+
+class GlossaryKind(StrEnum):
+    STYLE = "style"
+    TERM = "term"
+
+    @property
+    def label(self) -> str:
+        return {"style": "направление", "term": "термин чемпионата"}[self.value]
+
+
+class GlossaryEntry(Strict):
+    """Статья глоссария: «что это», «как отличить», «пример» (§6.15)."""
+
+    slug: Slug
+    term: str = Field(min_length=2, max_length=80)
+    kind: GlossaryKind = GlossaryKind.STYLE
+    what: str = Field(min_length=20, max_length=400)
+    signs: list[str] = Field(min_length=1, max_length=4)
+    example: str | None = Field(default=None, max_length=160)
+    style: DanceStyle | None = None
+
+    @model_validator(mode="after")
+    def _style_link(self) -> GlossaryEntry:
+        if self.kind is GlossaryKind.STYLE and self.style is None:
+            raise ValueError("для направления нужно поле style из справочника")
+        if self.kind is GlossaryKind.TERM and self.style is not None:
+            raise ValueError("у термина чемпионата не бывает style")
+        if any(len(sign) > 160 for sign in self.signs):
+            raise ValueError("признак длиннее 160 символов — это уже абзац")
+        return self
+
+    @property
+    def anchor(self) -> str:
+        return f"{self.kind.value}-{self.slug}"
+
+
+class FaqGroup(StrEnum):
+    SPECTATOR = "spectator"
+    PARTICIPANT = "participant"
+    PARENT = "parent"
+    SITE = "site"
+
+    @property
+    def label(self) -> str:
+        return {
+            "spectator": "Зрителю",
+            "participant": "Участнику",
+            "parent": "Родителям",
+            "site": "Сайту",
+        }[self.value]
+
+
+class FaqItem(Strict):
+    """Вопрос-ответ: статус нужен, чтобы ответ «уточняется» не читался как факт."""
+
+    slug: Slug
+    group: FaqGroup
+    question: str = Field(min_length=5, max_length=200)
+    answer: str = Field(min_length=10, max_length=600)
+    status: DataStatus = DataStatus.UNCONFIRMED
+    source_id: Slug | None = None
+
+
 class Participant(Strict):
     slug: Slug
     display_name: str = Field(min_length=2, max_length=60)
@@ -283,6 +380,7 @@ class Edition(Strict):
     blocks: list[ScheduleBlock] = Field(default_factory=list)
     participants: list[Participant] = Field(default_factory=list)
     performances: list[Performance] = Field(default_factory=list)
+    judges: list[Judge] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _integrity(self) -> Edition:
@@ -296,6 +394,7 @@ class Edition(Strict):
             "blocks": [b.slug for b in self.blocks],
             "participants": [p.slug for p in self.participants],
             "performances": [p.slug for p in self.performances],
+            "judges": [j.slug for j in self.judges],
         }
         for name, slugs in groups.items():
             duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
@@ -349,6 +448,16 @@ class Edition(Strict):
                 raise ValueError(
                     f"performances.{performance.slug}: "
                     f"неизвестный source_id «{performance.source_id}»"
+                )
+
+        block_slugs = {block.slug for block in self.blocks}
+        for judge in self.judges:
+            missing_blocks = [slug for slug in judge.blocks if slug not in block_slugs]
+            if missing_blocks:
+                raise ValueError(f"judges.{judge.slug}: нет блоков {missing_blocks}")
+            if judge.source_id and judge.source_id not in source_ids:
+                raise ValueError(
+                    f"judges.{judge.slug}: неизвестный source_id «{judge.source_id}»"
                 )
         return self
 

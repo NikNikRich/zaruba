@@ -4,22 +4,25 @@ from __future__ import annotations
 
 import argparse
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
 from pydantic import TypeAdapter, ValidationError
 
 from .config import Settings, get_settings
-from .models import Edition, EditionBundle, Venue
+from .models import Edition, EditionBundle, FaqItem, GlossaryEntry, Venue
 
 VENUES_ADAPTER = TypeAdapter(list[Venue])
+GLOSSARY_ADAPTER = TypeAdapter(list[GlossaryEntry])
+FAQ_ADAPTER = TypeAdapter(list[FaqItem])
 
 
 class ContentError(Exception):
     """Ошибка данных: сообщение всегда содержит файл и путь до поля."""
 
 
-def _read_yaml(path: Path) -> dict:
+def _read_yaml(path: Path, expect: str = "полями выпуска") -> dict:
     if not path.exists():
         raise ContentError(f"{path}: файл не найден")
     try:
@@ -27,7 +30,7 @@ def _read_yaml(path: Path) -> dict:
     except yaml.YAMLError as exc:
         raise ContentError(f"{path}: не разобрать YAML — {exc}") from exc
     if not isinstance(raw, dict):
-        raise ContentError(f"{path}: ожидался YAML-объект с полями выпуска")
+        raise ContentError(f"{path}: ожидался YAML-объект с {expect}")
     return raw
 
 
@@ -95,6 +98,67 @@ def load_editions(content_dir: Path, venues_file: Path | None = None) -> list[Ed
 def load_site(settings: Settings | None = None) -> list[EditionBundle]:
     settings = settings or get_settings()
     return load_editions(settings.content_dir, settings.venues_file)
+
+
+def load_glossary(path: Path) -> list[GlossaryEntry]:
+    """Глоссарий: 9 направлений и термины чемпионата (`docs/06` §6.15)."""
+
+    path = Path(path)
+    raw = _read_yaml(path, "полем entries")
+    try:
+        entries = GLOSSARY_ADAPTER.validate_python(raw.get("entries"))
+    except ValidationError as exc:
+        raise _validation_error(path, exc) from exc
+
+    slugs = [entry.slug for entry in entries]
+    duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
+    if duplicates:
+        raise ContentError(f"{path}: статьи повторяются — {duplicates}")
+
+    styles = [entry.style for entry in entries if entry.style is not None]
+    repeated_styles = sorted({style.value for style in styles if styles.count(style) > 1})
+    if repeated_styles:
+        raise ContentError(f"{path}: направление описано дважды — {repeated_styles}")
+    return entries
+
+
+def load_faq(path: Path, source_ids: set[str] | None = None) -> list[FaqItem]:
+    path = Path(path)
+    raw = _read_yaml(path, "полем items")
+    try:
+        items = FAQ_ADAPTER.validate_python(raw.get("items"))
+    except ValidationError as exc:
+        raise _validation_error(path, exc) from exc
+
+    slugs = [item.slug for item in items]
+    duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
+    if duplicates:
+        raise ContentError(f"{path}: вопросы повторяются — {duplicates}")
+
+    if source_ids is not None:
+        for item in items:
+            if item.source_id and item.source_id not in source_ids:
+                raise ContentError(
+                    f"{path}: faq.{item.slug}: неизвестный source_id «{item.source_id}»"
+                )
+    return items
+
+
+@dataclass(frozen=True)
+class Knowledge:
+    """Не-выпускной контент: глоссарий и FAQ, общий для всех выпусков."""
+
+    glossary: list[GlossaryEntry]
+    faq: list[FaqItem]
+
+
+def load_knowledge(settings: Settings | None = None) -> Knowledge:
+    settings = settings or get_settings()
+    source_ids = set(load_latest(settings).edition.source_index)
+    return Knowledge(
+        glossary=load_glossary(settings.glossary_file),
+        faq=load_faq(settings.faq_file, source_ids),
+    )
 
 
 def load_latest(settings: Settings | None = None) -> EditionBundle:

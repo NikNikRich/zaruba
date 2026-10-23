@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Участники — {{ edition.title }}{% endblock %}
+{% block description %}Каталог участников «ЗАРУБА» {{ edition.edition }}: студии, города, возрастные группы и выступления.{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <p class="breadcrumbs"><a href="/performances">Выступления</a> / участники</p>
+  <h1>Участники</h1>
+  <p class="lead">Все, кто выходил на сцену: {{ total }} человек{% if filtered %} по выбранным фильтрам{% endif %}.</p>
+  <p class="muted small">Порядок — по алфавиту. Фан-рейтинга здесь нет: он появится только
+  вместе с методикой и официальными результатами, а не «на глаз».</p>
+</div>
+
+<form class="filters" method="get" action="/participants" role="search" aria-label="Поиск и фильтры участников">
+  <label>Имя или студия
+    <input type="search" name="q" value="{{ current.q }}" maxlength="80" placeholder="например, студия A">
+  </label>
+  <label>Студия
+    <select name="studio">
+      <option value="">все студии</option>
+      {% for option in filters.studios %}
+      <option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Город
+    <select name="city">
+      <option value="">все города</option>
+      {% for option in filters.cities %}
+      <option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Возраст
+    <select name="age">
+      <option value="">все группы</option>
+      {% for option in filters.ages %}
+      <option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Направление
+    <select name="style">
+      <option value="">все направления</option>
+      {% for option in filters.styles %}
+      <option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <div class="actions">
+    <button class="btn btn--primary" type="submit">Показать</button>
+    <a class="btn" href="/participants">Сбросить</a>
+  </div>
+</form>
+
+{% if views %}
+<div class="person-grid">
+  {% for view in views %}
+  <a class="person-card" href="/participants/{{ view.participant.slug }}">
+    <span class="avatar" aria-hidden="true">{{ view.participant.display_name }}</span>
+    <strong>{{ view.participant.display_name }}</strong>
+    <span class="muted">{{ view.studio.name }}</span>
+    <span class="muted small">{{ view.participant.city }} · {{ view.participant.age_group.label }}</span>
+    <span class="muted small">{{ view.performances|length }} {{ view.performances|length|plural("выступление", "выступления", "выступлений") }} · {{ view.years|join(", ") }}</span>
+    {% if view.participant.demo %}<span class="badge">пример</span>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">Под такие условия никого не нашлось. <a href="/participants">Сбросить фильтры</a>,
+посмотреть <a href="/performances">все выступления</a> или <a href="/studios">список студий</a> —
+там есть поиск по названию.</p>
+{% endif %}
+
+{% if pager %}
+<nav class="pager" aria-label="Страницы каталога">
+  {% for link in pager.links %}
+  <a href="{{ link.url }}"{% if link.page == pager.page %} aria-current="page"{% endif %}>{{ link.page }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+<section class="sources">
+  <h2>Источники и статус</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Состав участников демонстрационный: у каждой карточки стоит бейдж
+  «пример». Несовершеннолетние без согласия публикуются только инициалами, без фото и клипов,
+  а их страницы закрыты от индексации.</p>
+  <p class="section-link"><a href="/studios">студии и их составы →</a></p>
+</section>
+{% endblock %}

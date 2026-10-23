@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Студии — {{ edition.title }}{% endblock %}
+{% block description %}Студии — участники «ЗАРУБА» {{ edition.edition }}: составы, направления и выступления.{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <p class="breadcrumbs"><a href="/participants">Участники</a> / студии</p>
+  <h1>Студии</h1>
+  <p class="lead">Кто готовит участников: {{ total }} студий{% if filtered %} по выбранным условиям{% endif %}.</p>
+  <p class="muted small">Студии идут по алфавиту, без «рекламных» мест: мы не продаём
+  размещение и не ставим одну студию выше другой.</p>
+</div>
+
+<form class="filters" method="get" action="/studios" role="search" aria-label="Поиск по студиям">
+  <label>Название или направление
+    <input type="search" name="q" value="{{ current.q }}" maxlength="80" placeholder="например, contemporary">
+  </label>
+  <label>Город
+    <select name="city">
+      <option value="">все города</option>
+      {% for option in filters.cities %}
+      <option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <div class="actions">
+    <button class="btn btn--primary" type="submit">Показать</button>
+    <a class="btn" href="/studios">Сбросить</a>
+  </div>
+</form>
+
+{% if views %}
+<div class="card-grid">
+  {% for view in views %}
+  <article class="info-card">
+    <a class="info-link" href="/studios/{{ view.studio.slug }}">
+      <strong>{{ view.studio.name }}</strong>
+      <span class="muted">{{ view.studio.city }} · участников: {{ view.participants|length }}</span>
+      <span class="muted small">{{ view.performances|length }} {{ view.performances|length|plural("выступление", "выступления", "выступлений") }}{% if view.years %} · {{ view.years|join(", ") }}{% endif %}</span>
+    </a>
+    {% if view.styles %}
+    <div class="chips">
+      {% for style in view.styles %}
+      <a class="chip" href="/glossary#style-{{ style.value }}">{{ style.label }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if view.studio.demo %}<span class="badge">пример</span>{% endif %}
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">Студий под такие условия не нашлось. <a href="/studios">Сбросить фильтры</a>
+или открыть <a href="/participants">каталог участников</a> — там можно искать по имени и студии.</p>
+{% endif %}
+
+<section class="sources">
+  <h2>Источники и статус</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Названия студий в демонстрационном наборе помечены как «пример»:
+  официальные списки появятся вместе с публикацией заявок. Тренеры и ссылки на соцсети
+  появятся только для студий, у которых есть подтверждённый публичный профиль.</p>
+</section>
+{% endblock %}

@@ -9,7 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import __version__
 from .config import Settings, get_settings
-from .templating import PACKAGE_DIR, build_nav, render
+from .templating import PACKAGE_DIR, build_footer, build_nav, render
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -32,6 +32,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(schedule.router)
     app.include_router(catalogue.router)
     app.state.nav = build_nav(app)
+    app.state.footer_links = build_footer(app)
 
     @app.exception_handler(404)
     def not_found_page(request: Request, exc: StarletteHTTPException) -> HTMLResponse:

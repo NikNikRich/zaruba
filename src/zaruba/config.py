@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     env: str = "local"
     content_dir: Path = BASE_DIR / "content" / "editions"
     venues_file: Path = BASE_DIR / "content" / "venues.yaml"
+    glossary_file: Path = BASE_DIR / "content" / "glossary.yaml"
+    faq_file: Path = BASE_DIR / "content" / "faq.yaml"
 
     # Кэш публичных страниц (docs/06 §6.20): 60 с, расписание — 15 с.
     cache_ttl_public: int = 60

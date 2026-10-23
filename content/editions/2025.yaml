@@ -235,3 +235,26 @@ performances:
     scheduled_at: "2025-12-07T14:00:00+05:00"
     order_no: 8
     demo: true
+
+# Жюри 2025 — подтверждено страницей события «Касс Ру» (docs/01, строка «Жюри 2025»).
+# Города, регалии и распределение по блокам публично не описаны: полей нет,
+# страница /judges честно пишет «уточняется» вместо выдуманных деталей.
+judges:
+  - slug: yurasova
+    name: Анастасия Юрасова
+    role: judge
+    regalia: MATÈ
+    source_id: kassy-event
+  - slug: moryzhenkov
+    name: Андрей Морыженков
+    role: judge
+    source_id: kassy-event
+  - slug: mafiya
+    name: Наталья Мафия
+    role: judge
+    source_id: kassy-event
+  - slug: mc-geo
+    name: GEO
+    role: mc
+    source_id: kassy-event
+

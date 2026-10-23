@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="page-head">
-  <p class="breadcrumbs"><a href="/performances">Выступления</a> / участник</p>
+  <p class="breadcrumbs"><a href="/participants">Участники</a> / карточка</p>
   <h1>{{ view.participant.display_name }}</h1>
   <p class="lead">{{ view.participant.city }} · {{ view.participant.age_group.label }} · {{ view.studio.name }}</p>
   {% if view.participant.demo %}<span class="badge">пример</span>{% endif %}
@@ -25,12 +25,12 @@
   <ul class="facts">
     <li><span class="lbl">город</span> {{ view.participant.city }}</li>
     <li><span class="lbl">возрастная группа</span> {{ view.participant.age_group.label }}</li>
-    <li><span class="lbl">студия</span> {{ view.studio.name }}</li>
+    <li><span class="lbl">студия</span> <a href="/studios/{{ view.studio.slug }}">{{ view.studio.name }}</a></li>
     <li><span class="lbl">на «Зарубе»</span> {{ view.years|join(", ") }} ·
-      {{ view.performances|length }} выступлений</li>
+      {{ view.performances|length }} {{ view.performances|length|plural("выступление", "выступления", "выступлений") }}</li>
   </ul>
-  <p class="muted small">Страницы студий появятся в следующем обновлении: категории студий и
-  тренеров — этап P1. Ссылку в пустоту не ставим.</p>
+  <p class="muted small">Страница студии — состав, направления и выступления за все
+  выпуски. Тренеры появятся, когда организаторы опубликуют состав.</p>
 </section>
 
 <section class="section">

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Вопросы и ответы — {{ edition.title }}{% endblock %}
+{% block description %}Частые вопросы о «ЗАРУБЕ»: билеты, участие, дети, музыка и правила площадки.{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <p class="breadcrumbs"><a href="/event">О событии</a> / вопросы</p>
+  <h1>Вопросы и ответы</h1>
+  <p class="lead">{{ total }} вопроса в четырёх группах: зрителю, участнику, родителям и про сам сайт.</p>
+  <p class="muted small">Где ответа нет в публичных источниках, так и написано: «уточняется» —
+  со ссылкой на официальный канал. Выдуманная уверенность здесь дороже стоит.</p>
+</div>
+
+<nav class="chips" aria-label="Группы вопросов">
+  {% for group in groups %}
+  <a class="chip" href="#faq-{{ group.key }}">{{ group.label }} <span class="muted">{{ group.questions|length }}</span></a>
+  {% endfor %}
+</nav>
+
+{% for group in groups %}
+<section class="section" id="faq-{{ group.key }}">
+  <h2>{{ group.label }}</h2>
+  <div class="faq">
+    {% for item in group.questions %}
+    <details class="faq-item" id="faq-{{ item.slug }}">
+      <summary>{{ item.question }}</summary>
+      <p>{{ item.answer }}</p>
+      <p class="muted small">
+        <span class="badge">{{ item.status.label }}</span>
+        {% if item.source_id and sources[item.source_id] %}
+        <a href="{{ sources[item.source_id].url }}" rel="noopener noreferrer nofollow">источник</a>,
+        проверено {{ sources[item.source_id].retrieved_at|fmt_dt }}
+        {% else %}
+        источник: страница сайта, не требует внешней ссылки
+        {% endif %}
+      </p>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+
+<section class="section">
+  <h2>Не нашли ответ</h2>
+  <ul class="link-list">
+    <li><a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">Сообщество «ЗАРУБА72»</a>
+    — официальный канал, там отвечают на вопросы про заявки и билеты.</li>
+    <li><a href="/tickets">Билеты</a> — что известно про цены и где покупать.</li>
+    <li><a href="/venue">Площадка</a> — адрес, вход, парковка и доступность.</li>
+  </ul>
+</section>
+{% endblock %}

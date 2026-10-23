@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Билеты — {{ edition.title }}{% endblock %}
+{% block description %}Как попасть зрителем на «ЗАРУБА» {{ edition.edition }}: официальный канал билетов, цены и возрастной ценз.{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <p class="breadcrumbs"><a href="/event">О событии</a> / билеты</p>
+  <h1>Билеты и цены</h1>
+  <p class="lead">{{ edition.dates|fmt_dates }} · {{ venue.name }}, {{ venue.address_line }}</p>
+</div>
+
+<div class="callout">
+  <p><strong>Мы не продаём билеты и не принимаем деньги.</strong> Сайт неофициальный:
+  покупка, возврат и льготы — только через канал организатора. Здесь мы объясняем,
+  где искать, и не подменяем официальный анонс.</p>
+</div>
+
+<section class="section">
+  <h2>Где покупать</h2>
+  {% if ticket_source %}
+  <ul class="link-list">
+    <li>
+      <a href="{{ ticket_source.url }}" rel="noopener noreferrer nofollow">Официальная страница билетов</a>
+      — {{ ticket_source.title }}, проверено {{ ticket_source.retrieved_at|fmt_dt }}.
+    </li>
+    <li>
+      <a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">Сообщество «ЗАРУБА72»</a>
+      — анонсы, изменения дат и правила возврата.
+    </li>
+  </ul>
+  {% else %}
+  <p class="empty">Ссылки на официальный канал нет в загруженных источниках.
+  <a href="/event">Страница события</a> и <a href="/faq">вопросы и ответы</a> подскажут,
+  что известно точно, а что ещё уточняется.</p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <h2>Цены</h2>
+  {% if sales_closed %}
+  <p><strong>Продажи на выпуск {{ edition.edition }} закрыты.</strong> Цены не публикуем
+  задним числом: в открытых источниках их нет, а диапазоны «примерно 800–1200 ₽» —
+  это догадка, а не факт.</p>
+  {% else %}
+  <p><strong>Цены ещё не объявлены.</strong> Мы не пишем диапазоны и «ориентировочно»:
+  либо точная цифра из официального анонса, либо ничего.</p>
+  {% endif %}
+  <ul class="facts">
+    <li><span class="lbl">даты</span> {{ edition.dates|fmt_dates }}</li>
+    <li><span class="lbl">площадка</span> {{ venue.name }}, {{ venue.address_line }}</li>
+    <li><span class="lbl">возрастной ценз</span> {{ edition.age_rating }}</li>
+    <li><span class="lbl">формат</span> {{ edition.days }} дня: соло и дуэты, команды и шоу</li>
+  </ul>
+  <p class="muted small">Цены и категории мест появятся на этой странице только вместе
+  с официальным анонсом — со ссылкой и датой проверки. Правила возврата и льготы
+  определяет организатор, а не фан-сайт.</p>
+  <p class="section-link"><a href="/venue">как добраться до площадки →</a></p>
+</section>
+
+<section class="section">
+  <h2>Что посмотреть</h2>
+  <ul class="link-list">
+    <li><a href="/schedule">Расписание</a> — по дням и блокам, чтобы выбрать день.</li>
+    <li><a href="/performances">Выступления</a> — кто выходит и в каких номинациях.</li>
+    <li><a href="/faq">Вопросы и ответы</a> — дети, съёмка, длительность, еда.</li>
+  </ul>
+</section>
+
+<section class="sources">
+  <h2>Источники</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

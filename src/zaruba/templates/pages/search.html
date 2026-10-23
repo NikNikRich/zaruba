@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Поиск — {{ edition.title }}{% endblock %}
+{% block description %}Поиск по сайту: участники, выступления, номинации, студии и глоссарий «ЗАРУБА».{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h1>Поиск</h1>
+  <p class="lead">Один запрос — участники, выступления, номинации, студии и глоссарий.</p>
+</div>
+
+<form class="filters search-form" method="get" action="/search" role="search" aria-label="Поиск по сайту">
+  <label>Что ищем
+    <input type="search" name="q" value="{{ q }}" maxlength="80" minlength="2" placeholder="фамилия, студия или направление">
+  </label>
+  <div class="actions">
+    <button class="btn btn--primary" type="submit">Найти</button>
+    {% if q %}<a class="btn" href="/search">Очистить</a>{% endif %}
+  </div>
+</form>
+
+{% if too_short %}
+<p class="empty">Слишком короткий запрос: нужно хотя бы два символа. Начните с фамилии,
+названия студии или направления — например, <a href="/search?q=hip-hop">hip-hop</a>.</p>
+{% elif q and groups %}
+<p class="muted small">Найдено: {{ total }} совпадений по запросу «{{ q }}».</p>
+{% for group in groups %}
+<section class="section result-group">
+  <h2>{{ group.label }} <span class="muted small">{{ group.total }}</span></h2>
+  <ul class="link-list">
+    {% for hit in group.hits %}
+    <li>
+      <a href="{{ hit.url }}">{{ hit.title }}</a>
+      {% if hit.badge %}<span class="badge">{{ hit.badge }}</span>{% endif %}
+      {% if hit.subtitle %}<span class="muted small">{{ hit.subtitle }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if group.more_url and group.total > group.hits|length %}
+  <p class="section-link"><a href="{{ group.more_url }}">все совпадения в разделе «{{ group.label }}» →</a></p>
+  {% endif %}
+</section>
+{% endfor %}
+{% elif q %}
+<p class="empty">По запросу «{{ q }}» ничего не нашлось. Попробуйте фамилию, студию или
+направление — или начните с каталогов: <a href="/participants">участники</a>,
+<a href="/performances">выступления</a>, <a href="/studios">студии</a>,
+<a href="/glossary">глоссарий</a>.</p>
+{% else %}
+<p class="empty">Введите запрос — например, <a href="/search?q=hip-hop">hip-hop</a>,
+<a href="/search?q=студия">студия</a> или <a href="/search?q=12-17">12-17</a>.
+Полные каталоги: <a href="/participants">участники</a>,
+<a href="/performances">выступления</a>, <a href="/studios">студии</a>,
+<a href="/glossary">глоссарий</a>.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ view.studio.name }} — студия на «ЗАРУБА»{% endblock %}
+{% block description %}{{ view.studio.name }}, {{ view.studio.city }}: участники и выступления на «Зарубе».{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <p class="breadcrumbs"><a href="/studios">Студии</a> / студия</p>
+  <h1>{{ view.studio.name }}</h1>
+  <p class="lead">{{ view.studio.city }}{% if view.years %} · на «Зарубе» в {{ view.years|join(", ") }}{% endif %}</p>
+  {% if view.studio.demo %}<span class="badge">пример</span>{% endif %}
+</div>
+
+<section class="section">
+  <h2>Коротко</h2>
+  <ul class="facts">
+    <li><span class="lbl">город</span> {{ view.studio.city }}</li>
+    <li><span class="lbl">участников</span> {{ view.participants|length }}</li>
+    <li><span class="lbl">выступлений</span> {{ view.performances|length }}</li>
+    {% if view.styles %}
+    <li><span class="lbl">направления</span>
+      {% for style in view.styles %}<a href="/glossary#style-{{ style.value }}">{{ style.label }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+    </li>
+    {% endif %}
+  </ul>
+  {% if view.studio.vk_url %}
+  <p><a href="{{ view.studio.vk_url }}" rel="noopener noreferrer nofollow">Публичная страница студии</a>
+  — внешняя ссылка без рекламного статуса.</p>
+  {% else %}
+  <p class="muted small">Публичной страницы студии мы не подтвердили — ссылку не ставим.
+  Тренеры появятся, когда будет опубликован состав от организаторов.</p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <h2>Участники студии</h2>
+  {% if view.participants %}
+  <div class="person-grid">
+    {% for person in view.participants %}
+    <a class="person-card" href="/participants/{{ person.participant.slug }}">
+      <span class="avatar" aria-hidden="true">{{ person.participant.display_name }}</span>
+      <strong>{{ person.participant.display_name }}</strong>
+      <span class="muted">{{ person.participant.age_group.label }}</span>
+      <span class="muted small">{{ person.performances|length }} {{ person.performances|length|plural("выступление", "выступления", "выступлений") }}</span>
+      {% if person.participant.demo %}<span class="badge">пример</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">Участников этой студии в загруженных выпусках нет.
+  <a href="/participants">Каталог участников</a> или <a href="/studios">все студии</a> —
+  там есть поиск по названию.</p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <h2>Выступления</h2>
+  {% if performances %}
+  <table class="table">
+    <caption class="sr-only">Выступления студии {{ view.studio.name }}</caption>
+    <thead>
+      <tr>
+        <th scope="col">Год</th>
+        <th scope="col">Номинация</th>
+        <th scope="col">Когда</th>
+        <th scope="col">Кто</th>
+        <th scope="col">Карточка</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in performances %}
+      <tr>
+        <td class="mono">{{ item.year }}</td>
+        <td>{{ item.nomination.title }}</td>
+        <td>День {{ item.day }} · {{ item.performance.scheduled_at|fmt_date }}, {{ item.performance.scheduled_at|fmt_time }}</td>
+        <td>{{ item.participant_names }}</td>
+        <td><a href="/performances/{{ item.performance.slug }}">открыть</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty">Выступлений нет. <a href="/performances">Каталог выступлений</a> и
+  <a href="/schedule">расписание</a> покажут всю программу выпуска.</p>
+  {% endif %}
+</section>
+
+<section class="section">
+  <h2>Результаты</h2>
+  <p class="empty">Места и баллы не показываем: официальных протоколов этого выпуска нет.
+  Когда появятся — добавим место, номинацию и ссылку на источник, без «примерно» и
+  зрительских оценок.</p>
+</section>
+
+<section class="sources">
+  <h2>Источники</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="section-link"><a href="/studios">все студии →</a></p>
+</section>
+{% endblock %}

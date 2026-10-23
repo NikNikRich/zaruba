@@ -53,11 +53,11 @@
   <h2>Направления</h2>
   <div class="chips">
     {% for item in directions %}
-    <span class="chip">{{ item.label }} <span class="muted">{{ item.count }}</span></span>
+    <a class="chip" href="/glossary#style-{{ item.value }}">{{ item.label }} <span class="muted">{{ item.count }}</span></a>
     {% endfor %}
   </div>
   <p class="muted small">Названия стилей взяты из сетки номинаций, а не из постов в соцсетях.
-  Отдельные страницы глоссария появятся позже — ссылок в пустоту мы не ставим.</p>
+  Что это за направление и как его отличить — в <a href="/glossary">глоссарии</a>.</p>
 </section>
 
 <section class="section">
@@ -121,6 +121,8 @@
     <li><a href="/schedule">Расписание блоков и дней</a> — что и когда смотреть.</li>
     <li><a href="/performances">Выступления</a> — кто и с чем выходит.</li>
     <li><a href="/venue">Площадка</a> — адрес, вместимость и как добраться.</li>
+    <li><a href="/judges">Жюри</a> — кто оценивает и что известно о критериях.</li>
+    <li><a href="/tickets">Билеты</a> — где официальный канал и почему цен нет.</li>
   </ul>
 </section>
 

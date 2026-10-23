@@ -46,6 +46,17 @@ NAV_ITEMS: tuple[dict[str, str], ...] = (
     {"endpoint": "participants", "label": "Участники"},
     {"endpoint": "ratings", "label": "Рейтинги"},
     {"endpoint": "venue_page", "label": "Площадка"},
+    {"endpoint": "search", "label": "Поиск"},
+)
+
+# Второй ряд ссылок в футере: каталоги P1 (§6.9–6.15). Тоже только реализованное.
+FOOTER_ITEMS: tuple[dict[str, str], ...] = (
+    {"endpoint": "studios", "label": "Студии"},
+    {"endpoint": "judges_page", "label": "Жюри"},
+    {"endpoint": "tickets_page", "label": "Билеты"},
+    {"endpoint": "glossary_page", "label": "Глоссарий"},
+    {"endpoint": "faq_page", "label": "Вопросы и ответы"},
+    {"endpoint": "search", "label": "Поиск"},
 )
 
 
@@ -91,6 +102,16 @@ def fmt_weekday(value: date | datetime | None) -> str:
     return WEEKDAYS[value.weekday()]
 
 
+def plural(count: int, one: str, few: str, many: str) -> str:
+    """Русское склонение: 1 выступление, 2 выступления, 5 выступлений."""
+
+    if count % 10 == 1 and count % 100 != 11:
+        return one
+    if count % 10 in (2, 3, 4) and count % 100 not in (12, 13, 14):
+        return few
+    return many
+
+
 templates.env.filters.update(
     {
         "fmt_date": fmt_date,
@@ -98,21 +119,30 @@ templates.env.filters.update(
         "fmt_time": fmt_time,
         "fmt_dates": fmt_dates,
         "fmt_weekday": fmt_weekday,
+        "plural": plural,
     }
 )
 
 
-def build_nav(app: FastAPI) -> list[dict[str, str]]:
+def _links(app: FastAPI, items: tuple[dict[str, str], ...]) -> list[dict[str, str]]:
     """Только существующие эндпоинты: `url_path_for` сам скажет, чего нет."""
 
-    nav: list[dict[str, str]] = []
-    for item in NAV_ITEMS:
+    links: list[dict[str, str]] = []
+    for item in items:
         try:
             url = app.url_path_for(item["endpoint"])
         except NoMatchFound:
             continue
-        nav.append({"url": url, "label": item["label"]})
-    return nav
+        links.append({"url": url, "label": item["label"]})
+    return links
+
+
+def build_nav(app: FastAPI) -> list[dict[str, str]]:
+    return _links(app, NAV_ITEMS)
+
+
+def build_footer(app: FastAPI) -> list[dict[str, str]]:
+    return _links(app, FOOTER_ITEMS)
 
 
 def render(
@@ -122,6 +152,7 @@ def render(
     canonical = f"{str(request.base_url).rstrip('/')}{request.url.path}"
     payload: dict[str, Any] = {
         "nav": request.app.state.nav,
+        "footer_links": request.app.state.footer_links,
         "settings": request.app.state.settings,
         "current_path": request.url.path,
         "canonical": canonical,
