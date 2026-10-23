@@ -55,10 +55,17 @@ def test_sitemap_is_valid_xml_with_confirmed_pages(client: TestClient) -> None:
         "/participants",
         "/faq",
         "/glossary",
+        "/venue",
+        "/about",
+        "/rules",
+        "/privacy",
+        "/takedown",
     ):
         assert f"http://testserver{path}" in locs, path
     assert all("?" not in loc for loc in locs), "фильтры и пагинация в sitemap не попадают"
-    assert not any("ratings" in loc for loc in locs), "нереализованных разделов в sitemap нет"
+    assert not any(loc.endswith("/ratings") for loc in locs), (
+        "/ratings закрыт флагом и отдаёт noindex — в sitemap его нет"
+    )
 
 
 def test_sitemap_skips_demo_and_private_pages(client: TestClient) -> None:
@@ -121,6 +128,9 @@ def test_glossary_page_has_defined_terms(client: TestClient) -> None:
         ("/studios/demo-studio-a", ("Главная", "Студии")),
         ("/faq", ("Главная", "Вопросы и ответы")),
         ("/history", ("Главная", "История")),
+        ("/ratings", ("Главная", "Рейтинги")),
+        ("/about", ("Главная", "О сайте")),
+        ("/takedown", ("Главная", "Удаление данных")),
         ("/venue", ("Главная", "Площадка")),
     ),
 )

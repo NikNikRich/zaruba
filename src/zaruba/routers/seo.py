@@ -31,7 +31,8 @@ def robots_txt(request: Request) -> PlainTextResponse:
 
 @router.get("/sitemap.xml", response_class=Response, include_in_schema=False)
 def sitemap_xml(request: Request) -> Response:
-    entries = sitemap_entries(load_site(request.app.state.settings))
+    settings = request.app.state.settings
+    entries = sitemap_entries(load_site(settings), ratings=settings.ratings_enabled)
     return Response(
         render_sitemap(entries, _base_url(request)),
         media_type="application/xml",

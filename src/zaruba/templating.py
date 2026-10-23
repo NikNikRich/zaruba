@@ -47,9 +47,17 @@ NAV_ITEMS: tuple[dict[str, str], ...] = (
     {"endpoint": "schedule", "label": "Расписание"},
     {"endpoint": "performances", "label": "Выступления"},
     {"endpoint": "participants", "label": "Участники"},
-    {"endpoint": "ratings", "label": "Рейтинги"},
+    {"endpoint": "ratings_page", "label": "Рейтинги"},
     {"endpoint": "venue_page", "label": "Площадка"},
     {"endpoint": "search", "label": "Поиск"},
+)
+
+# Служебные страницы (§6.2 п.18, §6.3): отдельный ряд футера, не в шапке.
+LEGAL_ITEMS: tuple[dict[str, str], ...] = (
+    {"endpoint": "about_page", "label": "О сайте"},
+    {"endpoint": "rules_page", "label": "Правила"},
+    {"endpoint": "privacy_page", "label": "Данные"},
+    {"endpoint": "takedown_page", "label": "Удаление данных"},
 )
 
 # Второй ряд ссылок в футере: каталоги P1 (§6.9–6.15). Тоже только реализованное.
@@ -160,6 +168,10 @@ def build_footer(app: FastAPI) -> list[dict[str, str]]:
     return _links(app, FOOTER_ITEMS)
 
 
+def build_legal(app: FastAPI) -> list[dict[str, str]]:
+    return _links(app, LEGAL_ITEMS)
+
+
 def _json_ld_blocks(request: Request, context: dict[str, Any], status_code: int) -> list[str]:
     """JSON-LD страницы: то, что передал роутер, плюс крошки (§6.19).
 
@@ -177,7 +189,11 @@ def _json_ld_blocks(request: Request, context: dict[str, Any], status_code: int)
             str(request.base_url).rstrip("/"),
             request.url.path,
             context.get("page_title"),
-            [*request.app.state.nav, *request.app.state.footer_links],
+            [
+                *request.app.state.nav,
+                *request.app.state.footer_links,
+                *request.app.state.legal_links,
+            ],
         )
         if crumbs is not None:
             blocks.append(crumbs)
@@ -192,6 +208,7 @@ def render(
     payload: dict[str, Any] = {
         "nav": request.app.state.nav,
         "footer_links": request.app.state.footer_links,
+        "legal_links": request.app.state.legal_links,
         "settings": request.app.state.settings,
         "current_path": request.url.path,
         "canonical": canonical,

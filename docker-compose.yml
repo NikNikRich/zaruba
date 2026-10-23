@@ -1,0 +1,23 @@
+services:
+  web:
+    build: .
+    image: zaruba:latest
+    # cp .env.example .env — иначе compose не запустится
+    env_file:
+      - .env
+    environment:
+      # адрес прокси, которому доверяем X-Forwarded-Proto; для nginx в другом
+      # контейнере замените на адрес этого контейнера или подсеть compose
+      FORWARDED_ALLOW_IPS: 127.0.0.1
+    ports:
+      # наружу смотрит только прокси: uvicorn слушает loopback хоста
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # контент — данные: правка YAML не требует пересборки образа
+      - ./content:/app/content:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

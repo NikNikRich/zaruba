@@ -52,6 +52,13 @@
       {% endfor %}
     </nav>
     {% endif %}
+    {% if legal_links %}
+    <nav class="footer-links" aria-label="О сайте">
+      {% for item in legal_links %}
+      <a href="{{ item.url }}">{{ item.label }}</a>
+      {% endfor %}
+    </nav>
+    {% endif %}
     <p class="muted small">Все факты получены из публичных источников и помечены статусом.
     Нашли ошибку — напишите в сообщество, мы исправим и укажем источник.</p>
   </div>

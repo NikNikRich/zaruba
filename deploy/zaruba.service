@@ -1,0 +1,38 @@
+[Unit]
+Description=ЗАРУБА — фан-сайт чемпионата (uvicorn)
+Documentation=https://github.com/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zaruba
+Group=zaruba
+WorkingDirectory=/srv/zaruba
+EnvironmentFile=/srv/zaruba/.env
+# --proxy-headers: canonical и sitemap должны видеть https, а не http от прокси.
+# --forwarded-allow-ips берётся из FORWARDED_ALLOW_IPS в .env (по умолчанию 127.0.0.1).
+ExecStart=/srv/zaruba/.venv/bin/uvicorn zaruba.main:app \
+    --host 127.0.0.1 --port 8000 --proxy-headers --no-server-header
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+
+# Минимум прав: приложению нечего писать на диск, контент — только чтение.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zaruba
+
+[Install]
+WantedBy=multi-user.target

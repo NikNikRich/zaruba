@@ -5,12 +5,15 @@ from fastapi.testclient import TestClient
 
 from zaruba.templating import money
 
-NAV_WITHOUT_IMPLEMENTATION = ("/ratings",)
-
 PAGES = (
     "/",
     "/event",
     "/history",
+    "/ratings",
+    "/about",
+    "/rules",
+    "/privacy",
+    "/takedown",
     "/schedule",
     "/performances",
     "/performances/perf-01-hip-hop-6-11",
@@ -57,8 +60,6 @@ def test_home_does_not_link_to_missing_pages(client: TestClient) -> None:
         "/search",
     ):
         assert f'href="{path}"' in html, path
-    for path in NAV_WITHOUT_IMPLEMENTATION:
-        assert f'href="{path}"' not in html
 
 
 def test_schedule_renders_nominations_and_master_classes(client: TestClient) -> None:
@@ -145,6 +146,8 @@ def test_pages_warn_about_past_edition(client: TestClient) -> None:
     for path in (
         "/",
         "/event",
+        "/history",
+        "/ratings",
         "/schedule",
         "/judges",
         "/tickets",

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Правила{% endblock %}
+{% block description %}Регламент участия «ЗАРУБЫ» {{ edition.edition }} из «Положения»: хронометраж,
+фонограмма, реквизит, документы. И правила сайта: дети, модерация, удаление данных.{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <p class="kicker">Регламент</p>
+  <h1>Правила</h1>
+  <p class="lead">Два разных списка: что организаторы требуют от участников и что мы требуем
+  от себя на сайте. Смешивать их нельзя — за первое отвечает чемпионат, за второе проект.</p>
+</div>
+
+<section class="section">
+  <h2>Правила участия {{ edition.edition }}</h2>
+  {% if edition.rules %}
+  <ul class="facts">
+    {% for rule in edition.rules %}
+    <li><span class="lbl">{{ loop.index }}</span> {{ rule }}</li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Формулировки — из «Положения» выпуска: сокращены без изменения смысла.
+  Полный документ — по ссылке в источниках ниже. Взносы и сроки — на странице
+  <a href="/tickets">билетов и цен</a>.</p>
+  {% else %}
+  <p class="empty">«Положение» этого выпуска не опубликовано, поэтому правил участия у нас нет:
+  пересказывать прошлогодние как действующие — хуже, чем не писать ничего. Следите за
+  <a href="{{ contact }}" rel="noopener noreferrer nofollow">сообществом «ЗАРУБА72»</a>.</p>
+  {% endif %}
+</section>
+
+{% if edition.criteria %}
+<section class="section">
+  <h2>Что оценивают судьи</h2>
+  <table class="table">
+    <caption class="sr-only">Критерии и максимальные баллы из «Положения»</caption>
+    <thead>
+      <tr><th scope="col">Критерий</th><th scope="col">Максимум</th><th scope="col">Где применяется</th></tr>
+    </thead>
+    <tbody>
+      {% for criterion in edition.criteria %}
+      <tr>
+        <td>{{ criterion.title }}</td>
+        <td class="mono">{{ criterion.max_score }}</td>
+        <td>{% if criterion.applies_to %}{{ criterion.applies_to }}{% else %}все номинации{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted small">Состав жюри и распределение по блокам — на странице
+  <a href="/judges">жюри</a>. Итоговые протоколы публикуют организаторы, у нас их нет.</p>
+</section>
+{% endif %}
+
+<section class="section">
+  <h2>Правила сайта</h2>
+  <ul class="facts">
+    <li><span class="lbl">дети</span> имя несовершеннолетнего — только инициалы, пока родитель
+    не дал письменное согласие. Фото, клипы и ссылки на личные профили детей не публикуем
+    никогда; даты рождения, школы, адреса и телефоны — тоже.</li>
+    <li><span class="lbl">без рейтингов «снизу»</span> на детских номинациях нет дуэлей
+    «один на один» и списков «кто хуже». Только поддержка и факты.</li>
+    <li><span class="lbl">комментариев нет</span> обсуждение внешности и уровня детей не
+    модерируется, потому что его нет технически. Сайт — справочник, а не форум.</li>
+    <li><span class="lbl">чужие материалы</span> перепубликуем только официальные видео
+    организаторов; остальное — ссылкой на первоисточник с атрибутом nofollow.</li>
+    <li><span class="lbl">ошибки</span> исправляем с датой и источником, а не тихо. Если
+    ошибку не признаём — объясняем, откуда взялась цифра.</li>
+    <li><span class="lbl">удаление</span> фото, видео и имени — по запросу за 48 часов,
+    без споров: <a href="/takedown">как попросить</a>.</li>
+  </ul>
+  <p class="muted small">Эти правила — наши, а не требования организаторов. Они распространяются
+  на сайт и не отменяют регламент чемпионата.</p>
+</section>
+
+<section class="sources">
+  <h2>Источники</h2>
+  <ul class="source-list">
+    {% for source in edition.sources %}
+    <li>
+      <a href="{{ source.url }}" rel="noopener noreferrer nofollow">{{ source.title }}</a>
+      <span class="muted small">проверено {{ source.retrieved_at|fmt_dt }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Дата правки правил сайта — в
+  <a href="/privacy">политике данных</a> и на странице <a href="/takedown">удаления</a>.</p>
+</section>
+{% endblock %}

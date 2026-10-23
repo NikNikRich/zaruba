@@ -65,24 +65,36 @@ Zaruba/
   src/zaruba/
     main.py              app factory, статика, /healthz
     config.py            pydantic-settings, префикс ZARUBA_, фичефлаги
+    middleware.py        заголовки безопасности (CSP, HSTS в prod), кэш /static
     models.py            модели по 06.17 + проверки целостности и приватности
     content.py           загрузка YAML + CLI (python -m zaruba.content)
     errors.py            перевод ошибок pydantic в «параметр — что не так» для 422
     templating.py        Jinja2, фильтры дат, чисел и цены (`money`), навигация, canonical, render()
     routers/             public.py (главная, событие, площадка, жюри, билеты, глоссарий, FAQ),
                          history.py (архив по годам),
+                         ratings.py (рейтинги и методика — за флагом),
+                         legal.py (о сайте, правила, данные, удаление),
                          schedule.py (расписание),
                          catalogue.py (выступления, участники, студии, поиск),
                          seo.py (/robots.txt, /sitemap.xml)
     services/            edition.py (представления выпуска), catalogs.py (каталоги),
                          search.py (поиск по загруженным данным),
                          history.py (хронология: архив + выпуски),
+                         ratings.py (методика: версия, формулы, ограничения, причины пустоты),
                          seo.py (JSON-LD Event/FAQPage/DefinedTerm/BreadcrumbList, sitemap)
-    templates/           base.html, 404, 422; pages/: home, event, history, schedule,
+    templates/           base.html, 404, 422; pages/: home, event, history, ratings, schedule,
                          performances, performance, participants, participant, studios,
-                         studio, judges, venue, tickets, glossary, faq, search
+                         studio, judges, venue, tickets, glossary, faq, search,
+                         legal/: about, rules, privacy, takedown
     static/              style.css, print.css — без JS и внешних шрифтов
   tests/                 pytest: роуты, каталоги, приватность, данные, CLI
+  deploy/
+    zaruba.service       systemd: uvicorn за прокси, минимум прав
+    nginx.conf.example   HTTPS, gzip, кэш статики, X-Forwarded-Proto
+  Dockerfile             образ: python:3.12-slim, non-root, --proxy-headers
+  docker-compose.yml     один сервис, контент монтируется только для чтения
+  .env.example           все ZARUBA_* и FORWARDED_ALLOW_IPS с комментариями
+  .github/workflows/ci.yml  pytest, ruff, контент, документы, сборка образа
   tools/                 проверки документов и презентации
     check_md_tables.py   одинаковое число ячеек в таблицах
     check_md_chars.py    битые символы (U+FFFD) и обрывы текста
@@ -97,16 +109,23 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m uvicorn zaruba.main:app --reload --port 8000
 ```
+Настройки читаются из окружения с префиксом `ZARUBA_` (см. `.env.example`). Раздел
+`/ratings` по умолчанию закрыт: пока нет протоколов и голосования, он объясняет методику
+и отдаёт `noindex`; включить публичный режим — `ZARUBA_RATINGS_ENABLED=true`.
+
+
 
 Страницы: `/` (главная), `/event` (о событии и хронология), `/history` (архив по годам),
-`/schedule`
+`/ratings` (рейтинги и методика v1 — за флагом `ZARUBA_RATINGS_ENABLED`), `/schedule`
 (расписание, `?day=1`), `/performances` (каталог с фильтрами `?day=&style=&age=&format=&studio=&video=1`),
 `/performances/{slug}` (карточка выступления), `/participants` (каталог участников с
 `?q=&studio=&city=&age=&style=`), `/participants/{slug}` (карточка участника),
 `/studios` и `/studios/{slug}` (студии и их составы), `/judges` (жюри и критерии),
 `/tickets` (билеты без продаж), `/glossary` (направления и термины), `/faq` (12 вопросов),
 `/search?q=` (поиск по участникам, выступлениям, номинациям, студиям и глоссарию),
-`/venue` (площадка), `/healthz` (состояние). Шаблоны — серверный рендер: все факты видны при
+`/venue` (площадка), `/about` (о проекте), `/rules` (регламент и правила сайта),
+`/privacy` (данные), `/takedown` (удаление за 48 часов), `/healthz` (состояние). Шаблоны —
+серверный рендер: все факты видны при
 выключенном JS; неизвестный адрес отдаёт HTML-страницу 404 с выходами, а неверный
 фильтр (`?day=9`, `?age=abc`) — страницу 422 с объяснением, какой параметр не подошёл.
 Для роботов: `/robots.txt` и `/sitemap.xml` — только подтверждённые страницы, демо-записи
@@ -130,6 +149,33 @@ python -m venv .venv
 - у несовершеннолетнего без согласия публичное имя — только инициалы;
 - демонстрационные строки помечены `demo: true` и показываются как «пример»;
 - FAQ без источника помечается статусом «не подтверждено», а не подаётся как факт.
+
+## Публикация
+
+Прод — тот же uvicorn за обратным прокси: приложение не умеет TLS и не должно.
+
+```powershell
+Copy-Item .env.example .env          # ZARUBA_ENV=prod, флаги, FORWARDED_ALLOW_IPS
+docker compose up -d --build
+curl http://127.0.0.1:8000/healthz
+```
+
+Что важно именно для этого проекта:
+
+- `--proxy-headers` (в образе уже включён) и `X-Forwarded-Proto` от прокси: без них
+  canonical, `robots.txt` и `sitemap.xml` отдают `http://127.0.0.1:8000`.
+- `ZARUBA_ENV=prod` включает HSTS; CSP, `nosniff`, `X-Frame-Options` и
+  `Referrer-Policy` отдаются всегда (`middleware.py`), `/static` кэшируется на час.
+- `content/` монтируется в контейнер только на чтение: правка YAML — рестарт,
+  а не пересборка образа.
+- Сжатие и кэш статики — в `deploy/nginx.conf.example`; юнит `deploy/zaruba.service` —
+  для установки без Docker.
+- Перед выкладкой: `python -m zaruba.content check` и `python -m pytest -q` — то же
+  делает CI, плюс собирает образ и проверяет `/healthz`, `/privacy` и CSP-заголовок.
+- Бэкап: `content/*.yaml` — единственный источник фактов; `.env` не коммитится.
+
+Чего в деплое нет намеренно: базы данных (контент — YAML), фоновых задач и Redis.
+
 
 
 ## Презентация проекта
@@ -172,12 +218,19 @@ python tools\check_html.py        # OK: разметка корректна, с�
 | 2 | Каталоги: участники, студии, жюри, организаторы, билеты, глоссарий, FAQ, поиск | 3–4 |
 | 3 | Рейтинги и методика, архив, JSON-LD, sitemap, print CSS | 2–3 |
 
-Этапы 0–2 закрыты. Этап 2 — каталоги: участники, студии, жюри, билеты, глоссарий,
+Этапы 0–3 закрыты. Этап 2 — каталоги: участники, студии, жюри, билеты, глоссарий,
 FAQ и поиск; у каждого раздела есть блок источников, пустые состояния с выходом,
 а фильтры и выдача поиска закрыты `noindex, follow`. `/organizers` не сделан:
 публичных данных о команде и партнёрах нет, а придумывать роли мы не будем.
-Пункт «Рейтинги» в шапке не показывается до этапа 3 — ссылку в 404 не ставим.
-Дальше — этап 3: рейтинги и методика, архив `/history`, JSON-LD, sitemap, print CSS.
+Этап 3 — архив `/history`, JSON-LD и sitemap, print CSS и `/ratings`: методика `v1`
+(Эло `K = 24`, старт 1000, рейтинг студий по медиане топ-3, «судьи vs зал»),
+ограничения и честное пустое состояние вместо таблиц. Таблиц нет, потому что
+протоколы не публикуются, а голосование не открыто: цифры из воздуха мы не рисуем.
+Пока флаг `ZARUBA_RATINGS_ENABLED` выключен, страница отдаёт `noindex, follow`
+и не попадает в sitemap; включённый флаг делает раздел индексируемым.
+Служебные страницы `/about`, `/rules`, `/privacy`, `/takedown` — P0 из §6.2 п.18:
+дисклеймер, регламент выпуска, какие данные есть на сайте и удаление за 48 часов,
+как обещает §5.8. Ссылки на них — отдельным рядом футера (§6.3).
 
 ## Чего не хватает (блокеры данных)
 

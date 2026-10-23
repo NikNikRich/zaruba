@@ -1,0 +1,47 @@
+# Пример конфигурации nginx перед uvicorn (`docs/06` §6.20).
+# Задачи: HTTPS, сжатие, кэш статики и проброс X-Forwarded-Proto.
+# Без `X-Forwarded-Proto` canonical, robots.txt и sitemap будут отдавать
+# http://127.0.0.1:8000 — приложению нужен `--proxy-headers`.
+
+server {
+    listen 80;
+    server_name example.ru www.example.ru;
+    return 301 https://example.ru$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name example.ru;
+
+    ssl_certificate     /etc/letsencrypt/live/example.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.ru/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    # HSTS уже отдаёт приложение в prod (ZARUBA_ENV=prod); дублировать не нужно.
+
+    gzip on;
+    gzip_min_length 1024;
+    gzip_types text/css text/plain text/xml application/xml application/json image/svg+xml;
+
+    client_max_body_size 1m;
+
+    location /static/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # приложение уже отдаёт Cache-Control: public, max-age=3600
+        expires 1h;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+}

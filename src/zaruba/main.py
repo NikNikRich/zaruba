@@ -11,7 +11,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import __version__
 from .config import Settings, get_settings
 from .errors import query_errors
-from .templating import PACKAGE_DIR, build_footer, build_nav, render
+from .middleware import SecurityHeadersMiddleware
+from .templating import PACKAGE_DIR, build_footer, build_legal, build_nav, render
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -26,17 +27,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url=None,
     )
     app.state.settings = settings
+    app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_prod)
     app.mount("/static", StaticFiles(directory=str(PACKAGE_DIR / "static")), name="static")
 
-    from .routers import catalogue, history, public, schedule, seo
+    from .routers import catalogue, history, legal, public, ratings, schedule, seo
 
     app.include_router(public.router)
     app.include_router(history.router)
+    app.include_router(ratings.router)
+    app.include_router(legal.router)
     app.include_router(schedule.router)
     app.include_router(catalogue.router)
     app.include_router(seo.router)
     app.state.nav = build_nav(app)
     app.state.footer_links = build_footer(app)
+    app.state.legal_links = build_legal(app)
 
     @app.exception_handler(404)
     def not_found_page(request: Request, exc: StarletteHTTPException) -> HTMLResponse:

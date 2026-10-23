@@ -38,6 +38,13 @@ STATIC_PAGES: tuple[tuple[str, str, str], ...] = (
     ("/glossary", "0.6", "monthly"),
     ("/faq", "0.7", "monthly"),
     ("/venue", "0.7", "monthly"),
+    # Служебные страницы (§6.2 п.18): нужны людям и поиску, но не как лендинги.
+    ("/about", "0.4", "yearly"),
+    ("/rules", "0.4", "yearly"),
+    ("/privacy", "0.3", "yearly"),
+    ("/takedown", "0.3", "yearly"),
+    # Раздел закрыт флагом: попадает в sitemap только при `ratings_enabled`.
+    ("/ratings", "0.6", "monthly"),
 )
 
 
@@ -223,8 +230,14 @@ def _performance_is_public(edition: Edition, public: set[str], slugs: list[str])
     return all(slug in public and not participants[slug].demo for slug in slugs)
 
 
-def sitemap_entries(bundles: Sequence[EditionBundle]) -> list[dict[str, str]]:
-    """Только подтверждённые и разрешённые страницы: демо и `noindex` — мимо."""
+def sitemap_entries(
+    bundles: Sequence[EditionBundle], *, ratings: bool = False
+) -> list[dict[str, str]]:
+    """Только подтверждённые и разрешённые страницы: демо и `noindex` — мимо.
+
+    `/ratings` попадает сюда лишь вместе с флагом: пока раздел не запущен,
+    страница отдаёт `noindex`, и sitemap с ней противоречил бы самой странице.
+    """
 
     if not bundles:
         return []
@@ -236,6 +249,7 @@ def sitemap_entries(bundles: Sequence[EditionBundle]) -> list[dict[str, str]]:
     entries = [
         {"loc": path, "lastmod": lastmod, "changefreq": changefreq, "priority": priority}
         for path, priority, changefreq in STATIC_PAGES
+        if ratings or path != "/ratings"
     ]
 
     public = _public_participants(catalog)
