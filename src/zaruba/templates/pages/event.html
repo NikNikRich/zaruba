@@ -128,8 +128,8 @@
       {% for row in chronology %}
       <tr>
         <td class="mono">{{ row.year }}</td>
-        <td>{{ row.dates|fmt_dates }}</td>
-        <td>{{ row.feature }}</td>
+        <td>{% if row.dates %}{{ row.dates|fmt_dates }}{% else %}не подтверждены{% endif %}</td>
+        <td>{{ row.note or "—" }}</td>
         <td>
           {% if row.source %}<a href="{{ row.source.url }}" rel="noopener noreferrer nofollow">публичный анонс</a>
           {% else %}<span class="muted">не указан</span>{% endif %}
@@ -138,6 +138,7 @@
       {% endfor %}
     </tbody>
   </table>
+  <p class="section-link"><a href="/history">вся история по годам →</a></p>
   <p class="muted small">Год без подтверждённых данных в таблицу не попадает: пустая строка
   выглядит как «архив», а архив должен быть настоящим.</p>
 </section>

@@ -28,6 +28,7 @@ SITE_URL_VK = "https://vk.com/zaruba72champ"
 STATIC_PAGES: tuple[tuple[str, str, str], ...] = (
     ("/", "1.0", "weekly"),
     ("/event", "0.8", "monthly"),
+    ("/history", "0.7", "yearly"),
     ("/schedule", "0.9", "weekly"),
     ("/performances", "0.9", "daily"),
     ("/participants", "0.9", "weekly"),

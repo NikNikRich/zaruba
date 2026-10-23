@@ -11,11 +11,12 @@ import yaml
 from pydantic import TypeAdapter, ValidationError
 
 from .config import Settings, get_settings
-from .models import Edition, EditionBundle, FaqItem, GlossaryEntry, Venue
+from .models import Edition, EditionBundle, FaqItem, GlossaryEntry, HistoryEntry, Venue
 
 VENUES_ADAPTER = TypeAdapter(list[Venue])
 GLOSSARY_ADAPTER = TypeAdapter(list[GlossaryEntry])
 FAQ_ADAPTER = TypeAdapter(list[FaqItem])
+HISTORY_ADAPTER = TypeAdapter(list[HistoryEntry])
 
 
 class ContentError(Exception):
@@ -152,6 +153,23 @@ class Knowledge:
     faq: list[FaqItem]
 
 
+def load_history(path: Path) -> list[HistoryEntry]:
+    """Архив до 2025: страница `/history` дополняет его загруженными выпусками."""
+
+    path = Path(path)
+    raw = _read_yaml(path, "полем entries")
+    try:
+        entries = HISTORY_ADAPTER.validate_python(raw.get("entries"))
+    except ValidationError as exc:
+        raise _validation_error(path, exc) from exc
+
+    years = [entry.year for entry in entries]
+    duplicates = sorted({year for year in years if years.count(year) > 1})
+    if duplicates:
+        raise ContentError(f"{path}: год описан дважды — {duplicates}")
+    return sorted(entries, key=lambda entry: entry.year, reverse=True)
+
+
 def load_knowledge(settings: Settings | None = None) -> Knowledge:
     settings = settings or get_settings()
     # FAQ общий для сайта: источник может быть из любого выпуска, не только из свежего.
@@ -205,7 +223,13 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "check":
-            bundles = [load_edition(path) for path in args.paths] if args.paths else load_site()
+            if args.paths:
+                bundles = [load_edition(path) for path in args.paths]
+            else:
+                settings = get_settings()
+                bundles = load_site(settings)
+                archive = load_history(settings.history_file)
+                print(f"OK  история: {len(archive)} записей до 2025 года")
             for bundle in bundles:
                 print(f"OK  {bundle.year}: {_summary(bundle)}")
             print(f"проверено выпусков: {len(bundles)}")

@@ -10,6 +10,7 @@ NAV_WITHOUT_IMPLEMENTATION = ("/ratings",)
 PAGES = (
     "/",
     "/event",
+    "/history",
     "/schedule",
     "/performances",
     "/performances/perf-01-hip-hop-6-11",

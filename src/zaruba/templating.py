@@ -43,6 +43,7 @@ WEEKDAYS: tuple[str, ...] = ("пн", "вт", "ср", "чт", "пт", "сб", "в
 # а не путь: в FastAPI 0.161 включённые роутеры не отдают `route.path`.
 NAV_ITEMS: tuple[dict[str, str], ...] = (
     {"endpoint": "event_page", "label": "О событии"},
+    {"endpoint": "history_page", "label": "История"},
     {"endpoint": "schedule", "label": "Расписание"},
     {"endpoint": "performances", "label": "Выступления"},
     {"endpoint": "participants", "label": "Участники"},

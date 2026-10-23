@@ -7,7 +7,7 @@ from datetime import date
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from ..content import load_knowledge, load_latest, load_site
+from ..content import load_history, load_knowledge, load_latest, load_site
 from ..models import AgeGroup, DanceFormat, DanceStyle, FaqGroup, GlossaryKind, NominationLevel
 from ..services.edition import (
     catalogue_bundle,
@@ -16,6 +16,7 @@ from ..services.edition import (
     flat_blocks,
     nominations_by_day,
 )
+from ..services.history import history_rows
 from ..services.seo import event_json_ld, faq_json_ld, glossary_json_ld
 from ..templating import render
 
@@ -84,16 +85,9 @@ def event_page(request: Request) -> HTMLResponse:
         for group in AgeGroup
         if any(item.age_group == group for item in edition.nominations)
     ]
-    # §6.5: год без подтверждённых данных не выдумываем — строка появляется только по факту.
-    chronology = [
-        {
-            "year": item.year,
-            "dates": item.edition.dates,
-            "feature": item.edition.note or "—",
-            "source": item.edition.sources[0] if item.edition.sources else None,
-        }
-        for item in load_site(request.app.state.settings)
-    ]
+    # §6.5: хронология = архив до 2025 + загруженные выпуски; год без фактов не появляется.
+    settings = request.app.state.settings
+    chronology = history_rows(load_site(settings), load_history(settings.history_file))
 
     return render(
         request,

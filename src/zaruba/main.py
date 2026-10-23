@@ -28,9 +28,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.mount("/static", StaticFiles(directory=str(PACKAGE_DIR / "static")), name="static")
 
-    from .routers import catalogue, public, schedule, seo
+    from .routers import catalogue, history, public, schedule, seo
 
     app.include_router(public.router)
+    app.include_router(history.router)
     app.include_router(schedule.router)
     app.include_router(catalogue.router)
     app.include_router(seo.router)

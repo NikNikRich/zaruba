@@ -46,7 +46,16 @@ def test_sitemap_is_valid_xml_with_confirmed_pages(client: TestClient) -> None:
     root = ET.fromstring(response.text)
     locs = {item.text for item in root.findall("sm:url/sm:loc", SITEMAP_NS)}
 
-    for path in ("/", "/event", "/schedule", "/performances", "/participants", "/faq", "/glossary"):
+    for path in (
+        "/",
+        "/event",
+        "/history",
+        "/schedule",
+        "/performances",
+        "/participants",
+        "/faq",
+        "/glossary",
+    ):
         assert f"http://testserver{path}" in locs, path
     assert all("?" not in loc for loc in locs), "фильтры и пагинация в sitemap не попадают"
     assert not any("ratings" in loc for loc in locs), "нереализованных разделов в sitemap нет"
@@ -111,6 +120,7 @@ def test_glossary_page_has_defined_terms(client: TestClient) -> None:
         ("/performances/perf-01-hip-hop-6-11", ("Главная", "Выступления")),
         ("/studios/demo-studio-a", ("Главная", "Студии")),
         ("/faq", ("Главная", "Вопросы и ответы")),
+        ("/history", ("Главная", "История")),
         ("/venue", ("Главная", "Площадка")),
     ),
 )

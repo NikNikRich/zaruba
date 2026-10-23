@@ -61,6 +61,7 @@ Zaruba/
     editions/2025.yaml   архив: блоки, демонстрационные участники и выступления
     glossary.yaml        глоссарий: 9 направлений и 8 терминов чемпионата
     faq.yaml             12 вопросов в четырёх группах, у каждого — статус ответа
+    history.yaml         архив до 2025: 2019, 2022, 2024 — только подтверждённые факты
   src/zaruba/
     main.py              app factory, статика, /healthz
     config.py            pydantic-settings, префикс ZARUBA_, фичефлаги
@@ -69,15 +70,17 @@ Zaruba/
     errors.py            перевод ошибок pydantic в «параметр — что не так» для 422
     templating.py        Jinja2, фильтры дат, чисел и цены (`money`), навигация, canonical, render()
     routers/             public.py (главная, событие, площадка, жюри, билеты, глоссарий, FAQ),
+                         history.py (архив по годам),
                          schedule.py (расписание),
                          catalogue.py (выступления, участники, студии, поиск),
                          seo.py (/robots.txt, /sitemap.xml)
     services/            edition.py (представления выпуска), catalogs.py (каталоги),
                          search.py (поиск по загруженным данным),
+                         history.py (хронология: архив + выпуски),
                          seo.py (JSON-LD Event/FAQPage/DefinedTerm/BreadcrumbList, sitemap)
-    templates/           base.html, 404, 422; pages/: home, event, schedule, performances,
-                         performance, participants, participant, studios, studio, judges,
-                         venue, tickets, glossary, faq, search
+    templates/           base.html, 404, 422; pages/: home, event, history, schedule,
+                         performances, performance, participants, participant, studios,
+                         studio, judges, venue, tickets, glossary, faq, search
     static/              style.css, print.css — без JS и внешних шрифтов
   tests/                 pytest: роуты, каталоги, приватность, данные, CLI
   tools/                 проверки документов и презентации
@@ -95,7 +98,8 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m uvicorn zaruba.main:app --reload --port 8000
 ```
 
-Страницы: `/` (главная), `/event` (о событии и хронология), `/schedule`
+Страницы: `/` (главная), `/event` (о событии и хронология), `/history` (архив по годам),
+`/schedule`
 (расписание, `?day=1`), `/performances` (каталог с фильтрами `?day=&style=&age=&format=&studio=&video=1`),
 `/performances/{slug}` (карточка выступления), `/participants` (каталог участников с
 `?q=&studio=&city=&age=&style=`), `/participants/{slug}` (карточка участника),

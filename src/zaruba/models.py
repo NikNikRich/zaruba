@@ -689,6 +689,29 @@ class Edition(Strict):
         )
 
 
+class HistoryEntry(Strict):
+    """Выпуск до 2025: только то, что подтверждено публичными источниками.
+
+    2025 и 2026 в этом файле не дублируются — они берутся из `content/editions`.
+    Пустых дат не боимся: у 2019 и 2022 публично известны не все подробности,
+    и страница честно пишет «даты не подтверждены», а не придумывает день.
+    """
+
+    year: int = Field(ge=2010, le=2100)
+    title: str = Field(min_length=3, max_length=120)
+    dates: list[date] = Field(default_factory=list, max_length=3)
+    note: str = Field(min_length=10, max_length=300)
+    source: Source
+
+    @model_validator(mode="after")
+    def _dates_in_year(self) -> HistoryEntry:
+        if self.dates and self.dates != sorted(set(self.dates)):
+            raise ValueError("dates должны идти по возрастанию и без повторов")
+        if any(value.year != self.year for value in self.dates):
+            raise ValueError("дата выпуска не совпадает с годом записи")
+        return self
+
+
 class EditionBundle(Strict):
     """Выпуск вместе с разрешённой площадкой — то, что получают роутеры."""
 
