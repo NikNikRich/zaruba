@@ -222,6 +222,99 @@ a.person-card:hover { border-color: rgba(232, 255, 58, 0.45); text-decoration: n
   margin-bottom: 6px;
 }
 
+/* портреты жюри: один формат 3:4 (§6.11) */
+.person-figure {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 160px;
+  margin-bottom: 6px;
+}
+/* Портреты 3:4 из официальных снимков: лицо крупно, файл — пресет `portrait` */
+.person-photo {
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg3);
+}
+/* иллюстрация, а не снимок: подсветка рамки и бейдж, чтобы не читалось как фото */
+.person-photo--art { border-color: rgba(232, 255, 58, 0.35); }
+.person-photo__tag {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(11, 11, 15, 0.82);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+/* цитата по ст. 1274 ГК РФ: тот же бейдж, но янтарный — заметно, что это не наш кадр */
+.person-photo__tag--law {
+  color: var(--amber);
+  border-color: rgba(255, 201, 92, 0.45);
+}
+
+/* фотоархив: превью 4:3 со ссылкой в источник (§6.5) */
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+.shot { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.shot__frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: linear-gradient(135deg, var(--bg3), var(--bg2) 55%, #17171f);
+}
+a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 58, 0.45); }
+.shot__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shot__ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  text-align: center;
+}
+.shot__year { font-size: 30px; line-height: 1; letter-spacing: 0.04em; color: var(--lime); }
+.shot__hint { font-size: 12px; color: var(--muted); }
+.shot__kind {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(11, 11, 15, 0.72);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.shot__kind--law {
+  color: var(--amber);
+  border-color: rgba(255, 201, 92, 0.45);
+}
+.shot figcaption { display: flex; flex-direction: column; gap: 3px; }
+
 /* площадка */
 .venue-card {
   display: flex;
