@@ -16,6 +16,10 @@ from uuid import uuid4
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+# `frame-src`, `object-src` и `worker-src` перечислены явно, хотя `default-src`
+# их и так покрывает: часть браузеров проверяет эти директивы по отдельности,
+# а плагин, фрейм или воркер — ровно тот случай, когда нужен прямой запрет,
+# а не вывод из умолчания.
 CSP = (
     "default-src 'self'; "
     "img-src 'self' data:; "
@@ -24,6 +28,10 @@ CSP = (
     "connect-src 'self'; "
     "form-action 'self'; "
     "frame-ancestors 'none'; "
+    "frame-src 'none'; "
+    "object-src 'none'; "
+    "worker-src 'none'; "
+    "manifest-src 'self'; "
     "base-uri 'self'"
 )
 
@@ -45,6 +53,13 @@ SECURITY_HEADERS: tuple[tuple[str, str], ...] = (
     ("X-Frame-Options", "DENY"),
     ("Content-Security-Policy", CSP),
     ("Permissions-Policy", "geolocation=(), microphone=(), camera=()"),
+    # Чужая страница не должна получить ссылку на наше окно через `window.opener`:
+    # через неё подменяют адрес в исходной вкладке (таб-нэппинг, фишинг).
+    ("Cross-Origin-Opener-Policy", "same-origin"),
+    # Наши CSS и картинки нельзя вставить ресурсом на чужой странице.
+    ("Cross-Origin-Resource-Policy", "same-origin"),
+    # Наследие Flash и PDF-клиентов: кросс-доменные файлы сайта — только свои.
+    ("X-Permitted-Cross-Domain-Policies", "none"),
 )
 
 

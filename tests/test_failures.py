@@ -19,6 +19,7 @@ def test_broken_content_is_a_page_not_plain_text(broken_settings: Settings) -> N
     assert response.status_code == 503
     assert response.headers["content-type"].startswith("text/html")
     assert response.headers[REQUEST_ID_HEADER], "номер есть и на странице аварии"
+    assert response.headers["retry-after"] == "300", "робот не должен долбить страницу ежесекундно"
     assert "Страница временно недоступна" in response.text
     assert 'name="robots" content="noindex, follow"' in response.text
 

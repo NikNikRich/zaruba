@@ -29,6 +29,9 @@ def test_security_headers_are_sent_with_every_page(client: TestClient) -> None:
         assert headers["x-frame-options"] == "DENY", path
         assert headers["permissions-policy"] == "geolocation=(), microphone=(), camera=()", path
         assert headers["content-security-policy"] == CSP, path
+        assert headers["cross-origin-opener-policy"] == "same-origin", path
+        assert headers["cross-origin-resource-policy"] == "same-origin", path
+        assert headers["x-permitted-cross-domain-policies"] == "none", path
 
 
 def test_static_is_cacheable_but_pages_are_not(client: TestClient) -> None:
@@ -44,6 +47,86 @@ def test_static_is_cacheable_but_pages_are_not(client: TestClient) -> None:
     assert sitemap.headers["cache-control"] == "public, max-age=3600", (
         "robots.txt и sitemap.xml кэшируются на час: они собираются из того же контента"
     )
+
+
+def test_csp_forbids_plugins_frames_and_workers() -> None:
+    """Плагин, чужой фрейм и воркер закрыты прямой директивой, а не `default-src`.
+
+    Часть браузеров проверяет `object-src`, `frame-src` и `worker-src` отдельно:
+    «выводится из умолчания» — это не гарантия, а надежда.
+    """
+
+    for directive in (
+        "default-src 'self'",
+        "object-src 'none'",
+        "frame-src 'none'",
+        "worker-src 'none'",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+    ):
+        assert directive in CSP, directive
+    assert "unsafe-inline" not in CSP, "инлайновый стиль или скрипт отключил бы защиту"
+    assert "unsafe-eval" not in CSP
+    assert "*" not in CSP, "звёздочка в CSP разрешает всё сразу"
+
+
+def test_foreign_host_is_rejected_when_site_url_is_set() -> None:
+    """`Host` — ввод посетителя, а из него собираются canonical, robots и sitemap.
+
+    Запрос с чужим `Host` заставлял сайт объявить своим доменом что угодно:
+    поисковик получал чужой canonical, а кэш прокси — чужой sitemap.
+    """
+
+    settings = Settings(env="prod", public_base_url="https://zaruba72.ru")
+    with TestClient(create_app(settings), base_url="https://zaruba72.ru") as test_client:
+        own = test_client.get("/")
+        spoofed = test_client.get("/", headers={"Host": "evil.example"})
+        www = test_client.get("/", headers={"Host": "www.zaruba72.ru"}, follow_redirects=False)
+
+    assert own.status_code == 200
+    assert spoofed.status_code == 400
+    assert "evil.example" not in spoofed.text
+    # Отказ уходит по тем же правилам, что и обычная страница: с CSP и номером.
+    assert spoofed.headers["content-security-policy"] == CSP
+    assert spoofed.headers[REQUEST_ID_HEADER]
+    # `www` — тот же сайт, но canonical всегда на основной домен: редирект делает
+    # nginx, а прямое обращение к приложению не должно получать 400.
+    assert www.status_code == 200
+    assert '<link rel="canonical" href="https://zaruba72.ru/">' in www.text
+
+
+def test_healthcheck_host_keeps_working_when_site_url_is_set() -> None:
+    """Проверка `Host` не должна ломать healthcheck: он ходит на loopback, не на домен."""
+
+    settings = Settings(env="prod", public_base_url="https://zaruba72.ru")
+    with TestClient(create_app(settings), base_url="http://127.0.0.1:8000") as test_client:
+        assert test_client.get("/healthz").status_code == 200
+
+
+def test_static_mount_does_not_reach_outside_its_directory(client: TestClient) -> None:
+    """`/static/../pyproject.toml` — попытка достать файл репозитория через статику."""
+
+    for path in (
+        "/static/../pyproject.toml",
+        "/static/%2e%2e/pyproject.toml",
+        "/static/..%2fpyproject.toml",
+        "/static/%2e%2e%2fsrc/zaruba/main.py",
+    ):
+        response = client.get(path)
+
+        assert response.status_code == 404, path
+        assert b"fastapi" not in response.content.lower(), path
+
+
+def test_validation_page_does_not_echo_the_input(client: TestClient) -> None:
+    """Страница 422 называет параметр, но не повторяет ввод: отражение — это XSS."""
+
+    response = client.get("/schedule", params={"day": "<script>alert(1)</script>"})
+
+    assert response.status_code == 422
+    assert "<script" not in response.text.lower()
+    assert "alert(1)" not in response.text
 
 
 def test_stylesheet_links_carry_content_hash(client: TestClient) -> None:

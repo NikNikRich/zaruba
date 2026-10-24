@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from zaruba.config import Settings
 from zaruba.content import load_edition
 from zaruba.main import create_app
-from zaruba.services.seo import event_json_ld
+from zaruba.services.seo import event_json_ld, json_ld_script
 
 LD_JSON = re.compile(
     r'<script type="application/ld\+json">(.*?)</script>', flags=re.DOTALL | re.IGNORECASE
@@ -31,6 +31,17 @@ def by_type(html: str, type_name: str) -> dict:
     found = [block for block in json_ld(html) if block.get("@type") == type_name]
     assert len(found) == 1, f"ожидался один блок {type_name}, найдено {len(found)}"
     return found[0]
+
+
+def test_json_ld_cannot_close_the_script_tag() -> None:
+    """`</script>` из YAML не должен закрывать блок: иначе `<script>` — XSS, а не данные."""
+
+    payload = "</script><script>alert(1)</script>"
+    script = json_ld_script({"@type": "Thing", "name": payload})
+
+    assert "</script" not in script
+    assert "\\u003c" in script, "угловые скобки обязаны уйти в escape-последовательности"
+    assert json.loads(script)["name"] == payload, "при этом сам текст остаётся читаемым для робота"
 
 
 def test_robots_txt_points_to_sitemap(client: TestClient) -> None:

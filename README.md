@@ -105,7 +105,7 @@ Zaruba/
   deploy/
     zaruba.service       systemd: uvicorn за прокси, минимум прав
     nginx.conf.example   HTTPS, gzip, кэш статики, X-Forwarded-Proto, X-Request-ID
-  Dockerfile             образ: python:3.12-slim, non-root, зависимости из лока
+  Dockerfile             образ: python:3.12.15-slim, non-root, зависимости из лока с хешами
   docker-compose.yml     один сервис, контент монтируется только для чтения
   .env.example           все ZARUBA_* и FORWARDED_ALLOW_IPS с комментариями
   .github/workflows/ci.yml  ruff, mypy, тесты с покрытием, аудит, контент, документы, образ
@@ -199,8 +199,13 @@ curl http://127.0.0.1:8000/healthz
 - `X-Request-ID` есть на каждом ответе и на странице сбоя: номер приходит от прокси
   (`proxy_set_header X-Request-ID $request_id`) или генерируется приложением, он же
   попадает в журнал. По нему находят запись, если посетитель сообщил о сбое.
-- `ZARUBA_ENV=prod` включает HSTS; CSP, `nosniff`, `X-Frame-Options` и
-  `Referrer-Policy` отдаются всегда (`middleware.py`), `/static` кэшируется на час.
+- `ZARUBA_ENV=prod` включает HSTS; CSP (`object-src`, `frame-src`, `worker-src` —
+  `'none'`), `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`,
+  COOP и CORP отдаются всегда (`middleware.py`), `/static` кэшируется на час.
+- `ZARUBA_PUBLIC_BASE_URL` в prod включает ещё и проверку заголовка `Host`:
+  с чужим доменом ответ 400, подменить canonical, robots.txt и sitemap нельзя.
+- Зависимости ставятся с проверкой хешей (`pip install --require-hashes`), а
+  базовый образ зафиксирован по патч-версии: аудит и порядок обновления — `docs/06` §6.23.
 - `content/` монтируется в контейнер только на чтение: правка YAML — рестарт,
   а не пересборка образа.
 - Сжатие и кэш статики — в `deploy/nginx.conf.example`; юнит `deploy/zaruba.service` —

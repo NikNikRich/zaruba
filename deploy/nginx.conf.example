@@ -14,6 +14,9 @@ server {
     http2 on;
     server_name example.ru;
 
+    # Версия nginx в заголовке `Server` — подсказка для подбора эксплойта.
+    server_tokens off;
+
     ssl_certificate     /etc/letsencrypt/live/example.ru/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/example.ru/privkey.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
@@ -21,11 +24,28 @@ server {
 
     # HSTS уже отдаёт приложение в prod (ZARUBA_ENV=prod); дублировать не нужно.
 
+    # Ограничение частоты — единственное, чего у приложения нет из коробки:
+    # один процесс и `--limit-concurrency 64` держат всплеск, но не поток
+    # запросов с одного адреса. Зона объявляется в блоке `http`:
+    #   limit_req_zone $binary_remote_addr zone=zaruba:10m rate=10r/s;
+    # 10 r/s с burst 20 — это в разы больше, чем нужно человеку: у сайта нет
+    # ни форм, ни API, только страницы. `/healthz` сюда не попадает (см. ниже).
+    # limit_req zone=zaruba burst=20 nodelay;
+
     gzip on;
     gzip_min_length 1024;
     gzip_types text/css text/plain text/xml application/xml application/json image/svg+xml;
 
     client_max_body_size 1m;
+
+    # `/healthz` наружу не нужен: он называет версию и окружение, а нужен
+    # только healthcheck-у контейнера и мониторингу на том же хосте.
+    location = /healthz {
+        allow 127.0.0.1;
+        deny all;
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+    }
 
     location /static/ {
         proxy_pass http://127.0.0.1:8000;

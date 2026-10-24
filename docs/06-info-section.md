@@ -7,7 +7,7 @@
 > Границы: сайт неофициальный, поэтому **каждый факт имеет статус источника**
 > (см. 6.3) — это и защита от ошибок, и честность перед зрителем.
 
-## 6.0. Статус реализации (2026-10-23)
+## 6.0. Статус реализации (2026-10-24)
 
 Спецификация реализована не целиком, и это нормально: часть пунктов упирается
 в данные, которых публично нет. Ниже — что уже работает, а что ждёт данных.
@@ -21,17 +21,19 @@
 | Служебные P0 (§6.2 п.18) | готово: `/about`, `/rules`, `/privacy`, `/takedown` | `routers/legal.py` |
 | Публикация | готово: Dockerfile, compose, systemd, nginx, CI, заголовки безопасности | `deploy/`, `middleware.py` |
 | Инструменты (P3) | готово: mypy, покрытие ≥ 90 %, `pip-audit`, лок зависимостей, pre-commit, `X-Request-ID`, `--limit-concurrency` | `pyproject.toml`, `requirements*.lock`, `.pre-commit-config.yaml` |
+| Аудит уязвимостей (§6.23) | готово: `pip-audit` по обоим локам, хеши в локе и `--require-hashes`, проверка `Host`, COOP/CORP, базовый образ на 3.12.15 | `requirements*.lock`, `Dockerfile`, `main.py`, `middleware.py` |
 | `/organizers` | **не сделано**: публичных данных о команде и партнёрах нет | — |
 | Таблицы рейтингов | **не сделано намеренно**: нет протоколов и голосования (§6.10) | — |
 | Тайминг блоков 2026 | **ждём данные**: в «Положении» только «1 блок» и «2 блок» | `content/editions/2026.yaml` |
 | `.ics`-календарь (§6.6) | **не сделано**: без времени начала событие в календаре бессмысленно | — |
 | Кэш HTML и статики (§6.20) | готово: HTML — `no-cache` (ревалидация), статика — час + `?v=хеш`, разбор YAML — по mtime контента | `middleware.py`, `content.py` |
 
-Проверки на эту дату: `pytest` — 163 теста (покрытие 92 % при пороге 90 %),
+Проверки на эту дату: `pytest` — 169 тестов (покрытие 92 % при пороге 90 %),
 `ruff check src tests`, `ruff format --check src tests` и `mypy` — чисто,
 `python -m zaruba.content check` — ОК, проверки документов и презентации — ОК.
-Версии зависимостей зафиксированы локом (`requirements.lock`,
-`requirements-dev.lock`), уязвимости проверяет `pip-audit` в CI.
+Версии зависимостей зафиксированы локом с хешами (`requirements.lock`,
+`requirements-dev.lock`), уязвимости проверяет `pip-audit` в CI, базовый образ
+зафиксирован на Python 3.12.15 (§6.23).
 
 ## 6.1. Принципы
 
@@ -637,7 +639,7 @@ requirements.lock, requirements-dev.lock   лок: рантайм и dev (uv --u
 | CSS | `style.css` 15,1 КБ + `print.css` 1,1 КБ | размер файлов |
 | Внешние шрифты и CDN | нет | CSP `default-src 'self'` |
 | `scope` у таблиц, `skip-link`, `aria-current` | есть | шаблоны + `test_pages.py` |
-| Заголовки безопасности | CSP, `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` | живой прогон + `test_security.py` |
+| Заголовки безопасности | CSP (`object-src`, `frame-src`, `worker-src` — `'none'`), `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, COOP, CORP, `X-Permitted-Cross-Domain-Policies` | живой прогон + `test_security.py` |
 | HSTS | только при `ZARUBA_ENV=prod` | `test_security.py` |
 | Lighthouse mobile ≥ 90, LCP < 2.5 с | **не измерено** | нужен браузер и прод-сборка |
 | Печать A4 (день на лист) | **не проверено глазами** | нужен `Ctrl+P` в браузере |
@@ -706,7 +708,7 @@ requirements.lock, requirements-dev.lock   лок: рантайм и dev (uv --u
 9. `[x]` Поиск находит по фамилии, студии и направлению: `services/search.py`,
    тесты в `test_catalogue.py`.
 10. `[x]` `pytest`: 200 на все P0-роуты, правило `noindex`, валидация YAML при
-    загрузке, кэш по mtime и его инвалидация (163 теста, покрытие 92 %). Идемпотентность
+    загрузке, кэш по mtime и его инвалидация (169 тестов, покрытие 92 %). Идемпотентность
     импорта проверять не нужно: базы данных нет, контент — YAML.
 11. `[x]` Битый YAML — не белый экран: страница 503 с навигацией, `/healthz`
     отдаёт 503, ошибка с путём уходит в журнал (`tests/test_failures.py`).
@@ -714,6 +716,77 @@ requirements.lock, requirements-dev.lock   лок: рантайм и dev (uv --u
     страница 405, а не JSON: иначе `curl -I` и аптайм-проверки видели «поломку».
 13. `[x]` `canonical` только на 2xx: на 404/405/422/503 ссылки нет, иначе робот
     получал «главную версию» несуществующей страницы (`test_seo.py`).
+
+## 6.23. Аудит уязвимостей и обновление зависимостей (2026-10-24)
+
+Критическая уязвимость в зависимости — это не «когда-нибудь», а «в тот же день»:
+так было с PHP, так бывает с любой библиотекой, которая разбирает чужой ввод.
+Поэтому проверка идёт не «по ощущению», а по трём источникам: `pip-audit`
+(данные OSV и PyPI Advisory) по обоим локам, GitHub Advisory Database по
+репозиториям самих зависимостей и `python.org/news/security` для самого Python.
+
+| Звено | Версия в локе | Что известно на 2026-10-24 |
+|---|---|---|
+| Python в образе | 3.12.15 | security-релиз 30.09.2026 закрывает CVE-2026-19445 (`SSLContext` UAF в `sni_callback`), -19553 (`wrap_bio` без проверки `server_hostname`), -82049 и -19672 (tarfile: hardlink на symlink и обход фильтра), -15310 (zipfile: исчерпание памяти), -15806 (`HTTPPasswordMgr` отдаёт пароль чужой схеме), -17084 (stringprep), плюс Expat 2.8.5 |
+| FastAPI | 0.162.0 | последний выпуск (23.10.2026). В репозитории один advisory — CSRF 2021 года через cookie-аутентификацию: форм, cookie и сессий на сайте нет, неприменимо |
+| Starlette | 1.9.0 | пять advisory 2026 года: `Host` и путь в `request.url` (GHSA-86qp-5c8j-p5mr, GHSA-jp82-jpqv-5vv3), `O(n²)` при слиянии `Range` (GHSA-7f5h-v6xp-fcq8), лимиты `request.form()` (GHSA-82w8-qh3p-5jfq), SSRF через UNC в `StaticFiles` на Windows (GHSA-wqp7-x3pw-xc5r). 1.9.0 новее всех исправлений, `pip-audit` по локу чист |
+| uvicorn | 0.54.0 | опубликованных advisory нет; запуск без воркеров, с `--limit-concurrency 64` и `--no-server-header` |
+| Jinja2 | 3.1.6 | последняя (03.2025). Пять advisory 2024–2025 (побег из sandbox, `xmlattr`) закрыты в 3.1.6; sandbox и фильтр `attr` в шаблонах не используются |
+| pydantic | 2.14.1 | свежий выпуск (11.10.2026), advisory нет |
+| pydantic-settings | 2.16.1 | свежий выпуск (20.10.2026), advisory нет |
+| PyYAML | 6.0.3 | `unsafe_load` и явный `Loader` не используются: только `yaml.safe_load` в `content.py`, поэтому CVE-2017-18342 и CVE-2020-14343 неприменимы |
+| opentelemetry-api | 1.45.1 | транзитивная зависимость FastAPI 0.162. CVE-2026-114603 (неограниченный разбор W3C `tracestate`, 22.10.2026): 1.45.1 — последняя версия и вне уязвимого диапазона по данным OSV; трассировка к приложению не подключена, заголовки `traceparent` не разбираются |
+| nginx (пример) | — | `server_tokens off`, TLS 1.2/1.3, `/healthz` только с loopback, пример `limit_req` — `deploy/nginx.conf.example` |
+
+**Что исправлено по итогам аудита.**
+
+- `middleware.py`: CSP закрывает `frame-src`, `object-src`, `worker-src` и
+  `manifest-src` прямыми директивами (а не через `default-src`); добавлены
+  `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy` и
+  `X-Permitted-Cross-Domain-Policies`.
+- `main.py`: `TrustedHostMiddleware` собирается из `ZARUBA_PUBLIC_BASE_URL`
+  (плюс `www` и loopback для healthcheck). Раньше `canonical`, `robots.txt` и
+  `sitemap.xml` брались из заголовка `Host` без проверки — то есть запрос с
+  чужим `Host` объявлял доменом сайта что угодно. В prod без заданного адреса
+  теперь пишется предупреждение в журнал.
+- `main.py`: 503 на битый контент отдаёт `Retry-After: 300` — робот и
+  uptime-проверка не долбят страницу, пока данные чинят.
+- Локи: `uv pip compile --generate-hashes`, установка `pip install
+  --require-hashes` в `Dockerfile` и CI. Хеши закрывают подмену пакета в
+  индексе (dependency confusion, взломанный maintainer) — версия та же, содержимое другое.
+- `Dockerfile`: базовый образ `python:3.12.15-slim` вместо плавающего
+  `python:3.12-slim`: «что именно в проде» перестаёт зависеть от дня сборки.
+- `deploy/nginx.conf.example`: `server_tokens off`, `/healthz` только с
+  loopback, пример `limit_req` (единственное, чего у приложения нет из коробки).
+- Регрессионные тесты: обход `/static/../…` отдаёт 404, страница 422 не
+  повторяет ввод (`test_security.py`), `</script>` в JSON-LD экранируется
+  (`test_seo.py`).
+
+**Как перепроверить.**
+
+```powershell
+python -m pip_audit -r requirements.lock --strict
+python -m pip_audit -r requirements-dev.lock --strict
+python -m uv pip compile --universal --generate-hashes -o requirements.lock pyproject.toml
+```
+
+Ещё раз в месяц — сверить патч CPython с `python.org/news/security` и
+существование тега образа (`hub.docker.com/v2/repositories/library/python/tags/3.12.15-slim`).
+Обновление зависимостей: поднять минимум в `pyproject.toml`, пересобрать оба
+лока тем же `uv pip compile --universal --generate-hashes`, прогнать тесты.
+
+**Чего здесь нет, и почему это осознанно.**
+
+- Сканирования пакетов ОС внутри образа (`trivy`, `grype`) нет: `pip-audit`
+  видит только Python-зависимости, слой Debian проверяется обновлением тега.
+  Для сайта без базы, без файлов пользователей и с одним процессом это
+  приемлемый размен; появится база или загрузка файлов — появится и сканер.
+- WAF и лимита частоты на уровне приложения нет: форм и API нет, а `limit_req`
+  живёт в примере конфигурации nginx. Атаковать нечего, кроме чтения страниц.
+- Python 3.12 в режиме «только security-исправления»: релизы выходят без
+  установщиков до октября 2028. Переход на 3.13+ — отдельная задача, не
+  безопасность ради безопасности.
+
 
 
 
