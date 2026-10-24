@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from datetime import date, datetime, time
 from pathlib import Path
 from typing import Any
@@ -141,6 +142,21 @@ def money(value: int | None) -> str:
     return f"{value:,}".replace(",", "\u00a0")
 
 
+def initials(value: str | None) -> str:
+    """«Александр Бурцев» → «АБ», «Гео (GEO)» → «Г», «Фара» → «Ф».
+
+    Карточка без портрета показывает инициалы, а не серый прямоугольник:
+    пустая рамка читается как незагрузившаяся картинка. Псевдоним в скобках
+    не считаем — иначе «Гео (GEO)» превращался бы в «ГГ».
+    """
+
+    if not value:
+        return ""
+    plain = re.sub(r"\([^)]*\)", " ", value)
+    words = [word for word in plain.split() if word[:1].isalpha()]
+    return "".join(word[0].upper() for word in words[:2])
+
+
 templates.env.filters.update(
     {
         "fmt_date": fmt_date,
@@ -150,6 +166,7 @@ templates.env.filters.update(
         "fmt_weekday": fmt_weekday,
         "plural": plural,
         "money": money,
+        "initials": initials,
     }
 )
 

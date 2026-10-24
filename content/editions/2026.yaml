@@ -308,30 +308,59 @@ rules:
   - 'Каждый участник получает памятный диплом в электронном виде.'
 
 # Жюри и ведущий 2026 — официальные посты сообщества (docs/01, §1.6.6).
+# Портреты — кроп 3:4 по лицу (tools/crop_portraits.py): у Бурцева и Гео это
+# фото с официальных страниц организаций, у остальных — из афиш сообщества.
+# Чужие снимки берём только цитированием (п. 1 ст. 1274 ГК РФ), с целью,
+# автором-публикатором и ссылкой на публикацию.
 judges:
   - slug: fara
     name: Фара
     role: judge
     regalia: Афро-направление, победитель и призёр мировых чемпионатов
     source_id: vk-community
+    photo: img/people/fara.webp
+    photo_author: 'сообщество «ЗАРУБА72»'
+    photo_use: citation
+    photo_purpose: info
+    photo_source_url: https://vk.com/wall-185685166_223
   - slug: burtsev
     name: Александр Бурцев
     role: judge
     regalia: MDC NRG, ABUFAM, финалист «Новых танцев» на ТНТ
     source_id: vk-community
+    photo: img/people/burtsev.webp
+    photo_author: 'Московский танцевальный центр MDC NRG'
+    photo_use: citation
+    photo_purpose: info
+    photo_source_url: https://nrg-style.ru/teachers/burcev-aleksandr/
   - slug: gubanova
     name: Дарья Губанова
     role: judge
     regalia: Официальный представитель Frame up strip, хореограф Gorchitsa
     source_id: vk-community
+    photo: img/people/gubanova.webp
+    photo_author: 'сообщество «ЗАРУБА72»'
+    photo_use: citation
+    photo_purpose: info
+    photo_source_url: https://vk.com/wall-185685166_226
   - slug: bonchinche
     name: Дмитрий Бончинче
     role: judge
     regalia: House of Bonchinche, победитель «Лиги Танцев»
     source_id: vk-community
+    photo: img/people/bonchinche.webp
+    photo_author: 'сообщество «ЗАРУБА72»'
+    photo_use: citation
+    photo_purpose: info
+    photo_source_url: https://vk.com/wall-185685166_227
   - slug: mc-geo
     name: Гео (GEO)
     role: mc
     regalia: MC «Лиги Танцев Winline», финалист «Новых танцев» на ТНТ
     source_id: vk-community
+    photo: img/people/mc-geo.webp
+    photo_author: 'PROТАНЦЫ CAMP'
+    photo_use: citation
+    photo_purpose: info
+    photo_source_url: https://moscow.protancycamp.com/geo
 

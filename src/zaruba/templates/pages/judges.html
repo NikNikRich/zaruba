@@ -16,7 +16,26 @@
   <div class="person-grid">
     {% for card in cards %}
     <article class="person-card">
+      {% if card.judge.photo %}
+      <span class="person-figure">
+        <img class="person-photo{% if card.judge.photo_nature.value == 'illustration' %} person-photo--art{% endif %}"
+             src="/static/{{ card.judge.photo }}"
+             alt="{{ card.judge.name }} — {{ card.judge.role.label }}{% if card.judge.photo_nature.value == 'illustration' %} (иллюстрация, не фотография){% endif %}"
+             width="480" height="640" loading="lazy" decoding="async">
+        {% if card.judge.photo_nature.value == 'illustration' %}
+        <span class="person-photo__tag">{{ card.judge.photo_nature.label }}</span>
+        {% elif card.judge.photo_use.value == 'citation' %}
+        <span class="person-photo__tag person-photo__tag--law">цитата</span>
+        {% endif %}
+      </span>
+      {% else %}
+      <span class="avatar" aria-hidden="true">{{ card.judge.name|initials }}</span>
+      {% endif %}
       <strong>{{ card.judge.name }}</strong>
+      {% if card.judge.photo_credit %}
+      <span class="muted small">{{ card.judge.photo_credit }}{% if card.judge.photo_source_url %} ·
+        <a href="{{ card.judge.photo_source_url }}" rel="noopener noreferrer nofollow">{% if card.judge.photo_use.value == 'citation' %}источник снимка{% else %}источник{% endif %}</a>{% endif %}</span>
+      {% endif %}
       {% if card.judge.regalia %}<span class="muted">{{ card.judge.regalia }}</span>{% endif %}
       <span class="badge">{{ card.judge.role.label }}</span>
       {% if card.judge.city %}<span class="muted small">{{ card.judge.city }}</span>{% endif %}
@@ -45,7 +64,15 @@
   </div>
   <p class="muted small">Имена, регалии и роль взяты из официальной страницы события.
   Города, направления и распределение по блокам там не указаны — поэтому этих полей нет
-  в карточках, а не «примерно».</p>
+  в карточках, а не «примерно». Портреты — кроп 3:4 по лицу: с карточки шириной 160 px
+  афишу не прочитать. У кого снимка нет, в кружке стоят инициалы: пустая рамка выглядела бы
+  как незагрузившаяся картинка.</p>
+  <p class="muted small">Каждый портрет — цитата по п. 1 ст. 1274 ГК РФ: под ним подпись
+  с автором-публикатором («сообщество «ЗАРУБА72»», MDC NRG, PROТАНЦЫ CAMP), информационная
+  цель и ссылка на публикацию, откуда взят кадр. Нет цели, источника или подписи — кадра
+  на странице не будет: это проверяет загрузка YAML, а не внимательность редактора.
+  Если организаторы пришлют снимок с разрешением автора, цитата станет не нужна —
+  поменяются только поля карточки.</p>
   {% else %}
   <p class="empty">Состав жюри уточняется: официального списка на этот выпуск нет.
   Следите за <a href="https://vk.com/zaruba72champ" rel="noopener noreferrer nofollow">сообществом
