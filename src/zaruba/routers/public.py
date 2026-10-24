@@ -18,13 +18,9 @@ from ..services.edition import (
 )
 from ..services.history import history_rows
 from ..services.seo import event_json_ld, faq_json_ld, glossary_json_ld
-from ..templating import render
+from ..templating import base_url, render
 
 router = APIRouter()
-
-
-def _base_url(request: Request) -> str:
-    return str(request.base_url).rstrip("/")
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -51,7 +47,7 @@ def home(request: Request) -> HTMLResponse:
         studios=edition.studio_index,
         archive=archive if archive.year != edition.edition else None,
         # §6.19: Event на главной — даты, место и ссылка на билеты.
-        json_ld=[event_json_ld(bundle, _base_url(request))],
+        json_ld=[event_json_ld(bundle, base_url(request))],
     )
 
 
@@ -112,7 +108,7 @@ def event_page(request: Request) -> HTMLResponse:
         chronology=chronology,
         rules=edition.rules,
         page_title="О событии",
-        json_ld=[event_json_ld(bundle, _base_url(request))],
+        json_ld=[event_json_ld(bundle, base_url(request))],
     )
 
 
@@ -167,8 +163,11 @@ def tickets_page(request: Request) -> HTMLResponse:
 
     bundle = load_latest(request.app.state.settings)
     edition = bundle.edition
+    first_ticket = edition.tickets[0] if edition.tickets else None
     ticket_source = (
-        edition.source_index.get(edition.tickets[0].source_id) if edition.tickets else None
+        edition.source_index.get(first_ticket.source_id)
+        if first_ticket is not None and first_ticket.source_id is not None
+        else None
     )
     if ticket_source is None:
         ticket_source = next(
@@ -208,7 +207,7 @@ def glossary_page(request: Request) -> HTMLResponse:
         terms=[entry for entry in glossary if entry.kind is GlossaryKind.TERM],
         page_title="Глоссарий",
         # §6.19: DefinedTerm для глоссария.
-        json_ld=[glossary_json_ld(_base_url(request), glossary)],
+        json_ld=[glossary_json_ld(base_url(request), glossary)],
     )
 
 
@@ -240,5 +239,5 @@ def faq_page(request: Request) -> HTMLResponse:
         total=len(knowledge.faq),
         page_title="Вопросы и ответы",
         # §6.19: FAQPage — ровно те вопросы, что видит посетитель.
-        json_ld=[faq_json_ld(_base_url(request), knowledge.faq)],
+        json_ld=[faq_json_ld(base_url(request), knowledge.faq)],
     )

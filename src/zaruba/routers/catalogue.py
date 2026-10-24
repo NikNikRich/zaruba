@@ -166,7 +166,11 @@ def performance_page(request: Request, slug: str) -> HTMLResponse:
     bundle, view = found
     edition = bundle.edition
 
-    source = edition.source_index.get(view.performance.source_id)
+    source = (
+        edition.source_index.get(view.performance.source_id)
+        if view.performance.source_id is not None
+        else None
+    )
     return render(
         request,
         "pages/performance.html",

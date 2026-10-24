@@ -1,4 +1,5 @@
 """Поиск битых символов (U+FFFD) и обрывов в docs/."""
+
 from __future__ import annotations
 
 import sys

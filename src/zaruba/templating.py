@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date, datetime, time
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,12 @@ from .services.seo import breadcrumbs_json_ld, json_ld_script
 PACKAGE_DIR = Path(__file__).resolve().parent
 
 templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
+
+# Хеш CSS в ссылке: статика кэшируется на час, и без версии после релиза
+# часть посетителей остаётся со старым файлом.
+ASSET_VERSION = hashlib.sha1(
+    b"".join((PACKAGE_DIR / "static" / name).read_bytes() for name in ("style.css", "print.css"))
+).hexdigest()[:8]
 
 MONTHS: tuple[str, ...] = (
     "",
@@ -172,6 +179,19 @@ def build_legal(app: FastAPI) -> list[dict[str, str]]:
     return _links(app, LEGAL_ITEMS)
 
 
+def base_url(request: Request) -> str:
+    """Публичный адрес сайта: настройка важнее заголовков прокси.
+
+    `request.base_url` зависит от `--proxy-headers` и `X-Forwarded-Proto`:
+    забыли флаг — и canonical, `robots.txt` и `sitemap.xml` молча уезжают на
+    `http://127.0.0.1:8000`. Явный адрес снимает эту зависимость, а на локальном
+    запуске и в тестах остаётся адрес запроса.
+    """
+
+    configured: str = request.app.state.settings.public_base_url
+    return (configured or str(request.base_url)).rstrip("/")
+
+
 def _json_ld_blocks(request: Request, context: dict[str, Any], status_code: int) -> list[str]:
     """JSON-LD страницы: то, что передал роутер, плюс крошки (§6.19).
 
@@ -186,7 +206,7 @@ def _json_ld_blocks(request: Request, context: dict[str, Any], status_code: int)
 
     if not any(block.get("@type") == "BreadcrumbList" for block in blocks):
         crumbs = breadcrumbs_json_ld(
-            str(request.base_url).rstrip("/"),
+            base_url(request),
             request.url.path,
             context.get("page_title"),
             [
@@ -203,8 +223,11 @@ def _json_ld_blocks(request: Request, context: dict[str, Any], status_code: int)
 def render(
     request: Request, template_name: str, *, status_code: int = 200, **context: Any
 ) -> HTMLResponse:
-    # §6.19: canonical на всех страницах — без query, чтобы фильтры не плодили дубли.
-    canonical = f"{str(request.base_url).rstrip('/')}{request.url.path}"
+    # §6.19: canonical — на успешных страницах и без query, чтобы фильтры не
+    # плодили дубли. На 404/405/422/503 адрес — это адрес самой ошибки:
+    # canonical там подсказывал бы роботу «главную версию» несуществующей
+    # страницы и уводил бы её в индекс вместо страницы с объяснением.
+    canonical = f"{base_url(request)}{request.url.path}" if status_code < 400 else None
     payload: dict[str, Any] = {
         "nav": request.app.state.nav,
         "footer_links": request.app.state.footer_links,
@@ -212,6 +235,7 @@ def render(
         "settings": request.app.state.settings,
         "current_path": request.url.path,
         "canonical": canonical,
+        "asset_v": ASSET_VERSION,
         "robots": None,
     }
     payload.update(context)

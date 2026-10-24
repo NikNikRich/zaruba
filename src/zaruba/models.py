@@ -6,8 +6,9 @@ import re
 from datetime import date, datetime, time
 from enum import StrEnum
 from typing import Annotated
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Slug = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=64)]
 
@@ -231,10 +232,11 @@ class Nomination(Strict):
             raise ValueError("нужно поле name или style: номинация без названия не читается")
         if (self.starts_at is None) != (self.ends_at is None):
             raise ValueError("starts_at и ends_at задаются вместе")
-        if self.starts_at is not None and self.ends_at <= self.starts_at:
-            raise ValueError("ends_at должен быть позже starts_at")
-        if self.starts_at is not None and self.day is None:
-            raise ValueError("время без дня не имеет смысла: укажите day")
+        if self.starts_at is not None and self.ends_at is not None:
+            if self.ends_at <= self.starts_at:
+                raise ValueError("ends_at должен быть позже starts_at")
+            if self.day is None:
+                raise ValueError("время без дня не имеет смысла: укажите day")
         if len(set(self.levels)) != len(self.levels):
             raise ValueError("уровень указан дважды")
         if (
@@ -547,6 +549,23 @@ class Edition(Strict):
     criteria: list[Criterion] = Field(default_factory=list, max_length=8)
     rules: list[str] = Field(default_factory=list, max_length=12)
 
+    @field_validator("timezone")
+    @classmethod
+    def _known_timezone(cls, value: str) -> str:
+        """Опечатка в зоне ломает `content check`, а не главную страницу.
+
+        `zoneinfo` берёт базу из системы: на Windows и в slim-образах её нет,
+        пока не установлен пакет `tzdata` (он в зависимостях ради этого).
+        """
+
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError(
+                f"неизвестная зона «{value}»: проверьте написание или поставьте tzdata"
+            ) from exc
+        return value
+
     @model_validator(mode="after")
     def _integrity(self) -> Edition:
         if self.dates != sorted(set(self.dates)):
@@ -653,7 +672,15 @@ class Edition(Strict):
                 raise ValueError("rules: правило длиннее 300 символов — это уже абзац")
         return self
 
-    def _check_day(self, day: int, field: str, slug: str) -> None:
+    def _check_day(self, day: int | None, field: str, slug: str) -> None:
+        """День сверяется с датами выпуска, только когда он задан.
+
+        У выпуска 2026 тайминг блоков ещё не опубликован: `day` там пустой,
+        и проверять нечего — `None` не должен превращаться в TypeError.
+        """
+
+        if day is None:
+            return
         if day > len(self.dates):
             raise ValueError(f"{field}.{slug}: день {day}, а в выпуске {len(self.dates)} дат")
 

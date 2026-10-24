@@ -1,9 +1,11 @@
+import shutil
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
+from zaruba.config import Settings
 from zaruba.main import create_app
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -32,3 +34,35 @@ def edition_path() -> Path:
 @pytest.fixture(scope="session")
 def edition_2026() -> Path:
     return CONTENT_DIR / "2026.yaml"
+
+
+@pytest.fixture
+def content_settings(tmp_path: Path) -> Settings:
+    """Копия `content/` в tmp: тесты могут править файлы, не задевая репозиторий."""
+
+    content = tmp_path / "content"
+    shutil.copytree(REPO_ROOT / "content", content)
+
+    return Settings(
+        content_dir=content / "editions",
+        venues_file=content / "venues.yaml",
+        glossary_file=content / "glossary.yaml",
+        faq_file=content / "faq.yaml",
+        history_file=content / "history.yaml",
+    )
+
+
+@pytest.fixture
+def broken_settings(content_settings: Settings) -> Settings:
+    """Копия `content/` с испорченным выпуском: проверяем аварию, а не эталон.
+
+    `2026.yaml` ломается в одном поле — так тест остаётся валидным, пока
+    в контенте меняются даты, участники и тайминг.
+    """
+
+    path = content_settings.content_dir / "2026.yaml"
+    raw = path.read_text(encoding="utf-8")
+    assert "edition: 2026" in raw, "в 2026.yaml изменился год — поправьте фикстуру"
+    path.write_text(raw.replace("edition: 2026", 'edition: "не год"', 1), encoding="utf-8")
+
+    return content_settings

@@ -72,14 +72,14 @@ def search_site(
     groups: list[SearchGroup] = []
 
     people: list[tuple[int, SearchHit]] = []
-    for view in participant_views(bundles):
+    for person in participant_views(bundles):
         text = " ".join(
             [
-                view.participant.display_name,
-                view.studio.name,
-                view.participant.city,
-                view.participant.age_group.label,
-                " ".join(item.nomination.title for item in view.performances),
+                person.participant.display_name,
+                person.studio.name,
+                person.participant.city,
+                person.participant.age_group.label,
+                " ".join(item.nomination.title for item in person.performances),
             ]
         )
         score = _score(text, needle)
@@ -88,10 +88,10 @@ def search_site(
                 (
                     score,
                     SearchHit(
-                        title=view.participant.display_name,
-                        subtitle=f"{view.studio.name} · {view.participant.city}",
-                        url=f"/participants/{view.participant.slug}",
-                        badge="пример" if view.participant.demo else None,
+                        title=person.participant.display_name,
+                        subtitle=f"{person.studio.name} · {person.participant.city}",
+                        url=f"/participants/{person.participant.slug}",
+                        badge="пример" if person.participant.demo else None,
                     ),
                 )
             )
@@ -107,13 +107,13 @@ def search_site(
 
     shows: list[tuple[int, SearchHit]] = []
     for edition_bundle in bundles:
-        for view in performance_views(edition_bundle):
+        for show in performance_views(edition_bundle):
             text = " ".join(
                 [
-                    view.performance.title,
-                    view.nomination.title,
-                    view.participant_names,
-                    view.studio_names,
+                    show.performance.title,
+                    show.nomination.title,
+                    show.participant_names,
+                    show.studio_names,
                 ]
             )
             score = _score(text, needle)
@@ -122,13 +122,13 @@ def search_site(
                     (
                         score,
                         SearchHit(
-                            title=view.performance.title,
+                            title=show.performance.title,
                             subtitle=(
-                                f"День {view.day} · {view.nomination.title} · "
-                                f"{view.participant_names}"
+                                f"День {show.day} · {show.nomination.title} · "
+                                f"{show.participant_names}"
                             ),
-                            url=f"/performances/{view.performance.slug}",
-                            badge="пример" if view.performance.demo else None,
+                            url=f"/performances/{show.performance.slug}",
+                            badge="пример" if show.performance.demo else None,
                         ),
                     )
                 )
@@ -149,9 +149,10 @@ def search_site(
             if not score:
                 continue
             block = block_for_nomination(edition_bundle, nomination.slug)
+            starts_at, ends_at = nomination.starts_at, nomination.ends_at
             when = (
-                f"{nomination.starts_at.strftime('%H:%M')}–{nomination.ends_at.strftime('%H:%M')}"
-                if nomination.has_timing
+                f"{starts_at.strftime('%H:%M')}–{ends_at.strftime('%H:%M')}"
+                if starts_at is not None and ends_at is not None
                 else "время уточняется"
             )
             year = f" · {edition_bundle.year}" if len(show_years) > 1 else ""
@@ -175,9 +176,13 @@ def search_site(
     )
 
     studios: list[tuple[int, SearchHit]] = []
-    for view in studio_views(bundles):
+    for studio_card in studio_views(bundles):
         text = " ".join(
-            [view.studio.name, view.studio.city, " ".join(style.label for style in view.styles)]
+            [
+                studio_card.studio.name,
+                studio_card.studio.city,
+                " ".join(style.label for style in studio_card.styles),
+            ]
         )
         score = _score(text, needle)
         if score:
@@ -185,13 +190,14 @@ def search_site(
                 (
                     score,
                     SearchHit(
-                        title=view.studio.name,
+                        title=studio_card.studio.name,
                         subtitle=(
-                            f"{view.studio.city} · участников: {len(view.participants)} · "
-                            f"выступлений: {len(view.performances)}"
+                            f"{studio_card.studio.city} · "
+                            f"участников: {len(studio_card.participants)} · "
+                            f"выступлений: {len(studio_card.performances)}"
                         ),
-                        url=f"/studios/{view.studio.slug}",
-                        badge="пример" if view.studio.demo else None,
+                        url=f"/studios/{studio_card.studio.slug}",
+                        badge="пример" if studio_card.studio.demo else None,
                     ),
                 )
             )

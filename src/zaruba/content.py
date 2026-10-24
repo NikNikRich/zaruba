@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -96,9 +97,48 @@ def load_editions(content_dir: Path, venues_file: Path | None = None) -> list[Ed
     return sorted(bundles, key=lambda bundle: bundle.year, reverse=True)
 
 
+def _content_fingerprint(settings: Settings) -> tuple[tuple[str, int, int], ...]:
+    """Путь, mtime и размер каждого файла контента — ключ кэша вместо TTL.
+
+    TTL означает «до минуты показываем вчерашние данные»: на расписании в день
+    события это худший вид ошибки. Отпечаток всех файлов (а не максимальный mtime)
+    ловит и правку в `content/`, смонтированном в Docker, и копирование с
+    сохранением даты: размер в ключе закрывает `git checkout`/`rsync -a`.
+    """
+
+    paths = [
+        settings.venues_file,
+        settings.glossary_file,
+        settings.faq_file,
+        settings.history_file,
+        *settings.content_dir.glob("*.yaml"),
+    ]
+    items = []
+    for path in paths:
+        if path.exists():
+            stat = path.stat()
+            items.append((str(path), stat.st_mtime_ns, stat.st_size))
+    return tuple(sorted(items))
+
+
+@lru_cache(maxsize=8)
+def _site_cached(
+    content_dir: str, venues_file: str, fingerprint: tuple[tuple[str, int, int], ...]
+) -> tuple[EditionBundle, ...]:
+    return tuple(load_editions(Path(content_dir), Path(venues_file)))
+
+
 def load_site(settings: Settings | None = None) -> list[EditionBundle]:
+    """Все выпуски. Разбор YAML — по разу на версию контента, а не на запрос."""
+
     settings = settings or get_settings()
-    return load_editions(settings.content_dir, settings.venues_file)
+    return list(
+        _site_cached(
+            str(settings.content_dir),
+            str(settings.venues_file),
+            _content_fingerprint(settings),
+        )
+    )
 
 
 def load_glossary(path: Path) -> list[GlossaryEntry]:
@@ -170,15 +210,30 @@ def load_history(path: Path) -> list[HistoryEntry]:
     return sorted(entries, key=lambda entry: entry.year, reverse=True)
 
 
+@lru_cache(maxsize=8)
+def _knowledge_cached(
+    glossary_file: str,
+    faq_file: str,
+    source_ids: frozenset[str],
+    fingerprint: tuple[tuple[str, int, int], ...],
+) -> Knowledge:
+    return Knowledge(
+        glossary=load_glossary(Path(glossary_file)),
+        faq=load_faq(Path(faq_file), set(source_ids)),
+    )
+
+
 def load_knowledge(settings: Settings | None = None) -> Knowledge:
     settings = settings or get_settings()
     # FAQ общий для сайта: источник может быть из любого выпуска, не только из свежего.
-    source_ids = {
+    source_ids = frozenset(
         source_id for bundle in load_site(settings) for source_id in bundle.edition.source_index
-    }
-    return Knowledge(
-        glossary=load_glossary(settings.glossary_file),
-        faq=load_faq(settings.faq_file, source_ids),
+    )
+    return _knowledge_cached(
+        str(settings.glossary_file),
+        str(settings.faq_file),
+        source_ids,
+        _content_fingerprint(settings),
     )
 
 

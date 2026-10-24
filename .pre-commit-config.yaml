@@ -1,0 +1,44 @@
+# Локальные хуки: те же проверки, что в CI, но до коммита.
+# `pre-commit install` один раз — дальше `git commit` сам гоняет ruff, контент
+# и проверки документов. Версии инструментов не дублируются: они взяты из
+# окружения проекта (`pip install -e ".[dev]"`), а не скачиваются отдельно,
+# поэтому хук работает без сети и не расходится с requirements-dev.lock.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: python -m ruff check --fix
+        language: system
+        types: [python]
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: python -m ruff format
+        language: system
+        types: [python]
+        require_serial: true
+      - id: content-check
+        name: контент выпусков
+        entry: python -m zaruba.content check
+        language: system
+        pass_filenames: false
+        files: ^content/
+      - id: md-tables
+        name: таблицы в документах
+        entry: python tools/check_md_tables.py
+        language: system
+        pass_filenames: false
+        files: \.md$
+      - id: md-chars
+        name: битые символы в документах
+        entry: python tools/check_md_chars.py
+        language: system
+        pass_filenames: false
+        files: \.md$
+      - id: presentation-html
+        name: разметка презентации
+        entry: python tools/check_html.py
+        language: system
+        pass_filenames: false
+        files: ^presentation/

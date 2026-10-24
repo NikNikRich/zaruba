@@ -6,12 +6,12 @@
 <title>{% if page_title %}{{ page_title }} — {% endif %}ЗАРУБА · фан-сайт чемпионата</title>
 <meta name="description" content="{% block description %}Неофициальный сайт чемпионата по современным танцам «ЗАРУБА» в Тюмени: расписание, участники, площадка, источники данных.{% endblock %}">
 {% if robots %}<meta name="robots" content="{{ robots }}">{% endif %}
-<link rel="canonical" href="{{ canonical }}">
+{% if canonical %}<link rel="canonical" href="{{ canonical }}">{% endif %}
 {% for block in json_ld %}
 <script type="application/ld+json">{{ block|safe }}</script>
 {% endfor %}
-<link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', path='print.css') }}" media="print">
+<link rel="stylesheet" href="{{ url_for('static', path='style.css') }}?v={{ asset_v }}">
+<link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v={{ asset_v }}" media="print">
 </head>
 <body>
 <a class="skip-link" href="#main">Перейти к содержанию</a>

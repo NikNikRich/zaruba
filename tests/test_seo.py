@@ -5,9 +5,15 @@ from __future__ import annotations
 import json
 import re
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+
+from zaruba.config import Settings
+from zaruba.content import load_edition
+from zaruba.main import create_app
+from zaruba.services.seo import event_json_ld
 
 LD_JSON = re.compile(
     r'<script type="application/ld\+json">(.*?)</script>', flags=re.DOTALL | re.IGNORECASE
@@ -36,6 +42,24 @@ def test_robots_txt_points_to_sitemap(client: TestClient) -> None:
     assert "Allow: /" in response.text
     assert "Sitemap: http://testserver/sitemap.xml" in response.text
     assert "Disallow: /search" not in response.text, "noindex работает только на обходимой странице"
+
+
+def test_public_base_url_overrides_proxy_headers() -> None:
+    """Canonical, robots и sitemap берутся из настройки, а не из Host запроса.
+
+    `request.base_url` зависит от `uvicorn --proxy-headers`: без флага поисковик
+    получал `http://127.0.0.1:8000`, а сайт молча терял индексацию.
+    """
+
+    app = create_app(Settings(public_base_url="https://zaruba72.ru/"))
+    with TestClient(app, base_url="http://127.0.0.1:8000") as test_client:
+        page = test_client.get("/event")
+        sitemap = test_client.get("/sitemap.xml")
+        robots = test_client.get("/robots.txt")
+
+    assert '<link rel="canonical" href="https://zaruba72.ru/event">' in page.text
+    assert "<loc>https://zaruba72.ru/schedule</loc>" in sitemap.text
+    assert "Sitemap: https://zaruba72.ru/sitemap.xml" in robots.text
 
 
 def test_sitemap_is_valid_xml_with_confirmed_pages(client: TestClient) -> None:
@@ -89,6 +113,22 @@ def test_home_has_event_json_ld(client: TestClient) -> None:
     assert event["location"]["name"] == "КТЗ «Золотые ворота Сибири»"
     assert event["location"]["address"]["streetAddress"] == "ул. Герцена, 87"
     assert event["eventAttendanceMode"] == "https://schema.org/OfflineEventAttendanceMode"
+
+
+def test_event_json_ld_uses_published_timing(edition_path: Path) -> None:
+    """Если блоки опубликованы, время берётся из них, а не придумывается.
+
+    Заодно проверка переносимости: `ZoneInfo` без пакета `tzdata` падал
+    с `ZoneInfoNotFoundError` прямо на рендере — на Windows и в slim-образах,
+    где системной базы часовых поясов нет.
+    """
+
+    bundle = load_edition(edition_path)
+
+    event = event_json_ld(bundle, "https://zaruba72.ru")
+
+    assert event["startDate"] == "2025-12-06T12:00:00+05:00"
+    assert event["endDate"] == "2025-12-07T14:40:00+05:00"
 
 
 def test_event_json_ld_offer_links_to_prices_not_to_sales(client: TestClient) -> None:
@@ -161,3 +201,20 @@ def test_error_pages_have_no_structured_data(client: TestClient) -> None:
     for path in ("/nope", "/schedule?day=9"):
         html = client.get(path).text
         assert "application/ld+json" not in html, path
+
+
+def test_canonical_only_on_successful_pages(client: TestClient) -> None:
+    """§6.19: canonical — только на 2xx: на ошибке он указывает на саму ошибку."""
+
+    assert (
+        '<link rel="canonical" href="http://testserver/participants">'
+        in client.get("/participants").text
+    )
+    for path in ("/nope", "/schedule?day=9"):
+        assert 'rel="canonical"' not in client.get(path).text, path
+    assert 'rel="canonical"' not in client.post("/participants").text, "405"
+    # Кнопка «без фильтров» на 422 не зависела от canonical и осталась рабочей.
+    assert (
+        '<a class="btn" href="/schedule">Открыть эту страницу без фильтров</a>'
+        in client.get("/schedule?day=9").text
+    )

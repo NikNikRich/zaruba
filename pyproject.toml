@@ -11,6 +11,9 @@ dependencies = [
     "pydantic>=2.14.1",
     "pydantic-settings>=2.16.1",
     "pyyaml>=6.0.3",
+    # zoneinfo берёт базу часовых поясов из системы; на Windows и в slim-образах
+    # её нет, и Event JSON-LD падал с ZoneInfoNotFoundError на первом же рендере.
+    "tzdata>=2025.2",
 ]
 
 [project.optional-dependencies]
@@ -18,12 +21,43 @@ dev = [
     "pytest>=8.0",
     "httpx2>=2.16",
     "ruff>=0.5",
+    # Проверка типов, покрытие, аудит зависимостей и хуки — только для разработки:
+    # в рантайме образ остаётся python:3.12-slim + fastapi + jinja2.
+    "mypy>=1.11",
+    "pytest-cov>=5.0",
+    "pip-audit>=2.7",
+    "pre-commit>=3.7",
+    # `uv` собирает кросс-платформенный лок зависимостей (`--universal`):
+    # из Windows-окружения он всё равно оставляет uvloop для Linux с маркером.
+    "uv>=0.5",
+    # Стабы для PyYAML: без них mypy не видит типы `yaml.safe_load`.
+    "types-PyYAML>=6.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-q"
+
+[tool.coverage.run]
+source = ["zaruba"]
+branch = true
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+# Порог ниже фактического, но такой, чтобы «тихое» удаление тестов валило CI.
+fail_under = 90
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src"]
+check_untyped_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
 
 [tool.ruff]
 line-length = 100

@@ -12,8 +12,11 @@ WorkingDirectory=/srv/zaruba
 EnvironmentFile=/srv/zaruba/.env
 # --proxy-headers: canonical и sitemap должны видеть https, а не http от прокси.
 # --forwarded-allow-ips берётся из FORWARDED_ALLOW_IPS в .env (по умолчанию 127.0.0.1).
+# --limit-concurrency 64: один процесс, и всплеск запросов должен получать 503,
+# а не растить очередь в памяти (см. Dockerfile).
 ExecStart=/srv/zaruba/.venv/bin/uvicorn zaruba.main:app \
-    --host 127.0.0.1 --port 8000 --proxy-headers --no-server-header
+    --host 127.0.0.1 --port 8000 --proxy-headers --no-server-header \
+    --limit-concurrency 64
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=15

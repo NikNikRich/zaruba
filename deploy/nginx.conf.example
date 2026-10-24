@@ -42,6 +42,9 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Номер запроса: приложение вернёт его в ответе и запишет в журнал,
+        # поэтому по номеру из письма посетителя находится и запись nginx.
+        proxy_set_header X-Request-ID $request_id;
         proxy_read_timeout 30s;
     }
 }

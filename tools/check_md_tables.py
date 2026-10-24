@@ -1,4 +1,5 @@
 """Проверка markdown-таблиц в docs/: одинаковое число ячеек и строка-разделитель."""
+
 from __future__ import annotations
 
 import re

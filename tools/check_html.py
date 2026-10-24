@@ -1,4 +1,5 @@
 """Проверка HTML-презентации: баланс тегов, число слайдов, отсутствие маркеров сборки."""
+
 from __future__ import annotations
 
 import sys
@@ -6,8 +7,20 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 VOID = {
-    "area", "base", "br", "col", "embed", "hr", "img", "input",
-    "link", "meta", "param", "source", "track", "wbr",
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
 }
 
 
@@ -29,7 +42,9 @@ class Balance(HTMLParser):
             return
         top, line = self.stack.pop()
         if top != tag:
-            self.errors.append(f"строка {self.getpos()[0]}: </{tag}> закрывает <{top}> (открыт в {line})")
+            self.errors.append(
+                f"строка {self.getpos()[0]}: </{tag}> закрывает <{top}> (открыт в {line})"
+            )
 
 
 def main() -> int:
@@ -51,7 +66,9 @@ def main() -> int:
     print(f"слайдов: {slides}, размер: {len(text)} символов, строк: {text.count(chr(10)) + 1}")
     for err in parser.errors:
         print("  " + err)
-    print("OK: разметка корректна" if not parser.errors else f"FAIL: {len(parser.errors)} проблем(ы)")
+    print(
+        "OK: разметка корректна" if not parser.errors else f"FAIL: {len(parser.errors)} проблем(ы)"
+    )
     return 0 if not parser.errors else 1
 
 

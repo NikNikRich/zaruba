@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="ZARUBA_", env_file=".env", extra="ignore")
 
     env: str = "local"
+
+    # Публичный адрес сайта: canonical, robots.txt и sitemap не должны зависеть
+    # от того, передал ли прокси X-Forwarded-Proto. Пусто — берём из запроса.
+    public_base_url: str = ""
+
     content_dir: Path = BASE_DIR / "content" / "editions"
     venues_file: Path = BASE_DIR / "content" / "venues.yaml"
     glossary_file: Path = BASE_DIR / "content" / "glossary.yaml"

@@ -1,14 +1,18 @@
+import os
+import time
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
+from zaruba.config import Settings
 from zaruba.content import (
     ContentError,
     load_edition,
     load_editions,
     load_faq,
     load_glossary,
+    load_site,
     main,
 )
 from zaruba.models import (  # noqa: I001 - импорт моделей одним блоком
@@ -77,6 +81,29 @@ def test_site_loads_editions_newest_first() -> None:
     bundles = load_editions(CONTENT_DIR)
 
     assert [bundle.year for bundle in bundles] == [2026, 2025]
+
+
+def test_site_is_cached_and_reloads_after_file_change(content_settings: Settings) -> None:
+    """Кэш по mtime: повторный запрос не парсит YAML, а правка файла его сбрасывает.
+
+    TTL здесь не подходит: «до минуты показываем вчерашнее расписание» — это
+    худший вид ошибки в день события.
+    """
+
+    first = load_site(content_settings)
+    second = load_site(content_settings)
+
+    assert second[0] is first[0], "контент разобран повторно, хотя файлы не менялись"
+
+    path = content_settings.content_dir / "2026.yaml"
+    raw = path.read_text(encoding="utf-8")
+    path.write_text(raw.replace("«ЗАРУБА» 2026", "«ЗАРУБА» 2026 (правка)", 1), encoding="utf-8")
+    stamp = time.time() + 5
+    os.utime(path, (stamp, stamp))
+
+    third = load_site(content_settings)
+
+    assert third[0].edition.title != first[0].edition.title, "кэш не увидел правку контента"
 
 
 def test_duplicate_slug_is_reported(tmp_path: Path, edition_path: Path) -> None:

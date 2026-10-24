@@ -11,20 +11,17 @@ from fastapi.responses import PlainTextResponse, Response
 
 from ..content import load_site
 from ..services.seo import render_robots, render_sitemap, sitemap_entries
+from ..templating import base_url
 
 router = APIRouter()
 
 CACHE_SECONDS = 3600
 
 
-def _base_url(request: Request) -> str:
-    return str(request.base_url).rstrip("/")
-
-
 @router.get("/robots.txt", response_class=PlainTextResponse, include_in_schema=False)
 def robots_txt(request: Request) -> PlainTextResponse:
     return PlainTextResponse(
-        render_robots(_base_url(request)),
+        render_robots(base_url(request)),
         headers={"Cache-Control": f"public, max-age={CACHE_SECONDS}"},
     )
 
@@ -34,7 +31,7 @@ def sitemap_xml(request: Request) -> Response:
     settings = request.app.state.settings
     entries = sitemap_entries(load_site(settings), ratings=settings.ratings_enabled)
     return Response(
-        render_sitemap(entries, _base_url(request)),
+        render_sitemap(entries, base_url(request)),
         media_type="application/xml",
         headers={"Cache-Control": f"public, max-age={CACHE_SECONDS}"},
     )
