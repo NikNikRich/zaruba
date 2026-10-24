@@ -61,6 +61,7 @@
 ```
 Zaruba/
   README.md              этот файл
+  AGENTS.md              правила работы агента и человека: запреты, шаг, проверки
   pyproject.toml         зависимости, pytest, ruff, mypy, покрытие (line-length 100)
   requirements.lock      рантайм-зависимости, зафиксированные (`uv --universal`)
   requirements-dev.lock  то же + pytest, ruff, mypy, pip-audit, pre-commit
