@@ -11,7 +11,7 @@
 **M0** (каркас приложения), **M1** (данные в YAML), **M2** (семь P0-страниц из
 §6.22), **M3** (каталоги этапа 2), **M4** (выпуск 2026 из «Положения»),
 **M5** (архив `/history`) и **M6** (рейтинги за флагом, служебные страницы,
-публикация). Этапы 0–3 закрыты: 163 теста зелёные, покрытие 92 %, `ruff` и
+публикация). Этапы 0–3 закрыты: 169 тестов зелёные, покрытие 92 %, `ruff` и
 `mypy` чисты, зависимости зафиксированы локом.
 
 | Слой | Состояние |
@@ -26,7 +26,7 @@
 | Архив `/history` (M5) | готово: 2019, 2022, 2024 — только подтверждённые факты |
 | Рейтинги (M6) | готово: методика `v1`; таблиц нет, при выключенном `ZARUBA_RATINGS_ENABLED` — `noindex` и вне sitemap |
 | Служебные страницы (M6) | готово: `/about`, `/rules`, `/privacy`, `/takedown` + ряд футера |
-| Публикация (M6) | готово: Dockerfile, compose, systemd, nginx-пример, CI, CSP/HSTS в `middleware.py` |
+| Публикация (M6) | готово: Dockerfile, compose, systemd, nginx-пример, CI, CSP/HSTS в `middleware.py`, ранбук `deploy/README.md`, `deploy/smoke.sh` |
 
 ### Документы проекта
 
@@ -103,8 +103,10 @@ Zaruba/
   tests/                 pytest: роуты, каталоги, приватность, данные, CLI, SEO,
                          безопасность, тексты ошибок
   deploy/
+    README.md            развёртывание на сервере: домен, firewall, TLS, бэкап, проверки
     zaruba.service       systemd: uvicorn за прокси, минимум прав
     nginx.conf.example   HTTPS, gzip, кэш статики, X-Forwarded-Proto, X-Request-ID
+    smoke.sh             проверка живого домена после выкладки и обновления
   Dockerfile             образ: python:3.12.15-slim, non-root, зависимости из лока с хешами
   docker-compose.yml     один сервис, контент монтируется только для чтения
   .env.example           все ZARUBA_* и FORWARDED_ALLOW_IPS с комментариями
@@ -183,6 +185,9 @@ python -m venv .venv
 ## Публикация
 
 Прод — тот же uvicorn за обратным прокси: приложение не умеет TLS и не должно.
+Пошагово (домен, firewall, сертификат, `.env`, бэкап, обновление и откат) —
+[`deploy/README.md`](deploy/README.md); проверка живого домена после выкладки —
+`SITE_HOST=zaruba72.ru bash deploy/smoke.sh`.
 
 ```powershell
 Copy-Item .env.example .env          # ZARUBA_ENV=prod, флаги, FORWARDED_ALLOW_IPS

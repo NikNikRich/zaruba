@@ -1,0 +1,11 @@
+# Файлы, которые исполняет Linux: всегда LF. Без этого `core.autocrlf=true` на
+# Windows-машине отдаёт CRLF, и bash падает на `set -u` с «syntax error near
+# unexpected token», а systemd не читает юнит.
+*.sh       text eol=lf
+*.service  text eol=lf
+Dockerfile text eol=lf
+deploy/*.conf.example text eol=lf
+
+# Остальное — как в репозитории: в индексе LF, и рабочая копия тоже LF, чтобы
+# diff не зависел от `core.autocrlf` на машине разработчика.
+* text=auto eol=lf

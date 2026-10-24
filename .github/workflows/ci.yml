@@ -55,6 +55,11 @@ jobs:
       - name: Контент выпусков
         run: python -m zaruba.content check
 
+      - name: Синтаксис скриптов
+        # smoke.sh запускают на сервере после выкладки: bash -n ловит опечатку
+        # и CRLF в файле до того, как скрипт понадобится в аварии.
+        run: bash -n deploy/smoke.sh
+
       - name: Документы
         run: |
           python tools/check_md_tables.py

@@ -19,7 +19,7 @@
 | Этап 2. Каталоги P1 | готово, кроме `/organizers` (нет данных) | `src/zaruba/routers/catalogue.py` |
 | Этап 3. Аналитика и SEO | готово: `/history`, `/ratings` (методика за флагом), JSON-LD, sitemap, print CSS | `services/seo.py`, `services/ratings.py` |
 | Служебные P0 (§6.2 п.18) | готово: `/about`, `/rules`, `/privacy`, `/takedown` | `routers/legal.py` |
-| Публикация | готово: Dockerfile, compose, systemd, nginx, CI, заголовки безопасности | `deploy/`, `middleware.py` |
+| Публикация | готово: Dockerfile, compose, systemd, nginx, CI, заголовки безопасности, ранбук `deploy/README.md`, `smoke.sh` | `deploy/`, `middleware.py` |
 | Инструменты (P3) | готово: mypy, покрытие ≥ 90 %, `pip-audit`, лок зависимостей, pre-commit, `X-Request-ID`, `--limit-concurrency` | `pyproject.toml`, `requirements*.lock`, `.pre-commit-config.yaml` |
 | Аудит уязвимостей (§6.23) | готово: `pip-audit` по обоим локам, хеши в локе и `--require-hashes`, проверка `Host`, COOP/CORP, базовый образ на 3.12.15 | `requirements*.lock`, `Dockerfile`, `main.py`, `middleware.py` |
 | `/organizers` | **не сделано**: публичных данных о команде и партнёрах нет | — |
@@ -539,7 +539,7 @@ src/zaruba/
   static/            style.css (15 КБ), print.css (1 КБ) — без JS и внешних шрифтов
 content/             venues.yaml, glossary.yaml, faq.yaml, history.yaml, editions/*.yaml
 tests/               13 файлов тестов + conftest: роуты, каталоги, приватность, данные, CLI, SEO, безопасность, ошибки
-deploy/              zaruba.service, nginx.conf.example
+deploy/              README.md (развёртывание), zaruba.service, nginx.conf.example, smoke.sh
 Dockerfile, docker-compose.yml, .env.example, .github/workflows/ci.yml
 requirements.lock, requirements-dev.lock   лок: рантайм и dev (uv --universal)
 .pre-commit-config.yaml                    хуки: ruff, контент, документы

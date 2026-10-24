@@ -14,9 +14,16 @@ def cells(line: str) -> int:
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parents[1] / "docs"
+    root = Path(__file__).resolve().parents[1]
+    paths = sorted((root / "docs").glob("*.md"))
+    # deploy/README.md читают в момент выкладки: битая таблица там дороже,
+    # чем в спецификации, поэтому проверяем и её.
+    deploy_readme = root / "deploy" / "README.md"
+    if deploy_readme.is_file():
+        paths.append(deploy_readme)
+
     problems = 0
-    for path in sorted(root.glob("*.md")):
+    for path in paths:
         lines = path.read_text(encoding="utf-8").splitlines()
         i, fence = 0, False
         while i < len(lines):
