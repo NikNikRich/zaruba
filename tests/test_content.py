@@ -682,3 +682,102 @@ def test_module_entrypoint_exits_with_zero(monkeypatch: pytest.MonkeyPatch) -> N
             runpy.run_module("zaruba.content", run_name="__main__")
 
     assert exit_info.value.code == 0
+
+
+def test_source_root_link_is_reported(tmp_path: Path, venues) -> None:
+    """Источник обязан открывать публикацию, а не ленту сообщества (`docs/06` §6.17)."""
+
+    path = _replaced(
+        tmp_path,
+        CONTENT_DIR / "2025.yaml",
+        "url: https://disk.yandex.ru/d/TSub-yJlXr_T_g",
+        "url: https://vk.com/zaruba72champ",
+        "2025.yaml",
+    )
+
+    with pytest.raises(ContentError) as error:
+        load_edition(path, venues)
+
+    assert "ссылка ведёт на корень" in str(error.value)
+    assert "sources.judge-sheets-2025" in str(error.value)
+
+
+def test_history_source_root_link_is_reported(tmp_path: Path) -> None:
+    path = _replaced(
+        tmp_path,
+        HISTORY_FILE,
+        "url: https://vk.com/wall-185685166_132",
+        "url: https://vk.com/zaruba72champ",
+        "history.yaml",
+    )
+
+    with pytest.raises(ContentError) as error:
+        load_history(path)
+
+    assert "entries.2022.source" in str(error.value)
+
+
+def test_photos_cannot_link_to_ticket_showcase_root(tmp_path: Path) -> None:
+    """Витрина «Касс Ру» («актуальных мероприятий нет») — не публикация о выпуске."""
+
+    path = _replaced(
+        tmp_path,
+        PHOTOS_FILE,
+        "url: https://vk.com/wall-185685166_222",
+        "url: https://tyumen.kassy.ru/",
+        "photos.yaml",
+    )
+
+    with pytest.raises(ContentError) as error:
+        load_photos(path)
+
+    assert "photos.2025-anniversary.source" in str(error.value)
+
+
+def test_every_source_opens_a_concrete_object() -> None:
+    """Ревизия 25.10.2026: ни один источник не ведёт на ленту или витрину целиком."""
+
+    roots = {
+        "https://vk.com/zaruba72champ",
+        "https://t.me/zaruba72champ",
+        "https://tyumen.kassy.ru",
+    }
+    urls = [
+        source.url
+        for bundle in load_editions(CONTENT_DIR, VENUES_FILE)
+        for source in bundle.edition.sources
+    ]
+    urls += [entry.source.url for entry in load_history(HISTORY_FILE)]
+    urls += [photo.source.url for photo in load_photos(PHOTOS_FILE)]
+
+    assert urls
+    assert [url for url in urls if url.rstrip("/") in roots] == []
+
+
+def test_2026_judges_have_a_personal_post(edition_2026: Path) -> None:
+    """У каждого судьи — свой пост-представление, а не общая лента сообщества."""
+
+    edition = load_edition(edition_2026).edition
+    urls = {
+        edition.source_index[judge.source_id].url for judge in edition.judges if judge.source_id
+    }
+
+    assert len(urls) == len(edition.judges)
+    assert all("/wall-" in url for url in urls)
+
+
+def test_2026_tickets_link_to_the_organizer_page(edition_2026: Path) -> None:
+    edition = load_edition(edition_2026).edition
+    sources = {ticket.source_id for ticket in edition.tickets}
+
+    assert sources == {"kassy-organizer"}
+    assert "tyumen.kassy.ru/organizer/2-846/" in edition.source_index["kassy-organizer"].url
+
+
+def test_venue_map_opens_the_hall_card() -> None:
+    """Кнопка «на карте» открывает карточку зала, а не поиск по адресу."""
+
+    venue = load_venues(VENUES_FILE)["zolotye-vorota"]
+
+    assert venue.map_url is not None
+    assert "/maps/org/" in venue.map_url

@@ -31,14 +31,9 @@ note: >-
 
 sources:
   - id: kassy-event
-    title: Страница события на «Кассах Ру» (Тюмень)
-    url: https://tyumen.kassy.ru/
-    retrieved_at: "2026-10-23"
-    trust: official
-  - id: vk-community
-    title: Сообщество «ЗАРУБА72» во ВКонтакте
-    url: https://vk.com/zaruba72champ
-    retrieved_at: "2026-10-23"
+    title: '«Кассы Ру» — страница события «ЗАРУБА» (6–7 декабря 2025)'
+    url: https://tyumen.kassy.ru/shows/koncerty-i-shou/2-1612/
+    retrieved_at: "2026-10-25"
     trust: official
   - id: judge-sheets-2025
     title: «Судейские листы Заруба 2025» — папка на Яндекс.Диске

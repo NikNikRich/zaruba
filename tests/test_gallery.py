@@ -161,7 +161,10 @@ def test_citation_card_shows_author_law_and_source(
 
     assert "Фото: Имя Фотографа · цитирование, ст. 1274 ГК РФ" in html
     assert "цитата · ст. 1274" in html
-    assert "источник заимствования: Сообщество «ЗАРУБА72» во ВКонтакте" in html
+    assert "источник заимствования: Сообщество «ЗАРУБА72» — фотокарточки выпуска 2025" in html
+    assert "https://vk.com/wall-185685166_222" in html, (
+        "ссылка ведёт на конкретный пост, а не на ленту"
+    )
 
 
 def test_photo_years_are_confirmed_in_history() -> None:

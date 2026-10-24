@@ -60,6 +60,27 @@ def _validation_error(path: Path, exc: ValidationError) -> ContentError:
     return ContentError(f"{path}: данные не прошли проверку\n" + "\n".join(lines))
 
 
+# Корень сообщества и витрины билетов — это лента, а не публикация: клик по
+# такому источнику не показывает факт, ради которого он поставлен. Правило
+# `docs/06` §6.17: источник — конкретный пост, документ или страница события.
+SOURCE_ROOT_URLS = frozenset(
+    {
+        "https://vk.com/zaruba72champ",
+        "https://t.me/zaruba72champ",
+        "https://tyumen.kassy.ru",
+    }
+)
+
+
+def _check_source_link(path: Path, url: str, where: str) -> None:
+    root = url.rstrip("/")
+    if root in SOURCE_ROOT_URLS:
+        raise ContentError(
+            f"{path}: {where}: ссылка ведёт на корень «{root}» — нужен адрес "
+            "конкретного поста, документа или страницы события"
+        )
+
+
 def load_venues(path: Path) -> dict[str, Venue]:
     raw = _read_yaml(path)
     try:
@@ -82,6 +103,9 @@ def load_edition(path: Path, venues: dict[str, Venue] | None = None) -> EditionB
         edition = Edition.model_validate(raw)
     except ValidationError as exc:
         raise _validation_error(path, exc) from exc
+
+    for source in edition.sources:
+        _check_source_link(path, source.url, f"sources.{source.id}")
 
     if venues is None:
         venues = load_venues(path.parent.parent / "venues.yaml")
@@ -224,6 +248,8 @@ def load_history(path: Path) -> list[HistoryEntry]:
     duplicates = sorted({year for year in years if years.count(year) > 1})
     if duplicates:
         raise ContentError(f"{path}: год описан дважды — {duplicates}")
+    for entry in entries:
+        _check_source_link(path, entry.source.url, f"entries.{entry.year}.source")
     return sorted(entries, key=lambda entry: entry.year, reverse=True)
 
 
@@ -247,6 +273,7 @@ def load_photos(path: Path) -> list[Photo]:
         if photo.slug in seen:
             raise ContentError(f"{path}: фото «{photo.slug}» описано дважды")
         seen.add(photo.slug)
+        _check_source_link(path, photo.source.url, f"photos.{photo.slug}.source")
     return list(photos)
 
 
