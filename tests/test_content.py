@@ -615,7 +615,12 @@ def test_photo_duplicate_slug_is_reported(tmp_path: Path) -> None:
 
 
 def test_history_duplicate_year_is_reported(tmp_path: Path) -> None:
-    path = _replaced(tmp_path, HISTORY_FILE, "year: 2022", "year: 2019", "history.yaml")
+    # Дата обязана совпадать с годом записи, поэтому дубль делаем «сдвигом»
+    # записи 2023 в 2024: проверка года срабатывает, проверка даты — нет.
+    text = HISTORY_FILE.read_text(encoding="utf-8")
+    text = text.replace("year: 2023", "year: 2024").replace("2023-12-03", "2024-12-03")
+    path = tmp_path / "history.yaml"
+    path.write_text(text, encoding="utf-8")
 
     with pytest.raises(ContentError) as error:
         load_history(path)

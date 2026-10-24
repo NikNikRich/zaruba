@@ -130,7 +130,8 @@ def test_event_page_keeps_chronology_honest(client: TestClient) -> None:
     assert "2025" in html, "архив 2025 остаётся в хронологии"
     assert "2024" in html, "2024 подтверждён архивом сообщества — теперь он в таблице"
     assert "2019" in html
-    assert "2023" not in html, "2023 не подтверждён ни одним публичным постом"
+    assert "2023" in html, "2023 подтверждён программой от 30.11.2023 — теперь он в таблице"
+    assert "2020" not in html and "2021" not in html, "пандемийных лет в архиве нет"
     assert "Год без подтверждённых данных" in html
     assert 'href="/history"' in html
     assert "Золотые ворота Сибири" in html

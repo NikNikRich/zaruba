@@ -19,22 +19,25 @@ HISTORY_FILE = REPO_ROOT / "content" / "history.yaml"
 def test_history_page_shows_every_confirmed_year(client: TestClient) -> None:
     html = client.get("/history").text
 
-    for year in ("2026", "2025", "2024", "2022", "2019"):
+    for year in ("2026", "2025", "2024", "2023", "2022", "2019"):
         assert f">{year}<" in html or f">{year}\n" in html or year in html, year
     assert "ZARUBA 72 DANCE FEST" in html
     assert "8 декабря 2024" in html
-    assert "не подтверждены" in html, "у 2019 и 2022 дат нет — так и пишем"
+    assert "3 ноября 2019" in html, "дата первого фестиваля найдена («Мой-портал»)"
+    assert "4 декабря 2022" in html, "дата выпуска 2022 — из анонса сообщества"
+    assert "3 декабря 2023" in html, "2023 подтверждён программой от 30.11.2023"
+    assert "«Мой-портал»" in html, "у первого выпуска ссылка на новость, а не на архив"
     assert "текущий" in html
     assert "https://vk.com/zaruba72champ" in html
     assert 'rel="noopener noreferrer nofollow"' in html, "чужие ссылки — nofollow (§6.9)"
 
 
 def test_history_page_lists_missing_years_explicitly(client: TestClient) -> None:
-    """Пробелы названы словами: 2020, 2021 и 2023 не подтверждены."""
+    """Пробелы названы словами: 2020 и 2021 не подтверждены."""
 
     html = client.get("/history").text
 
-    assert "2020, 2021, 2023" in html
+    assert "2020 и 2021" in html
     assert "победители" in html.lower()
     assert "официальные протоколы" in html
 
@@ -49,7 +52,7 @@ def test_history_rows_merge_archive_and_editions() -> None:
     assert rows[0].live is True
     assert rows[0].link == "/event"
     archived = {row.year for row in rows} - {bundle.year for bundle in bundles}
-    assert archived == {2019, 2022, 2024}
+    assert archived == {2019, 2022, 2023, 2024}
     for row in rows:
         if row.year in archived:
             assert row.link is None, "архивным годам некуда вести — ссылок в никуда нет"
