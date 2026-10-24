@@ -13,5 +13,13 @@ node_modules/
 *.egg-info/
 build/
 dist/
+# Исходники фото (большие файлы): в репозиторий идут только готовые превью
+# из `src/zaruba/static/img/`, которые делает `tools/prepare_photos.py`.
+assets/photos/*
+!assets/photos/README.md
+# Логи локального запуска (uvicorn и прочее) — не для репозитория
+.run_*.txt
+# Служебные файлы ОС: их создаёт Explorer/Finder, в репозитории им делать нечего
 .DS_Store
 Thumbs.db
+
