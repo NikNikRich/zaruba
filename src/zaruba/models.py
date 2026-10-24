@@ -290,6 +290,139 @@ class JudgeRole(StrEnum):
         return {"judge": "судья", "mc": "ведущий"}[self.value]
 
 
+class PhotoNature(StrEnum):
+    """Что именно на картинке: снимок или нарисованная нами иллюстрация.
+
+    Разделение не косметическое. Подпись «Фото: …» под рисунком — обман,
+    а `alt` без слова «иллюстрация» читается незрячим как описание снимка.
+    Поэтому тип едет в данных, а не угадывается по имени файла.
+    """
+
+    PHOTO = "photo"
+    ILLUSTRATION = "illustration"
+
+    @property
+    def label(self) -> str:
+        return {"photo": "фото", "illustration": "иллюстрация"}[self.value]
+
+
+CITATION_LAW = "ст. 1274 ГК РФ"
+
+
+class PhotoUse(StrEnum):
+    """Основание, по которому снимок вообще попал на сайт.
+
+    Законных вариантов два, и они не взаимозаменяемы:
+
+    - `own` — кадр наш или есть разрешение автора (правообладателя);
+    - `citation` — цитирование по п. 1 ст. 1274 ГК РФ: информационная, научная,
+      учебная или культурная цель **и** имя автора **и** источник заимствования.
+
+    «Нашлось в интернете» основанием не является, поэтому значения всего два:
+    третье пришлось бы объяснять в каждом втором споре.
+    """
+
+    OWN = "own"
+    CITATION = "citation"
+
+    @property
+    def label(self) -> str:
+        return {
+            "own": "свой кадр или разрешение автора",
+            "citation": "цитирование, ст. 1274 ГК РФ",
+        }[self.value]
+
+
+class CitationPurpose(StrEnum):
+    """Цель цитирования из п. 1 ст. 1274 ГК РФ — списком, а не свободным текстом.
+
+    Свободное поле рано или поздно заполнят словом «интересно», и проверить,
+    что это законная цель, будет нельзя. Четыре значения — ровно те, что в норме.
+    """
+
+    INFO = "info"
+    SCIENCE = "science"
+    EDUCATION = "education"
+    CULTURE = "culture"
+
+    @property
+    def label(self) -> str:
+        return {
+            "info": "информационная",
+            "science": "научная",
+            "education": "учебная",
+            "culture": "культурная",
+        }[self.value]
+
+
+def photo_credit_line(
+    *,
+    author: str,
+    use: PhotoUse = PhotoUse.OWN,
+    license: str | None = None,
+    purpose: CitationPurpose | None = None,
+    nature: PhotoNature = PhotoNature.PHOTO,
+) -> str:
+    """Подпись под картинкой: имя автора и основание публикации.
+
+    Одна функция на архив и на портреты — чтобы «Фото: …» с одним набором прав
+    не отличалось от «Фото: …» с другим. Для цитирования подпись прямо называет
+    норму: читатель видит, что снимок взят не с разрешения, а по закону.
+    """
+
+    kind = "Иллюстрация" if nature is PhotoNature.ILLUSTRATION else "Фото"
+    if use is PhotoUse.CITATION:
+        basis = f"цитирование, {CITATION_LAW}"
+        if purpose is not None:
+            basis += f", {purpose.label} цель"
+        return f"{kind}: {author} · {basis}"
+    return f"{kind}: {author}" + (f" · {license}" if license else "")
+
+
+def check_photo_rights(
+    *,
+    use: PhotoUse,
+    author: str | None,
+    license: str | None,
+    purpose: CitationPurpose | None,
+    source_url: str | None,
+) -> None:
+    """Проверяет два условия цитирования и не даёт смешать их с разрешением.
+
+    Ошибки нарочно говорят, чего не хватает, а не «неверные права»: YAML правит
+    человек, и ему нужен следующий шаг, а не приговор. `author` обязателен в
+    обоих режимах — п. 1 ст. 1274 ГК РФ требует имени и при цитировании, и
+    собственная лицензия без автора всё равно неполная.
+    """
+
+    if not author:
+        raise ValueError(
+            "нужен автор: имя обязательно и при цитировании (п. 1 ст. 1274 ГК РФ), "
+            "и при своей лицензии"
+        )
+    if use is PhotoUse.CITATION:
+        if purpose is None:
+            raise ValueError(
+                "для цитирования нужна purpose (info, science, education, culture): "
+                "без законной цели цитата не цитата"
+            )
+        if not source_url:
+            raise ValueError("для цитирования нужен source_url — источник заимствования")
+        if license:
+            raise ValueError(
+                "при цитировании license не пишут: если разрешение есть, это use: own, "
+                "а не ст. 1274 ГК РФ"
+            )
+        return
+    if not license:
+        raise ValueError(
+            "нужен license (разрешение автора или лицензия): без него остаётся "
+            "только цитирование по ст. 1274 ГК РФ"
+        )
+    if purpose is not None:
+        raise ValueError("purpose относится к цитированию: уберите его или поставьте use: citation")
+
+
 class Judge(Strict):
     """Человек за судейским столом или на сцене как ведущий (`docs/06` §6.11).
 
@@ -305,6 +438,18 @@ class Judge(Strict):
     styles: list[DanceStyle] = Field(default_factory=list, max_length=9)
     blocks: list[Slug] = Field(default_factory=list, max_length=12)
     source_id: Slug | None = None
+    # Портрет: кроп 3:4 по лицу (480×640), автор и права.
+    # Пусто — карточка показывает инициалы, а не серый прямоугольник.
+    photo: ImagePath | None = None
+    photo_author: str | None = Field(default=None, min_length=2, max_length=80)
+    photo_license: str | None = Field(default=None, min_length=2, max_length=80)
+    # Основание публикации: своё разрешение или цитирование по ст. 1274 ГК РФ.
+    # Портрет человека — тоже «фото», поэтому правила те же, что в фотоархиве.
+    photo_use: PhotoUse = PhotoUse.OWN
+    photo_purpose: CitationPurpose | None = None
+    photo_source_url: str | None = Field(default=None, pattern=r"^https://", max_length=300)
+    # Отличает снимок от рисунка `tools/avatars.py`: на странице это видно.
+    photo_nature: PhotoNature = PhotoNature.PHOTO
     demo: bool = False
 
     @model_validator(mode="after")
@@ -313,7 +458,39 @@ class Judge(Strict):
             raise ValueError("направление указано дважды")
         if len(set(self.blocks)) != len(self.blocks):
             raise ValueError("блок указан дважды")
+        rights = (self.photo_author, self.photo_license, self.photo_purpose, self.photo_source_url)
+        if self.photo is None:
+            if any(rights) or self.photo_use is not PhotoUse.OWN:
+                raise ValueError(
+                    "права на снимок указывают вместе с photo: у карточки без файла их нет"
+                )
+            return self
+        if self.photo_nature is PhotoNature.ILLUSTRATION and self.photo_use is not PhotoUse.OWN:
+            raise ValueError(
+                "иллюстрация — наша работа: для неё только use: own, цитировать нечего"
+            )
+        check_photo_rights(
+            use=self.photo_use,
+            author=self.photo_author,
+            license=self.photo_license,
+            purpose=self.photo_purpose,
+            source_url=self.photo_source_url,
+        )
         return self
+
+    @property
+    def photo_credit(self) -> str | None:
+        """Подпись собирается из полей, а не пишется руками: имя автора не потеряется."""
+
+        if self.photo is None or not self.photo_author:
+            return None
+        return photo_credit_line(
+            author=self.photo_author,
+            use=self.photo_use,
+            license=self.photo_license,
+            purpose=self.photo_purpose,
+            nature=self.photo_nature,
+        )
 
 
 class GlossaryKind(StrEnum):
@@ -737,6 +914,114 @@ class HistoryEntry(Strict):
         if any(value.year != self.year for value in self.dates):
             raise ValueError("дата выпуска не совпадает с годом записи")
         return self
+
+
+class PhotoKind(StrEnum):
+    """Формат превью: размеры заданы кодом, а не аккуратностью автора снимка.
+
+    Тот же пресет читает `tools/prepare_photos.py`, поэтому фото с камеры,
+    телефона и выгрузки из альбома получаются одного размера и одной рамки.
+    """
+
+    GALLERY = "gallery"
+    PORTRAIT = "portrait"
+
+    @property
+    def size(self) -> tuple[int, int]:
+        return {"gallery": (960, 720), "portrait": (480, 640)}[self.value]
+
+    @property
+    def label(self) -> str:
+        return {"gallery": "кадр 4:3", "portrait": "портрет 3:4"}[self.value]
+
+
+# Путь — от `static/`: только свои файлы и только в двух папках. Шаблон строит
+# `src="/static/{{ photo.file }}"`, поэтому `../`, `http://` и произвольный
+# каталог отсекаются здесь, а не проверкой в трёх местах.
+IMAGE_PATH_RE = r"^img/(?:history|people)/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:webp|jpg)$"
+ImagePath = Annotated[str, Field(pattern=IMAGE_PATH_RE, max_length=120)]
+
+
+class Photo(Strict):
+    """Снимок архива: файл (если он у нас есть), права и первоисточник.
+
+    Файла нет — карточка остаётся ссылкой на публикацию: чужой снимок без
+    основания мы не копируем (`/takedown`), а показываем превью-заглушку
+    с переходом в источник. Как только файл появляется, нужны `alt`, `author`
+    и одно из двух оснований: разрешение (`license`, `use: own`) или цитирование
+    по ст. 1274 ГК РФ (`use: citation` + `purpose`). Источник заимствования —
+    всегда поле `source`, поэтому при цитировании он уже есть и виден на странице.
+    """
+
+    slug: Slug
+    year: int = Field(ge=2010, le=2100)
+    title: str = Field(min_length=3, max_length=120)
+    caption: str = Field(min_length=10, max_length=200)
+    kind: PhotoKind = PhotoKind.GALLERY
+    file: ImagePath | None = None
+    alt: str | None = Field(default=None, min_length=5, max_length=160)
+    author: str | None = Field(default=None, min_length=2, max_length=80)
+    license: str | None = Field(default=None, min_length=2, max_length=80)
+    use: PhotoUse = PhotoUse.OWN
+    purpose: CitationPurpose | None = None
+    source: Source
+
+    @model_validator(mode="after")
+    def _file_needs_credit(self) -> Photo:
+        if self.file is None:
+            if self.use is not PhotoUse.OWN or self.purpose is not None:
+                raise ValueError(
+                    "use и purpose задаются только с файлом: карточка без файла — это ссылка, "
+                    "а не иллюстрация"
+                )
+            return self
+        missing = [
+            name
+            for name, value in (
+                ("alt", self.alt),
+                ("author", self.author),
+            )
+            if not value
+        ]
+        if missing:
+            raise ValueError(
+                "у фото с файлом обязательны " + ", ".join(missing) + ": без прав не публикуем"
+            )
+        check_photo_rights(
+            use=self.use,
+            author=self.author,
+            license=self.license,
+            purpose=self.purpose,
+            source_url=str(self.source.url),
+        )
+        return self
+
+    @property
+    def width(self) -> int:
+        return self.kind.size[0]
+
+    @property
+    def height(self) -> int:
+        return self.kind.size[1]
+
+    @property
+    def is_citation(self) -> bool:
+        """Снимок взят по ст. 1274 ГК РФ, а не с разрешения: на странице это видно."""
+
+        return self.file is not None and self.use is PhotoUse.CITATION
+
+    @property
+    def credit(self) -> str:
+        """«Фото: автор · лицензия» или «Фото: автор · цитирование, ст. 1274 ГК РФ»."""
+
+        if not self.author:
+            return ""
+        return photo_credit_line(
+            author=self.author,
+            use=self.use,
+            license=self.license,
+            purpose=self.purpose,
+        )
 
 
 class EditionBundle(Strict):

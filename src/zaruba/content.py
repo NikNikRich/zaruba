@@ -12,12 +12,21 @@ import yaml
 from pydantic import TypeAdapter, ValidationError
 
 from .config import Settings, get_settings
-from .models import Edition, EditionBundle, FaqItem, GlossaryEntry, HistoryEntry, Venue
+from .models import (
+    Edition,
+    EditionBundle,
+    FaqItem,
+    GlossaryEntry,
+    HistoryEntry,
+    Photo,
+    Venue,
+)
 
 VENUES_ADAPTER = TypeAdapter(list[Venue])
 GLOSSARY_ADAPTER = TypeAdapter(list[GlossaryEntry])
 FAQ_ADAPTER = TypeAdapter(list[FaqItem])
 HISTORY_ADAPTER = TypeAdapter(list[HistoryEntry])
+PHOTOS_ADAPTER = TypeAdapter(list[Photo])
 
 
 class ContentError(Exception):
@@ -111,6 +120,7 @@ def _content_fingerprint(settings: Settings) -> tuple[tuple[str, int, int], ...]
         settings.glossary_file,
         settings.faq_file,
         settings.history_file,
+        settings.photos_file,
         *settings.content_dir.glob("*.yaml"),
     ]
     items = []
@@ -210,6 +220,29 @@ def load_history(path: Path) -> list[HistoryEntry]:
     return sorted(entries, key=lambda entry: entry.year, reverse=True)
 
 
+def load_photos(path: Path) -> list[Photo]:
+    """Фотоархив (`docs/06` §6.5): карточка без файла — законная, без прав — нет.
+
+    Порядок в файле не важен: страница сортирует по году сама. Дубли года
+    разрешены — у выпуска может быть несколько кадров, — а вот дубль `slug`
+    ломает ссылки и файлы, поэтому это ошибка.
+    """
+
+    path = Path(path)
+    raw = _read_yaml(path, "полем photos")
+    try:
+        photos = PHOTOS_ADAPTER.validate_python(raw.get("photos"))
+    except ValidationError as exc:
+        raise _validation_error(path, exc) from exc
+
+    seen: set[str] = set()
+    for photo in photos:
+        if photo.slug in seen:
+            raise ContentError(f"{path}: фото «{photo.slug}» описано дважды")
+        seen.add(photo.slug)
+    return list(photos)
+
+
 @lru_cache(maxsize=8)
 def _knowledge_cached(
     glossary_file: str,
@@ -284,7 +317,14 @@ def main(argv: list[str] | None = None) -> int:
                 settings = get_settings()
                 bundles = load_site(settings)
                 archive = load_history(settings.history_file)
+                photos = load_photos(settings.photos_file)
                 print(f"OK  история: {len(archive)} записей до 2025 года")
+                own = sum(1 for photo in photos if photo.file)
+                cited = sum(1 for photo in photos if photo.is_citation)
+                print(
+                    f"OK  фотоархив: {len(photos)} карточек, из них с файлом {own} "
+                    f"(цитат по ст. 1274 ГК РФ: {cited})"
+                )
             for bundle in bundles:
                 print(f"OK  {bundle.year}: {_summary(bundle)}")
             print(f"проверено выпусков: {len(bundles)}")
