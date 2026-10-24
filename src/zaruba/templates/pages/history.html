@@ -51,14 +51,58 @@
 </section>
 
 <section class="section">
+  <h2>Фотоархив</h2>
+  <div class="shots">
+    {% for card in photo_cards %}
+    <figure class="shot">
+      <a class="shot__frame" href="{{ card.source.url }}" rel="noopener noreferrer nofollow">
+        {% if card.file %}
+        <img class="shot__img" src="/static/{{ card.file }}" alt="{{ card.alt }}"
+             width="{{ card.width }}" height="{{ card.height }}" loading="lazy" decoding="async">
+        {% else %}
+        <span class="shot__ghost">
+          <span class="shot__year mono">{{ card.year }}</span>
+          <span class="shot__hint">открыть в источнике →</span>
+        </span>
+        {% endif %}
+        {% if card.is_citation %}
+        <span class="shot__kind shot__kind--law">цитата · ст. 1274</span>
+        {% elif card.file %}
+        <span class="shot__kind">{{ card.kind.label }}</span>
+        {% else %}
+        <span class="shot__kind">в источнике</span>
+        {% endif %}
+      </a>
+      <figcaption>
+        <strong>{{ card.title }}</strong>
+        <span class="muted small">{{ card.caption }}</span>
+        {% if card.file %}<span class="muted small">{{ card.credit }}</span>{% endif %}
+        <a class="small" href="{{ card.source.url }}" rel="noopener noreferrer nofollow">{% if card.is_citation %}источник заимствования: {% endif %}{{ card.source.title }}</a>
+        <span class="muted small">проверено {{ card.source.retrieved_at|fmt_dt }}</span>
+      </figcaption>
+    </figure>
+    {% endfor %}
+  </div>
+  <p class="muted small">
+    {% if file_count %}Кадры приводим к одному формату: 4:3, 960×720, со снятыми EXIF
+    и GPS.{% else %}Снимков у нас нет — карточки ведут в публикацию сообщества.{% endif %}
+    Чужой кадр ставим только цитатой по п. 1 ст. 1274 ГК РФ: в информационных, научных,
+    учебных или культурных целях, с именем автора и ссылкой на источник. Нет цели, автора
+    или источника — нет и кадра: «нашлось в интернете» основанием не считается.
+    Подготовка кадра — <code>tools/prepare_photos.py</code>.
+  </p>
+</section>
+
+<section class="section">
   <h2>Чего здесь нет</h2>
   <ul class="facts">
     <li><span class="lbl">победители</span> официальные протоколы прошлых лет публично
     не сохранились — рейтинги появятся только вместе с методикой и протоколами.</li>
     <li><span class="lbl">2020, 2021, 2023</span> упоминаний в архиве сообщества нет:
     пандемийные годы и 2023 не подтверждены ни одним публичным постом.</li>
-    <li><span class="lbl">фото и видео</span> чужие материалы не перепубликуем:
-    ссылка на первоисточник честнее, чем копия без прав.</li>
+    <li><span class="lbl">фото и видео</span> чужие записи не перепубликуем пачками:
+    кадр появляется только цитатой с автором и источником (ст. 1274 ГК РФ), остальное —
+    ссылкой на первоисточник.</li>
   </ul>
   <p class="section-link"><a href="/event">о формате и хронологии на странице события →</a></p>
 </section>
