@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     glossary_file: Path = BASE_DIR / "content" / "glossary.yaml"
     faq_file: Path = BASE_DIR / "content" / "faq.yaml"
     history_file: Path = BASE_DIR / "content" / "history.yaml"
+    # Фотоархив: карточки со ссылкой в первоисточник и (если есть) своим файлом.
+    photos_file: Path = BASE_DIR / "content" / "photos.yaml"
 
     # Кэш публичных страниц (docs/06 §6.20): 60 с, расписание — 15 с.
     cache_ttl_public: int = 60
