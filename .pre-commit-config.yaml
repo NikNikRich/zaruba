@@ -8,19 +8,22 @@ repos:
     hooks:
       - id: ruff-check
         name: ruff check
-        entry: python -m ruff check --fix
+        # `python` из PATH — не обязательно интерпретатор проекта: при коммите
+        # из GUI venv не активирован, и хук либо падал, либо брал чужой ruff.
+        # Поэтому сперва ищем питон проекта, а PATH — только запасной вариант.
+        entry: sh -c 'PY=.venv/Scripts/python.exe; [ -x "$PY" ] || PY=.venv/bin/python; [ -x "$PY" ] || PY=python; exec "$PY" -m ruff check --fix "$@"' sh
         language: system
         types: [python]
         require_serial: true
       - id: ruff-format
         name: ruff format
-        entry: python -m ruff format
+        entry: sh -c 'PY=.venv/Scripts/python.exe; [ -x "$PY" ] || PY=.venv/bin/python; [ -x "$PY" ] || PY=python; exec "$PY" -m ruff format "$@"' sh
         language: system
         types: [python]
         require_serial: true
       - id: content-check
         name: контент выпусков
-        entry: python -m zaruba.content check
+        entry: sh -c 'PY=.venv/Scripts/python.exe; [ -x "$PY" ] || PY=.venv/bin/python; [ -x "$PY" ] || PY=python; exec "$PY" -m zaruba.content check'
         language: system
         pass_filenames: false
         files: ^content/
