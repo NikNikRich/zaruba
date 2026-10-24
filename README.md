@@ -225,7 +225,7 @@ python -m venv .venv
 
 ```powershell
 # 1. исходники — в assets/photos/history/ и assets/photos/people/ (в git не попадают)
-# 2. кадры архива: WebP + JPEG, EXIF/GPS/ICC вырезаны
+# 2. кадры архива: WebP, EXIF/GPS/ICC вырезаны
 .\.venv\Scripts\python.exe -m pip install pillow   # нужен только скриптам, не сайту
 .\.venv\Scripts\python.exe tools\prepare_photos.py --check
 .\.venv\Scripts\python.exe tools\prepare_photos.py

@@ -33,7 +33,6 @@ LIME: RGB = (232, 255, 58)
 CYAN: RGB = (86, 214, 255)
 MAGENTA: RGB = (255, 92, 150)
 CORAL: RGB = (255, 92, 56)
-DARK: RGB = (8, 8, 12)
 NEONS: tuple[RGB, ...] = (LIME, CYAN, MAGENTA, CORAL)
 
 
@@ -176,15 +175,6 @@ def _stroke(draw: ImageDraw.ImageDraw, points: Sequence[POINT], color: object, w
         draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=color)
 
 
-def _bent(start: POINT, end: POINT, amount: float) -> POINT:
-    """Середина отрезка со сдвигом вбок: локоть или колено, а не прямая палка."""
-
-    dx, dy = end[0] - start[0], end[1] - start[1]
-    length = math.hypot(dx, dy) or 1.0
-    mid_x, mid_y = (start[0] + end[0]) / 2, (start[1] + end[1]) / 2
-    return (mid_x - dy / length * amount, mid_y + dx / length * amount)
-
-
 def _capsule(
     draw: ImageDraw.ImageDraw,
     start: POINT,
@@ -284,22 +274,6 @@ def _haze(size: tuple[int, int], rng: random.Random, palette: Sequence[RGB]) -> 
             fill=rng.choice(palette),
         )
     return layer.filter(ImageFilter.GaussianBlur(width / 25))
-
-
-def _bokeh(
-    size: tuple[int, int], rng: random.Random, count: int, palette: Sequence[RGB]
-) -> Image.Image:
-    """Расфокусированные огни за спиной: глубина кадра без единого фото."""
-
-    width, height = size
-    layer = Image.new("RGB", size, (0, 0, 0))
-    draw = ImageDraw.Draw(layer)
-    for _ in range(count):
-        x = rng.uniform(0, width)
-        y = rng.uniform(0, height * 0.9)
-        radius = rng.uniform(0.018, 0.050) * width
-        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=rng.choice(palette))
-    return layer.filter(ImageFilter.GaussianBlur(width / 70))
 
 
 def _crowd(size: tuple[int, int], rng: random.Random) -> Image.Image:

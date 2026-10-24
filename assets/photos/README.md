@@ -6,10 +6,9 @@
 
 ```
 assets/photos/
-  history/          кадры выпусков       → 4:3, 960×720, WebP + JPEG
+  history/          кадры выпусков       → 4:3, 960×720, WebP
   people/           исходники портретов: официальные фото и афиши
-  people/posters/   копии афиш «ЗАРУБА72» — источник кропа
-  people/portrait/  кропы 3:4 по лицу    → 480×640, WebP + JPEG
+  people/portrait/  кропы 3:4 по лицу    → 480×640, WebP
 ```
 
 Порядок:
@@ -59,8 +58,7 @@ use: citation   # цитирование по п. 1 ст. 1274 ГК РФ: нуж
 
 * официальные фото со страниц организаций — `burtsev.jpg` (MDC NRG,
   nrg-style.ru) и `mc-geo.jpg` (PROТАНЦЫ CAMP, protancycamp.com);
-* афиши сообщества «ЗАРУБА72» — `fara.jpg`, `gubanova.jpg`, `bonchinche.jpg`,
-  их копии лежат в `people/posters/`.
+* афиши сообщества «ЗАРУБА72» — `fara.jpg`, `gubanova.jpg`, `bonchinche.jpg`.
 
 Рамки вокруг головы заданы в `tools/crop_portraits.py` (словарь `FRAMES`: сверху
 и снизу запас, чтобы макушка и подбородок остались в кадре), кропы — 3:4 без
@@ -73,7 +71,7 @@ use: citation   # цитирование по п. 1 ст. 1274 ГК РФ: нуж
 # 2. вырезать портреты в assets/photos/people/portrait/<slug>.jpg
 .venv\Scripts\python.exe tools\crop_portraits.py
 
-# 3. привести к пресету portrait (480×640, WebP + JPEG); пресет берётся
+# 3. привести к пресету portrait (480×640, WebP); пресет берётся
 #    из имени папки people — отдельный --preset не нужен
 .venv\Scripts\python.exe tools\prepare_photos.py assets/photos/people/portrait
 ```

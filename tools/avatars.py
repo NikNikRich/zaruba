@@ -1,4 +1,4 @@
-"""Постеры для карточек жюри и ведущего: 3:4, 480×640, WebP + JPEG.
+"""Постеры для карточек жюри и ведущего: 3:4, 480×640, WebP.
 
 Это иллюстрации, а не портреты: лиц не рисуем, чужие снимки не берём.
 На `/judges` они подписаны «иллюстрация», поэтому подмены фотографии нет —
@@ -121,18 +121,12 @@ def main(argv: list[str] | None = None) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     for slug in slugs:
         image = poster(slug, (width, height))
-        # Пустая копия: `.info` не тянет метаданные в WebP/JPEG.
+        # Пустая копия: `.info` не тянет метаданные в WebP.
         clean = Image.new("RGB", image.size)
         clean.paste(image)
         webp_path = out_dir / f"{slug}.webp"
-        jpg_path = out_dir / f"{slug}.jpg"
         clean.save(webp_path, "WEBP", quality=args.quality, method=6)
-        clean.save(jpg_path, "JPEG", quality=85, optimize=True, progressive=True)
-        print(
-            f"{slug}: {width}×{height}, "
-            f"webp {webp_path.stat().st_size / 1024:.1f} КБ, "
-            f"jpg {jpg_path.stat().st_size / 1024:.1f} КБ"
-        )
+        print(f"{slug}: {width}×{height}, webp {webp_path.stat().st_size / 1024:.1f} КБ")
 
     print(
         "\nКарточки в "

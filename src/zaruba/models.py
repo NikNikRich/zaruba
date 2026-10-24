@@ -938,7 +938,7 @@ class PhotoKind(StrEnum):
 # Путь — от `static/`: только свои файлы и только в двух папках. Шаблон строит
 # `src="/static/{{ photo.file }}"`, поэтому `../`, `http://` и произвольный
 # каталог отсекаются здесь, а не проверкой в трёх местах.
-IMAGE_PATH_RE = r"^img/(?:history|people)/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:webp|jpg)$"
+IMAGE_PATH_RE = r"^img/(?:history|people)/[a-z0-9]+(?:-[a-z0-9]+)*\.webp$"
 ImagePath = Annotated[str, Field(pattern=IMAGE_PATH_RE, max_length=120)]
 
 

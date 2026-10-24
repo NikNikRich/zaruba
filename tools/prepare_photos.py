@@ -52,7 +52,6 @@ class Report:
     kind: PhotoKind
     size_in: tuple[int, int]
     webp_bytes: int
-    jpg_bytes: int
     warning: str | None
 
     @property
@@ -167,19 +166,16 @@ def prepare_one(
 
             fitted = apply_dance_fx(fitted, seed=slug)
         # Чистая копия: у resize и exif_transpose в `.info` остаются exif и icc,
-        # и WebP/JPEG сохранили бы их, хотя публиковать их не нужно.
+        # и WebP сохранил бы их, хотя публиковать их не нужно.
         clean = Image.new("RGB", fitted.size)
         clean.paste(fitted)
 
-        webp_bytes = jpg_bytes = 0
+        webp_bytes = 0
         if not check:
             out_dir.mkdir(parents=True, exist_ok=True)
             webp_path = out_dir / f"{slug}.webp"
-            jpg_path = out_dir / f"{slug}.jpg"
             clean.save(webp_path, "WEBP", quality=quality, method=6)
-            clean.save(jpg_path, "JPEG", quality=85, optimize=True, progressive=True)
             webp_bytes = webp_path.stat().st_size
-            jpg_bytes = jpg_path.stat().st_size
 
     warning = None
     if min(source_size) < min(width, height):
@@ -190,7 +186,6 @@ def prepare_one(
         kind=kind,
         size_in=source_size,
         webp_bytes=webp_bytes,
-        jpg_bytes=jpg_bytes,
         warning=warning,
     )
 
@@ -293,9 +288,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
 
         weight = (
-            f"webp {_kb(report.webp_bytes)}, jpg {_kb(report.jpg_bytes)}"
-            if not args.check
-            else f"качество webp {args.quality}"
+            f"webp {_kb(report.webp_bytes)}" if not args.check else f"качество webp {args.quality}"
         )
         print(
             f"{report.slug}: {report.size_in[0]}×{report.size_in[1]} → "

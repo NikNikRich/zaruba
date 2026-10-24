@@ -216,7 +216,7 @@ def test_declared_photo_files_exist() -> None:
             continue
         path = STATIC_DIR / photo.file
         assert path.is_file(), f"{photo.slug}: нет файла {path}"
-        assert path.suffix == ".webp", "шаблон ссылается на WebP; JPEG — запасной вариант"
+        assert path.suffix == ".webp", "шаблон ссылается только на WebP: JPEG никто не отдаёт"
 
 
 def test_photos_yaml_rejects_duplicate_slug(tmp_path: Path) -> None:
@@ -269,7 +269,7 @@ def test_judge_photos_are_cited_with_source(client: TestClient) -> None:
 def test_judge_photo_requires_author_and_basis() -> None:
     """Снимок без автора и основания не загружается — как и в фотоархиве."""
 
-    payload = {"slug": "fara", "name": "Фара", "role": "judge", "photo": "img/people/fara.jpg"}
+    payload = {"slug": "fara", "name": "Фара", "role": "judge", "photo": "img/people/fara.webp"}
 
     with pytest.raises(ValidationError, match="автор"):
         Judge.model_validate(payload)
@@ -285,7 +285,7 @@ def test_judge_citation_needs_source_url() -> None:
         "slug": "fara",
         "name": "Фара",
         "role": "judge",
-        "photo": "img/people/fara.jpg",
+        "photo": "img/people/fara.webp",
         "photo_author": "Имя Фотографа",
         "photo_use": "citation",
         "photo_purpose": "info",
@@ -309,7 +309,7 @@ def test_illustration_credit_is_built_from_fields() -> None:
         "slug": "fara",
         "name": "Фара",
         "role": "judge",
-        "photo": "img/people/fara.jpg",
+        "photo": "img/people/fara.webp",
         "photo_author": "проект «ЗАРУБА»",
         "photo_license": "CC BY 4.0",
     }
@@ -357,7 +357,7 @@ def test_illustration_cannot_be_citation() -> None:
         "slug": "fara",
         "name": "Фара",
         "role": "judge",
-        "photo": "img/people/fara.jpg",
+        "photo": "img/people/fara.webp",
         "photo_author": "проект «ЗАРУБА»",
         "photo_use": "citation",
         "photo_purpose": "info",

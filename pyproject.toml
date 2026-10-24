@@ -85,7 +85,5 @@ zaruba = [
     # Превью делает tools/prepare_photos.py; без этих строк `pip install .`
     # (Docker) поставит шаблоны без картинок, и /history отдаст битые ссылки.
     "static/img/history/*.webp",
-    "static/img/history/*.jpg",
     "static/img/people/*.webp",
-    "static/img/people/*.jpg",
 ]
