@@ -1,5 +1,8 @@
 import os
+import runpy
+import sys
 import time
+import warnings
 from pathlib import Path
 
 import pytest
@@ -12,7 +15,12 @@ from zaruba.content import (
     load_editions,
     load_faq,
     load_glossary,
+    load_history,
+    load_knowledge,
+    load_latest,
+    load_photos,
     load_site,
+    load_venues,
     main,
 )
 from zaruba.models import (  # noqa: I001 - импорт моделей одним блоком
@@ -28,14 +36,29 @@ from zaruba.models import (  # noqa: I001 - импорт моделей одни
 CONTENT_DIR = Path(__file__).resolve().parents[1] / "content" / "editions"
 GLOSSARY_FILE = Path(__file__).resolve().parents[1] / "content" / "glossary.yaml"
 FAQ_FILE = Path(__file__).resolve().parents[1] / "content" / "faq.yaml"
+VENUES_FILE = Path(__file__).resolve().parents[1] / "content" / "venues.yaml"
+HISTORY_FILE = Path(__file__).resolve().parents[1] / "content" / "history.yaml"
+PHOTOS_FILE = Path(__file__).resolve().parents[1] / "content" / "photos.yaml"
+
+
+def _replaced(tmp_path: Path, source: Path, old: str, new: str, name: str) -> Path:
+    """Копия YAML с одной заменой: тест ломает одно поле, а не весь файл."""
+
+    raw = source.read_text(encoding="utf-8")
+    assert old in raw, f"в {source.name} нет строки {old!r}"
+    path = tmp_path / name
+    path.write_text(raw.replace(old, new, 1), encoding="utf-8")
+    return path
+
+
+def _written(tmp_path: Path, name: str, text: str) -> Path:
+    path = tmp_path / name
+    path.write_text(text, encoding="utf-8")
+    return path
 
 
 def _broken_copy(tmp_path: Path, edition_path: Path, old: str, new: str) -> Path:
-    raw = edition_path.read_text(encoding="utf-8")
-    assert old in raw, f"в эталонном файле нет строки {old!r}"
-    path = tmp_path / "broken.yaml"
-    path.write_text(raw.replace(old, new, 1), encoding="utf-8")
-    return path
+    return _replaced(tmp_path, edition_path, old, new, "broken.yaml")
 
 
 def test_edition_has_required_volume(edition_path: Path) -> None:
@@ -416,3 +439,216 @@ def test_nomination_rejects_team_size_swap() -> None:
             min_participants=6,
             max_participants=3,
         )
+
+
+# --- Ошибки загрузки: сообщение называет файл и поле, а не падает трейсбеком.
+
+
+def test_missing_file_is_reported(tmp_path: Path) -> None:
+    with pytest.raises(ContentError) as error:
+        load_edition(tmp_path / "нет.yaml")
+
+    assert "файл не найден" in str(error.value)
+
+
+def test_broken_yaml_is_reported(tmp_path: Path) -> None:
+    path = _written(tmp_path, "broken.yaml", "edition: [2025\n")
+
+    with pytest.raises(ContentError) as error:
+        load_edition(path)
+
+    assert "не разобрать YAML" in str(error.value)
+
+
+def test_yaml_root_must_be_mapping(tmp_path: Path) -> None:
+    """Список вместо объекта — частая ошибка, когда потеряли ключ верхнего уровня."""
+
+    path = _written(tmp_path, "list.yaml", "- 2025\n- 2026\n")
+
+    with pytest.raises(ContentError) as error:
+        load_edition(path)
+
+    assert "ожидался YAML-объект" in str(error.value)
+
+
+def test_venue_with_bad_capacity_is_reported(tmp_path: Path) -> None:
+    path = _replaced(tmp_path, VENUES_FILE, "capacity: 850", 'capacity: "много"', "venues.yaml")
+
+    with pytest.raises(ContentError) as error:
+        load_venues(path)
+
+    message = str(error.value)
+    assert "данные не прошли проверку" in message
+    assert "capacity" in message
+
+
+def test_duplicate_venue_slug_is_reported(tmp_path: Path) -> None:
+    raw = VENUES_FILE.read_text(encoding="utf-8")
+    block = raw[raw.index("  - slug:") :]
+    path = _written(tmp_path, "venues.yaml", raw + block)
+
+    with pytest.raises(ContentError) as error:
+        load_venues(path)
+
+    assert "описана дважды" in str(error.value)
+
+
+def test_unknown_venue_is_reported(tmp_path: Path, edition_path: Path, venues) -> None:
+    path = _replaced(
+        tmp_path, edition_path, "venue: zolotye-vorota", "venue: no-such-venue", "broken.yaml"
+    )
+
+    with pytest.raises(ContentError) as error:
+        load_edition(path, venues)
+
+    assert "нет в content/venues.yaml" in str(error.value)
+
+
+def test_missing_editions_dir_is_reported(tmp_path: Path) -> None:
+    with pytest.raises(ContentError) as error:
+        load_editions(tmp_path / "нет-папки")
+
+    assert "папка с выпусками не найдена" in str(error.value)
+
+
+def test_empty_editions_dir_is_reported(tmp_path: Path) -> None:
+    with pytest.raises(ContentError) as error:
+        load_editions(tmp_path)
+
+    assert "нет ни одного файла выпуска" in str(error.value)
+
+
+def test_duplicate_year_is_reported(content_settings: Settings) -> None:
+    """Два файла с одним годом: какой из них «правильный» — не решает загрузчик."""
+
+    editions = content_settings.content_dir
+    copy = editions / "2025-copy.yaml"
+    copy.write_text((editions / "2025.yaml").read_text(encoding="utf-8"), encoding="utf-8")
+
+    with pytest.raises(ContentError) as error:
+        load_editions(editions, content_settings.venues_file)
+
+    assert "описан в двух файлах" in str(error.value)
+
+
+def test_fingerprint_skips_missing_files(content_settings: Settings, tmp_path: Path) -> None:
+    """Отсутствующий файл не роняет сайт: отпечаток кэша просто его пропускает."""
+
+    settings = content_settings.model_copy(update={"photos_file": tmp_path / "нет.yaml"})
+
+    assert [bundle.year for bundle in load_site(settings)] == [2026, 2025]
+
+
+def test_glossary_with_bad_kind_is_reported(tmp_path: Path) -> None:
+    path = _replaced(tmp_path, GLOSSARY_FILE, "kind: style", "kind: nonsense", "glossary.yaml")
+
+    with pytest.raises(ContentError) as error:
+        load_glossary(path)
+
+    assert "данные не прошли проверку" in str(error.value)
+
+
+def test_glossary_duplicate_slug_is_reported(tmp_path: Path) -> None:
+    path = _replaced(tmp_path, GLOSSARY_FILE, "slug: trek", "slug: nominaciya", "glossary.yaml")
+
+    with pytest.raises(ContentError) as error:
+        load_glossary(path)
+
+    assert "статьи повторяются" in str(error.value)
+
+
+def test_faq_with_bad_status_is_reported(tmp_path: Path) -> None:
+    path = _replaced(tmp_path, FAQ_FILE, "status: confirmed", "status: nonsense", "faq.yaml")
+
+    with pytest.raises(ContentError) as error:
+        load_faq(path)
+
+    assert "данные не прошли проверку" in str(error.value)
+
+
+def test_faq_duplicate_slug_is_reported(tmp_path: Path) -> None:
+    path = _replaced(tmp_path, FAQ_FILE, "slug: s-rebenkom", "slug: skolko-stoit", "faq.yaml")
+
+    with pytest.raises(ContentError) as error:
+        load_faq(path)
+
+    assert "вопросы повторяются" in str(error.value)
+
+
+def test_faq_unknown_source_is_reported() -> None:
+    """Ссылка на источник, которого нет ни в одном выпуске, — опечатка, а не факт."""
+
+    with pytest.raises(ContentError) as error:
+        load_faq(FAQ_FILE, set())
+
+    assert "неизвестный source_id" in str(error.value)
+
+
+def test_history_with_bad_year_is_reported(tmp_path: Path) -> None:
+    path = _replaced(tmp_path, HISTORY_FILE, "year: 2019", 'year: "не год"', "history.yaml")
+
+    with pytest.raises(ContentError) as error:
+        load_history(path)
+
+    assert "данные не прошли проверку" in str(error.value)
+
+
+def test_photos_with_bad_year_are_reported(tmp_path: Path) -> None:
+    # Первое `kind: gallery` в файле — в комментарии-примере, поэтому ломаем год.
+    path = _replaced(tmp_path, PHOTOS_FILE, "year: 2025", 'year: "не год"', "photos.yaml")
+
+    with pytest.raises(ContentError) as error:
+        load_photos(path)
+
+    assert "данные не прошли проверку" in str(error.value)
+
+
+def test_photo_duplicate_slug_is_reported(tmp_path: Path) -> None:
+    """Дубль `slug` ломает ссылки и имена файлов — это ошибка, в отличие от дубля года."""
+
+    path = _replaced(tmp_path, PHOTOS_FILE, "slug: 2022-video", "slug: 2024-stage", "photos.yaml")
+
+    with pytest.raises(ContentError) as error:
+        load_photos(path)
+
+    assert "описано дважды" in str(error.value)
+
+
+def test_history_duplicate_year_is_reported(tmp_path: Path) -> None:
+    path = _replaced(tmp_path, HISTORY_FILE, "year: 2022", "year: 2019", "history.yaml")
+
+    with pytest.raises(ContentError) as error:
+        load_history(path)
+
+    assert "год описан дважды" in str(error.value)
+
+
+def test_knowledge_takes_sources_from_all_editions(content_settings: Settings) -> None:
+    """FAQ общий для сайта: `source_id` может прийти из любого выпуска, не только из свежего."""
+
+    knowledge = load_knowledge(content_settings)
+    source_ids = {
+        source_id
+        for bundle in load_site(content_settings)
+        for source_id in bundle.edition.source_index
+    }
+
+    assert knowledge.glossary
+    assert {item.source_id for item in knowledge.faq if item.source_id} <= source_ids
+
+
+def test_latest_edition_is_the_newest(content_settings: Settings) -> None:
+    assert load_latest(content_settings).year == 2026
+
+
+def test_module_entrypoint_exits_with_zero(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`python -m zaruba.content check`: строка `__main__` тоже должна работать."""
+
+    monkeypatch.setattr(sys, "argv", ["zaruba.content", "check"])
+    with warnings.catch_warnings():
+        # runpy предупреждает, что модуль уже импортирован: здесь это ожидаемо.
+        warnings.simplefilter("ignore", RuntimeWarning)
+        with pytest.raises(SystemExit) as exit_info:
+            runpy.run_module("zaruba.content", run_name="__main__")
+
+    assert exit_info.value.code == 0
