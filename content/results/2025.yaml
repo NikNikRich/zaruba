@@ -1,0 +1,2287 @@
+edition: 2025
+updated_at: '2026-10-25T00:38:54+05:00'
+source_id: judge-sheets-2025
+status: unconfirmed
+judges:
+- code: mor
+  name: Андрей Морыженков
+  judge: moryzhenkov
+- code: mate
+  name: MATÈ · Анастасия Юрасова
+  judge: yurasova
+- code: nas
+  name: Настя
+  judge: null
+- code: mafia
+  name: Наталья Мафия
+  judge: mafiya
+nominations:
+- nomination: solo-kids-3-9
+  day: 1
+  number: 1
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: А. Е.
+    scores:
+      mor: 40.0
+      mate: 44.5
+      mafia: 38.5
+    unreadable: []
+    total: 123.0
+    flagged: []
+    place: 1
+  - participant: М. К.
+    scores:
+      mor: 32.5
+      mate: 40.0
+      mafia: 34.5
+    unreadable: []
+    total: 107.0
+    flagged: []
+    place: 2
+  - participant: A. F.
+    scores:
+      mor: 31.0
+      mate: 36.0
+      mafia: 33.9
+    unreadable: []
+    total: 100.9
+    flagged: []
+    place: 3
+  - participant: С. И.
+    scores:
+      mor: 30.0
+      mate: 31.5
+      mafia: 30.5
+    unreadable: []
+    total: 92.0
+    flagged: []
+    place: 4
+- nomination: solo-juniors-10-14-beg
+  day: 1
+  number: 2
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: М. М.
+    scores:
+      mor: 30.2
+      mate: 36.5
+      mafia: 35.3
+    unreadable: []
+    total: 102.0
+    flagged: []
+    place: null
+  - participant: Л. М.
+    scores:
+      mor: 31.1
+      mate: 32.5
+      mafia: 34.8
+    unreadable: []
+    total: 98.4
+    flagged:
+    - mafia
+    place: null
+  - participant: С. К.
+    scores:
+      mor: 29.0
+      mate: 28.0
+      mafia: 30.6
+    unreadable: []
+    total: 87.6
+    flagged: []
+    place: null
+  - participant: А. С.
+    scores:
+      mor: 27.0
+      mate: 27.5
+      mafia: 32.2
+    unreadable: []
+    total: 86.7
+    flagged: []
+    place: null
+  - participant: Emily
+    scores:
+      mor: 29.5
+      mate: 36.0
+      mafia: null
+    unreadable: []
+    total: 65.5
+    flagged: []
+    place: null
+  - participant: К. К.
+    scores:
+      mor: 30.0
+      mate: 34.5
+      mafia: null
+    unreadable: []
+    total: 64.5
+    flagged: []
+    place: null
+  - participant: Н. П.
+    scores:
+      mor: 33.0
+      mate: 29.5
+      mafia: null
+    unreadable: []
+    total: 62.5
+    flagged: []
+    place: null
+  - participant: L. Л.
+    scores:
+      mor: 29.0
+      mate: 32.0
+      mafia: null
+    unreadable: []
+    total: 61.0
+    flagged:
+    - mate
+    place: null
+  - participant: К. Л.
+    scores:
+      mor: 27.5
+      mate: 27.0
+      mafia: null
+    unreadable: []
+    total: 54.5
+    flagged: []
+    place: null
+- nomination: solo-juniors-10-14-pro
+  day: 1
+  number: 3
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: Лисичка
+    scores:
+      mor: 40.8
+      mate: 43.0
+      mafia: 41.1
+    unreadable: []
+    total: 124.9
+    flagged: []
+    place: 1
+  - participant: Ж. В.
+    scores:
+      mor: 40.8
+      mate: 43.0
+      mafia: 39.7
+    unreadable: []
+    total: 123.5
+    flagged:
+    - mafia
+    place: 2
+  - participant: С. А.
+    scores:
+      mor: 40.6
+      mate: 41.0
+      mafia: 41.0
+    unreadable: []
+    total: 122.6
+    flagged: []
+    place: 3
+  - participant: М. В.
+    scores:
+      mor: 38.5
+      mate: 39.5
+      mafia: 39.9
+    unreadable: []
+    total: 117.9
+    flagged: []
+    place: 4
+  - participant: М. Ч.
+    scores:
+      mor: 38.3
+      mate: 37.7
+      mafia: 39.4
+    unreadable: []
+    total: 115.4
+    flagged: []
+    place: 5
+  - participant: К. Д.
+    scores:
+      mor: 37.7
+      mate: 37.0
+      mafia: 40.2
+    unreadable: []
+    total: 114.9
+    flagged: []
+    place: 6
+  - participant: В. Л.
+    scores:
+      mor: 35.0
+      mate: 37.4
+      mafia: 37.8
+    unreadable: []
+    total: 110.2
+    flagged: []
+    place: 7
+  - participant: С. М.
+    scores:
+      mor: 36.0
+      mate: 38.2
+      mafia: 35.5
+    unreadable: []
+    total: 109.7
+    flagged:
+    - mafia
+    place: 8
+  - participant: А. О.
+    scores:
+      mor: 36.8
+      mate: 35.5
+      mafia: 36.5
+    unreadable: []
+    total: 108.8
+    flagged: []
+    place: 9
+  - participant: Варёнка
+    scores:
+      mor: 32.5
+      mate: 37.2
+      mafia: 36.7
+    unreadable: []
+    total: 106.4
+    flagged: []
+    place: 10
+  - participant: К. Д.
+    scores:
+      mor: 33.5
+      mate: 34.0
+      mafia: 37.3
+    unreadable: []
+    total: 104.8
+    flagged: []
+    place: 11
+- nomination: duet-up-to-14
+  day: 1
+  number: 4
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: NUTS
+    scores:
+      mor: 40.0
+      mate: 42.5
+      mafia: 41.2
+    unreadable: []
+    total: 123.7
+    flagged: []
+    place: 1
+  - participant: BREEZZ
+    scores:
+      mor: 37.0
+      mate: 41.0
+      mafia: 38.1
+    unreadable: []
+    total: 116.1
+    flagged: []
+    place: 2
+  - participant: М. Ш. и Л. З.
+    scores:
+      mor: 36.0
+      mate: 36.5
+      mafia: 33.6
+    unreadable: []
+    total: 106.1
+    flagged: []
+    place: 3
+  - participant: С. М. и Г. С.
+    scores:
+      mor: 33.0
+      mate: 36.5
+      mafia: 34.8
+    unreadable: []
+    total: 104.3
+    flagged: []
+    place: 4
+  - participant: Н. Г.
+    scores:
+      mor: 32.0
+      mate: 31.5
+      mafia: 32.2
+    unreadable: []
+    total: 95.7
+    flagged: []
+    place: 5
+- nomination: solo-varsity-14-18-beg
+  day: 1
+  number: 5
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: SOFI
+    scores:
+      mor: 34.0
+      mate: 34.5
+      mafia: 34.5
+    unreadable: []
+    total: 103.0
+    flagged: []
+    place: 1
+  - participant: М. Э.
+    scores:
+      mor: 34.5
+      mate: 32.5
+      mafia: 33.1
+    unreadable: []
+    total: 100.1
+    flagged: []
+    place: 2
+  - participant: Т. А.
+    scores:
+      mor: 32.5
+      mate: 32.0
+      mafia: 32.3
+    unreadable: []
+    total: 96.8
+    flagged: []
+    place: 3
+  - participant: Р. С.
+    scores:
+      mor: 32.5
+      mate: 32.5
+      mafia: 30.9
+    unreadable: []
+    total: 95.9
+    flagged: []
+    place: 4
+  - participant: А. П.
+    scores:
+      mor: 31.5
+      mate: 28.5
+      mafia: 29.2
+    unreadable: []
+    total: 89.2
+    flagged: []
+    place: 5
+- nomination: solo-varsity-14-18-pro
+  day: 1
+  number: 6
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: П. А.
+    scores:
+      mor: 39.0
+      mate: 35.8
+      mafia: 41.2
+    unreadable: []
+    total: 116.0
+    flagged: []
+    place: 1
+  - participant: П. У.
+    scores:
+      mor: 38.0
+      mate: 39.0
+      mafia: 36.9
+    unreadable: []
+    total: 113.9
+    flagged: []
+    place: 2
+  - participant: Ч. А.
+    scores:
+      mor: 29.0
+      mate: 32.5
+      mafia: 35.4
+    unreadable: []
+    total: 96.9
+    flagged:
+    - mor
+    place: 3
+- nomination: solo-adults-18-beg
+  day: 1
+  number: 7
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: ТАТАРКО АЛЕКСАНДРА
+    scores:
+      mor: 38.0
+      mate: 35.0
+      mafia: 37.0
+    unreadable: []
+    total: 110.0
+    flagged: []
+    place: 1
+  - participant: DVORETSKO'VAA
+    scores:
+      mor: 34.8
+      mate: 37.0
+      mafia: 34.4
+    unreadable: []
+    total: 106.2
+    flagged:
+    - mate
+    place: 2
+  - participant: АНИСИМОВА АННА
+    scores:
+      mor: 35.9
+      mate: 31.5
+      mafia: 29.2
+    unreadable: []
+    total: 96.6
+    flagged:
+    - mor
+    place: 3
+  - participant: СМИРНЫХ ЕКАТЕРИНА
+    scores:
+      mor: 30.4
+      mate: 36.0
+      mafia: 28.8
+    unreadable: []
+    total: 95.2
+    flagged:
+    - mate
+    place: 4
+  - participant: SOFFTI
+    scores:
+      mor: 31.5
+      mate: 32.0
+      mafia: 31.3
+    unreadable: []
+    total: 94.8
+    flagged:
+    - mafia
+    place: 5
+  - participant: ЩУКИНА ЛИДА
+    scores:
+      mor: 31.0
+      mate: 30.0
+      mafia: 32.0
+    unreadable: []
+    total: 93.0
+    flagged: []
+    place: 6
+  - participant: ПУЛОТОВА АНЖЕЛИКА
+    scores:
+      mor: 32.2
+      mate: 30.0
+      mafia: 30.6
+    unreadable: []
+    total: 92.8
+    flagged: []
+    place: 7
+  - participant: НЕЙЛА АЛЕНА
+    scores:
+      mor: 32.8
+      mate: 32.0
+      mafia: 27.7
+    unreadable: []
+    total: 92.5
+    flagged:
+    - mafia
+    place: 8
+  - participant: ИГНАТОВА АЛЁНА
+    scores:
+      mor: 23.0
+      mate: 34.0
+      mafia: 35.0
+    unreadable: []
+    total: 92.0
+    flagged:
+    - mor
+    place: 9
+  - participant: НЕНАСТЬЕ
+    scores:
+      mor: 32.5
+      mate: 28.5
+      mafia: 31.0
+    unreadable: []
+    total: 92.0
+    flagged: []
+    place: 10
+  - participant: DJ ARBUZ
+    scores:
+      mor: 31.6
+      mate: 33.0
+      mafia: 27.0
+    unreadable: []
+    total: 91.6
+    flagged:
+    - mate
+    - mafia
+    place: 11
+  - participant: ЛИЗА ДУРГА
+    scores:
+      mor: 29.1
+      mate: 30.0
+      mafia: 32.3
+    unreadable: []
+    total: 91.4
+    flagged: []
+    place: 12
+  - participant: ASTINN
+    scores:
+      mor: 30.6
+      mate: 32.0
+      mafia: 28.6
+    unreadable: []
+    total: 91.2
+    flagged: []
+    place: 13
+  - participant: РЫСЕВА ЕВГЕНИЯ
+    scores:
+      mor: 30.3
+      mate: 28.0
+      mafia: 31.0
+    unreadable: []
+    total: 89.3
+    flagged: []
+    place: 14
+  - participant: СЕЛИЦКАЯ ВИКТОРИЯ
+    scores:
+      mor: 30.5
+      mate: 30.0
+      mafia: 28.4
+    unreadable: []
+    total: 88.9
+    flagged: []
+    place: 15
+  - participant: ИРЕН
+    scores:
+      mor: 31.3
+      mate: 28.0
+      mafia: 28.6
+    unreadable: []
+    total: 87.9
+    flagged: []
+    place: 16
+  - participant: АРЫХ ВЛАДЛЕНА
+    scores:
+      mor: 31.5
+      mate: 29.0
+      mafia: 27.0
+    unreadable: []
+    total: 87.5
+    flagged:
+    - mafia
+    place: 17
+  - participant: ВИЛИСОВА АННА
+    scores:
+      mor: 30.1
+      mate: 29.0
+      mafia: 27.1
+    unreadable: []
+    total: 86.2
+    flagged: []
+    place: 18
+  - participant: СИБИРЕВА ОЛЕСЯ
+    scores:
+      mor: 30.0
+      mate: 28.0
+      mafia: 28.0
+    unreadable: []
+    total: 86.0
+    flagged: []
+    place: 19
+  - participant: КАЧЕСОВА НАСТАСЬЯ
+    scores:
+      mor: 28.5
+      mate: 28.0
+      mafia: 29.0
+    unreadable: []
+    total: 85.5
+    flagged: []
+    place: 20
+  - participant: ЛАСТОЧКА
+    scores:
+      mor: 29.0
+      mate: 28.0
+      mafia: 28.0
+    unreadable: []
+    total: 85.0
+    flagged:
+    - mor
+    place: 21
+  - participant: СЛИВЕНКО НАТАША
+    scores:
+      mor: 28.0
+      mate: 28.0
+      mafia: 27.5
+    unreadable: []
+    total: 83.5
+    flagged:
+    - mafia
+    place: 22
+  - participant: ПОДКОРЫТОВА КСЕНИЯ
+    scores:
+      mor: 28.3
+      mate: 28.0
+      mafia: 27.0
+    unreadable: []
+    total: 83.3
+    flagged: []
+    place: 23
+  - participant: КАТЕРИНА РЫБНИКОВА
+    scores:
+      mor: 27.5
+      mate: 26.0
+      mafia: 25.6
+    unreadable: []
+    total: 79.1
+    flagged:
+    - mor
+    - mate
+    place: 24
+- nomination: duet-from-15
+  day: 1
+  number: 8
+  judges:
+  - mor
+  - mate
+  - nas
+  - mafia
+  rows:
+  - participant: ATUA
+    scores:
+      mor: 34.3
+      mate: 37.5
+      nas: 35.5
+      mafia: 37.8
+    unreadable: []
+    total: 145.1
+    flagged:
+    - mate
+    place: 1
+  - participant: BLISS
+    scores:
+      mor: 29.5
+      mate: 38.5
+      nas: 40.0
+      mafia: 34.6
+    unreadable: []
+    total: 142.6
+    flagged:
+    - mor
+    - mate
+    place: 2
+  - participant: ГАСИ
+    scores:
+      mor: 30.4
+      mate: 33.0
+      nas: 39.5
+      mafia: 34.3
+    unreadable: []
+    total: 137.2
+    flagged:
+    - mor
+    - mafia
+    place: 3
+  - participant: A+A
+    scores:
+      mor: 28.0
+      mate: 27.5
+      nas: 32.0
+      mafia: 31.2
+    unreadable: []
+    total: 118.7
+    flagged:
+    - mate
+    place: 4
+  - participant: V&A
+    scores:
+      mor: 25.5
+      mate: 28.0
+      nas: 35.0
+      mafia: 29.8
+    unreadable: []
+    total: 118.3
+    flagged:
+    - mor
+    place: 5
+  - participant: DIWE
+    scores:
+      mor: 30.4
+      mate: 28.0
+      nas: 32.0
+      mafia: 26.9
+    unreadable: []
+    total: 117.3
+    flagged:
+    - mor
+    - mafia
+    place: 6
+  - participant: FMCREW
+    scores:
+      mor: 22.0
+      mate: 28.5
+      nas: 33.5
+      mafia: 33.0
+    unreadable: []
+    total: 117.0
+    flagged:
+    - mafia
+    place: 7
+  - participant: CLASSICA
+    scores:
+      mor: 29.7
+      mate: 28.0
+      nas: 28.5
+      mafia: 29.6
+    unreadable: []
+    total: 115.8
+    flagged:
+    - mor
+    place: 8
+  - participant: O. F.
+    scores:
+      mor: 29.8
+      mate: 28.0
+      nas: 28.0
+      mafia: 28.0
+    unreadable: []
+    total: 113.8
+    flagged: []
+    place: 9
+  - participant: VERTIGO
+    scores:
+      mor: 28.4
+      mate: 28.0
+      nas: 28.0
+      mafia: 29.1
+    unreadable: []
+    total: 113.5
+    flagged:
+    - mor
+    place: 10
+  - participant: BAMBINI
+    scores:
+      mor: 28.5
+      mate: 28.0
+      nas: 28.5
+      mafia: 27.2
+    unreadable: []
+    total: 112.2
+    flagged:
+    - mor
+    - mafia
+    place: 11
+  - participant: T. M.
+    scores:
+      mor: 30.1
+      mate: 27.0
+      nas: 28.0
+      mafia: 25.0
+    unreadable: []
+    total: 110.1
+    flagged:
+    - mate
+    place: 12
+- nomination: solo-adults-18-pro
+  day: 1
+  number: 9
+  judges:
+  - mor
+  - mate
+  - nas
+  - mafia
+  rows:
+  - participant: МЕНОСТРЕЛКА
+    scores:
+      mor: 38.0
+      mate: 42.5
+      nas: 36.0
+      mafia: 40.7
+    unreadable: []
+    total: 157.2
+    flagged:
+    - mor
+    place: 1
+  - participant: СУХОДОЛЬСКАЯ ДАРЬЯ
+    scores:
+      mor: 41.0
+      mate: 33.0
+      nas: 40.0
+      mafia: 42.0
+    unreadable: []
+    total: 156.0
+    flagged:
+    - mor
+    place: 2
+  - participant: НАСТЯ КОЛЕСНИКОВА
+    scores:
+      mor: 39.0
+      mate: 41.0
+      nas: 37.0
+      mafia: 38.0
+    unreadable: []
+    total: 155.0
+    flagged:
+    - nas
+    place: 3
+  - participant: ДАША
+    scores:
+      mor: 37.6
+      mate: 37.0
+      nas: 35.0
+      mafia: 34.8
+    unreadable: []
+    total: 144.4
+    flagged:
+    - nas
+    place: 4
+  - participant: ПУД ДАРЬЯ
+    scores:
+      mor: 31.5
+      mate: 38.5
+      nas: 37.0
+      mafia: 36.5
+    unreadable: []
+    total: 143.5
+    flagged:
+    - mor
+    place: 5
+  - participant: ТОДОРОВА ЭВА
+    scores:
+      mor: 35.6
+      mate: 36.6
+      nas: 35.0
+      mafia: 34.9
+    unreadable: []
+    total: 142.1
+    flagged:
+    - mafia
+    place: 6
+  - participant: НИГМАТУЛЛИНА АНЖЕЛА
+    scores:
+      mor: 30.8
+      mate: 36.2
+      nas: 33.5
+      mafia: 32.7
+    unreadable: []
+    total: 133.2
+    flagged:
+    - mor
+    place: 7
+  - participant: ХЛЮСТИНА ВАРВАРА
+    scores:
+      mor: 32.6
+      mate: 34.5
+      nas: 32.0
+      mafia: 33.5
+    unreadable: []
+    total: 132.6
+    flagged:
+    - mor
+    - nas
+    place: 8
+  - participant: ЦИГЛЕР ИРИНА
+    scores:
+      mor: 32.2
+      mate: 32.7
+      nas: 38.0
+      mafia: 29.7
+    unreadable: []
+    total: 132.6
+    flagged: []
+    place: 9
+  - participant: MARIA KAYUKOVA
+    scores:
+      mor: 29.8
+      mate: 32.5
+      nas: 36.0
+      mafia: 33.6
+    unreadable: []
+    total: 131.9
+    flagged:
+    - mor
+    place: 10
+  - participant: ПРОГНИМАК АЛЁНА
+    scores:
+      mor: 35.6
+      mate: 31.9
+      nas: 29.0
+      mafia: 32.9
+    unreadable: []
+    total: 129.4
+    flagged: []
+    place: 11
+  - participant: НЕДОСЕКИНА ТАТЬЯНА
+    scores:
+      mor: 37.8
+      mate: 33.5
+      nas: 28.0
+      mafia: 29.8
+    unreadable: []
+    total: 129.1
+    flagged: []
+    place: 12
+  - participant: СОВКОВА ЕВГЕНИЯ
+    scores:
+      mor: 33.6
+      mate: 33.5
+      nas: 28.0
+      mafia: 32.2
+    unreadable: []
+    total: 127.3
+    flagged: []
+    place: 13
+  - participant: ГОРОВАЯ ВЕРОНИКА
+    scores:
+      mor: 31.6
+      mate: 32.3
+      nas: 35.0
+      mafia: 28.2
+    unreadable: []
+    total: 127.1
+    flagged: []
+    place: 14
+  - participant: АНЯ KOLIBRY
+    scores:
+      mor: 29.8
+      mate: 29.0
+      nas: 35.5
+      mafia: 32.7
+    unreadable: []
+    total: 127.0
+    flagged: []
+    place: 15
+  - participant: СОФЬЯ РОМАНОВА
+    scores:
+      mor: 28.5
+      mate: 32.0
+      nas: 28.0
+      mafia: 34.0
+    unreadable: []
+    total: 122.5
+    flagged: []
+    place: 16
+  - participant: LIZA K
+    scores:
+      mor: 29.8
+      mate: 30.5
+      nas: 31.0
+      mafia: 31.0
+    unreadable: []
+    total: 122.3
+    flagged: []
+    place: 17
+  - participant: МАРИЯ ДЕГТЕРЁВА (MARY DI)
+    scores:
+      mor: 30.2
+      mate: 32.0
+      nas: 29.0
+      mafia: 31.0
+    unreadable: []
+    total: 122.2
+    flagged:
+    - mor
+    place: 18
+  - participant: СИМАНОВА ДАРЬЯ
+    scores:
+      mor: 30.9
+      mate: 31.2
+      nas: 31.0
+      mafia: 27.5
+    unreadable: []
+    total: 120.6
+    flagged:
+    - mafia
+    place: 19
+  - participant: КОЗОРИЗ АННА
+    scores:
+      mor: 29.9
+      mate: 27.5
+      nas: 30.0
+      mafia: 30.2
+    unreadable: []
+    total: 117.6
+    flagged:
+    - mate
+    place: 20
+  - participant: ЖУЙКОВА МАРИЯ
+    scores:
+      mor: 29.7
+      mate: 32.2
+      nas: 25.5
+      mafia: 28.7
+    unreadable: []
+    total: 116.1
+    flagged:
+    - mor
+    - mafia
+    place: 21
+  - participant: НИКОНОВА НИНА
+    scores:
+      mor: 28.1
+      mate: 27.5
+      nas: 30.0
+      mafia: 29.0
+    unreadable: []
+    total: 114.6
+    flagged:
+    - mate
+    - mafia
+    place: 22
+  - participant: КОРЯКИНА АЛИНА
+    scores:
+      mor: 29.9
+      mate: 28.0
+      nas: 28.0
+      mafia: 26.0
+    unreadable: []
+    total: 111.9
+    flagged:
+    - nas
+    place: 23
+  - participant: КИРТЯНОВА ОЛЬГА
+    scores:
+      mor: 29.4
+      mate: 28.5
+      nas: 26.0
+      mafia: 25.7
+    unreadable: []
+    total: 109.6
+    flagged:
+    - mafia
+    place: 24
+  - participant: ЮЛИЯ МЕЛЬНИКОВА
+    scores:
+      mor: 29.1
+      mate: 27.0
+      nas: 24.0
+      mafia: 29.5
+    unreadable: []
+    total: 109.6
+    flagged: []
+    place: 25
+  - participant: СЫЗРАНЦЕВА АЛИНА
+    scores:
+      mor: 28.7
+      mate: 27.0
+      nas: 27.0
+      mafia: 24.5
+    unreadable: []
+    total: 107.2
+    flagged:
+    - nas
+    place: 26
+  - participant: MAD CHICK
+    scores:
+      mor: 29.5
+      mate: 27.0
+      nas: 24.0
+      mafia: 23.5
+    unreadable: []
+    total: 104.0
+    flagged:
+    - mafia
+    place: 27
+  - participant: SONYASHES
+    scores: {}
+    unreadable:
+    - mor
+    - mate
+    - nas
+    - mafia
+    total: null
+    flagged: []
+    place: null
+  - participant: БОЙКОВА ВЛАДА
+    scores: {}
+    unreadable:
+    - mor
+    - mate
+    - nas
+    - mafia
+    total: null
+    flagged: []
+    place: null
+  - participant: МАТВИЕНКО АЛЕКСАНДРА
+    scores: {}
+    unreadable:
+    - mor
+    - mate
+    - nas
+    - mafia
+    total: null
+    flagged: []
+    place: null
+- nomination: baby-3-7
+  day: 2
+  number: 1
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: КИНДЕРЫ
+    scores:
+      mor: 35.0
+      mate: 46.0
+      mafia: 36.0
+    unreadable: []
+    total: 117.0
+    flagged:
+    - mafia
+    place: 1
+  - participant: SILVA BABY
+    scores:
+      mor: 23.0
+      mate: 39.0
+      mafia: 31.5
+    unreadable: []
+    total: 93.5
+    flagged:
+    - mor
+    - mafia
+    place: 2
+- nomination: kids-8-12-beg
+  day: 2
+  number: 2
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: DRIVE
+    scores:
+      mor: 32.3
+      mate: 33.0
+      mafia: 39.7
+    unreadable: []
+    total: 105.0
+    flagged:
+    - mafia
+    place: 1
+  - participant: MARY DI MEGA
+    scores:
+      mor: 32.1
+      mate: 34.0
+      mafia: 36.2
+    unreadable: []
+    total: 102.3
+    flagged: []
+    place: 2
+  - participant: СЕМНАШКА THE BEST
+    scores:
+      mor: 33.0
+      mate: 32.0
+      mafia: 36.3
+    unreadable: []
+    total: 101.3
+    flagged: []
+    place: 3
+  - participant: LITTLE LADES
+    scores:
+      mor: 32.0
+      mate: 31.0
+      mafia: 37.2
+    unreadable: []
+    total: 100.2
+    flagged:
+    - mafia
+    place: 4
+  - participant: SUNRISE KIDS
+    scores:
+      mor: 32.5
+      mate: 32.5
+      mafia: 34.8
+    unreadable: []
+    total: 99.8
+    flagged: []
+    place: 5
+  - participant: E-MOTION
+    scores:
+      mor: 32.2
+      mate: 31.0
+      mafia: 34.2
+    unreadable: []
+    total: 97.4
+    flagged:
+    - mate
+    place: 6
+  - participant: ЛИМОНАД
+    scores:
+      mor: 31.5
+      mate: 32.5
+      mafia: 32.3
+    unreadable: []
+    total: 96.3
+    flagged: []
+    place: 7
+  - participant: MARY DI
+    scores:
+      mor: 29.0
+      mate: 33.5
+      mafia: 33.2
+    unreadable: []
+    total: 95.7
+    flagged: []
+    place: 8
+  - participant: SILVA MINI KIDS
+    scores:
+      mor: 31.4
+      mate: 31.5
+      mafia: 32.8
+    unreadable: []
+    total: 95.7
+    flagged: []
+    place: 9
+  - participant: ROYALTY
+    scores:
+      mor: 31.0
+      mate: 31.5
+      mafia: 31.8
+    unreadable: []
+    total: 94.3
+    flagged: []
+    place: 10
+  - participant: STAR CREW
+    scores:
+      mor: 31.6
+      mate: 31.5
+      mafia: 30.5
+    unreadable: []
+    total: 93.6
+    flagged:
+    - mate
+    place: 11
+  - participant: GROOVY GIRLS
+    scores:
+      mor: 31.2
+      mate: 30.5
+      mafia: 30.0
+    unreadable: []
+    total: 91.7
+    flagged: []
+    place: 12
+  - participant: K-CATS
+    scores:
+      mor: 31.6
+      mate: 28.5
+      mafia: 31.2
+    unreadable: []
+    total: 91.3
+    flagged: []
+    place: 13
+  - participant: SILVA JUBEG
+    scores:
+      mor: 31.2
+      mate: 29.0
+      mafia: 30.7
+    unreadable: []
+    total: 90.9
+    flagged:
+    - mafia
+    place: 14
+- nomination: kids-8-12-pro
+  day: 2
+  number: 3
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: HIP HOP KVARTAL
+    scores:
+      mor: 37.0
+      mate: 37.0
+      mafia: 39.9
+    unreadable: []
+    total: 113.9
+    flagged:
+    - mate
+    - mafia
+    place: 1
+  - participant: BRAVE BEEZZ
+    scores:
+      mor: 35.8
+      mate: 35.5
+      mafia: 41.4
+    unreadable: []
+    total: 112.7
+    flagged: []
+    place: 2
+  - participant: MAFIA KIDS
+    scores:
+      mor: 36.3
+      mate: 37.4
+      mafia: 38.4
+    unreadable: []
+    total: 112.1
+    flagged: []
+    place: 3
+  - participant: КИ_ПЯТОК
+    scores:
+      mor: 35.6
+      mate: 35.5
+      mafia: 38.2
+    unreadable: []
+    total: 109.3
+    flagged: []
+    place: 4
+  - participant: AMIGAZZ PROJECT
+    scores:
+      mor: 35.8
+      mate: 36.8
+      mafia: 36.2
+    unreadable: []
+    total: 108.8
+    flagged: []
+    place: 5
+  - participant: ДЖАСТ ЭМ CREW
+    scores:
+      mor: 32.8
+      mate: 34.8
+      mafia: 35.0
+    unreadable: []
+    total: 102.6
+    flagged: []
+    place: 6
+  - participant: NE DETKI
+    scores:
+      mor: 34.7
+      mate: 32.0
+      mafia: 35.7
+    unreadable: []
+    total: 102.4
+    flagged:
+    - mafia
+    place: 7
+  - participant: SILVA KIDS
+    scores:
+      mor: 34.6
+      mate: 31.5
+      mafia: 32.7
+    unreadable: []
+    total: 98.8
+    flagged:
+    - mafia
+    place: 8
+- nomination: juniors-13-15-beg
+  day: 2
+  number: 4
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: TVORCHI TEENS
+    scores:
+      mor: 37.5
+      mate: 38.0
+      mafia: 39.0
+    unreadable: []
+    total: 114.5
+    flagged: []
+    place: null
+  - participant: КОННЕКТ
+    scores:
+      mor: 32.3
+      mate: 31.2
+      mafia: 35.7
+    unreadable: []
+    total: 99.2
+    flagged: []
+    place: null
+  - participant: SCOOPY DOO
+    scores:
+      mor: 33.5
+      mate: 36.0
+      mafia: 29.4
+    unreadable: []
+    total: 98.9
+    flagged: []
+    place: null
+  - participant: NOESIS
+    scores:
+      mor: 29.4
+      mate: 31.0
+      mafia: 31.5
+    unreadable: []
+    total: 91.9
+    flagged: []
+    place: null
+  - participant: SUNRISE ZOOM
+    scores:
+      mor: 28.2
+      mate: 30.2
+      mafia: 32.8
+    unreadable: []
+    total: 91.2
+    flagged:
+    - mor
+    place: null
+  - participant: DS TEAM
+    scores:
+      mor: 30.9
+      mate: 31.7
+      mafia: 28.5
+    unreadable: []
+    total: 91.1
+    flagged: []
+    place: null
+  - participant: MESSED UP
+    scores:
+      mor: 30.5
+      mate: 31.5
+      mafia: 28.1
+    unreadable: []
+    total: 90.1
+    flagged: []
+    place: null
+  - participant: ДИКИЕ
+    scores:
+      mor: 30.3
+      mate: 29.5
+      mafia: 30.2
+    unreadable: []
+    total: 90.0
+    flagged: []
+    place: null
+  - participant: JAZZ TEENS
+    scores:
+      mor: 23.0
+      mate: 29.0
+      mafia: 29.8
+    unreadable: []
+    total: 81.8
+    flagged:
+    - mor
+    place: null
+  - participant: PRESSURE
+    scores:
+      mor: 30.9
+      mate: 32.7
+      mafia: null
+    unreadable: []
+    total: 63.6
+    flagged:
+    - mor
+    place: null
+  - participant: HOLOD
+    scores:
+      mor: 28.4
+      mate: 32.5
+      mafia: null
+    unreadable: []
+    total: 60.9
+    flagged:
+    - mor
+    - mate
+    place: null
+  - participant: MD DANCE STUDIO
+    scores:
+      mor: 29.4
+      mate: 31.2
+      mafia: null
+    unreadable: []
+    total: 60.6
+    flagged:
+    - mate
+    place: null
+  - participant: VB CREW
+    scores:
+      mor: 28.0
+      mate: 32.2
+      mafia: null
+    unreadable: []
+    total: 60.2
+    flagged:
+    - mor
+    place: null
+  - participant: NQTEAM
+    scores:
+      mor: 30.2
+      mate: 28.0
+      mafia: null
+    unreadable: []
+    total: 58.2
+    flagged: []
+    place: null
+- nomination: juniors-13-15-pro
+  day: 2
+  number: 5
+  judges:
+  - mor
+  - mate
+  - mafia
+  rows:
+  - participant: СОЛЯНКА
+    scores:
+      mor: 37.0
+      mate: 36.1
+      mafia: 37.5
+    unreadable: []
+    total: 110.6
+    flagged: []
+    place: 1
+  - participant: OK'LOCK PROJECT MEGA
+    scores:
+      mor: 36.2
+      mate: 36.5
+      mafia: 36.2
+    unreadable: []
+    total: 108.9
+    flagged:
+    - mafia
+    place: 2
+  - participant: GRAVITY FALLS
+    scores:
+      mor: 37.5
+      mate: 35.3
+      mafia: 36.0
+    unreadable: []
+    total: 108.8
+    flagged: []
+    place: 3
+  - participant: MIND YOUR STEP
+    scores:
+      mor: 35.4
+      mate: 34.5
+      mafia: 37.3
+    unreadable: []
+    total: 107.2
+    flagged: []
+    place: 4
+  - participant: DANCE BEAT
+    scores:
+      mor: 30.8
+      mate: 32.5
+      mafia: 33.5
+    unreadable: []
+    total: 96.8
+    flagged:
+    - mafia
+    place: 5
+  - participant: DEELAXY
+    scores:
+      mor: 27.6
+      mate: 31.5
+      mafia: 30.0
+    unreadable: []
+    total: 89.1
+    flagged:
+    - mor
+    place: 6
+- nomination: show-beg
+  day: 2
+  number: 6
+  judges:
+  - mor
+  - mate
+  - nas
+  - mafia
+  rows:
+  - participant: CREWBETKI
+    scores:
+      mor: 37.5
+      mate: 37.5
+      nas: 36.5
+      mafia: 36.0
+    unreadable: []
+    total: 147.5
+    flagged:
+    - mate
+    - mafia
+    place: 1
+  - participant: THE FIVE CREW
+    scores:
+      mor: 31.4
+      mate: 34.1
+      nas: 36.5
+      mafia: 36.4
+    unreadable: []
+    total: 138.4
+    flagged:
+    - mafia
+    place: 2
+  - participant: DUST OFF
+    scores:
+      mor: 31.5
+      mate: 33.7
+      nas: 37.0
+      mafia: 31.9
+    unreadable: []
+    total: 134.1
+    flagged:
+    - mate
+    - nas
+    - mafia
+    place: 3
+  - participant: FIVEC
+    scores:
+      mor: 30.7
+      mate: 30.8
+      nas: 35.5
+      mafia: 31.5
+    unreadable: []
+    total: 128.5
+    flagged:
+    - mor
+    place: 4
+  - participant: SUNRISE 2.0
+    scores:
+      mor: 31.6
+      mate: 31.7
+      nas: 36.0
+      mafia: 28.8
+    unreadable: []
+    total: 128.1
+    flagged:
+    - mate
+    place: 5
+  - participant: GANG GYALZ
+    scores:
+      mor: 30.9
+      mate: 31.5
+      nas: 34.5
+      mafia: 30.0
+    unreadable: []
+    total: 126.9
+    flagged: []
+    place: 6
+  - participant: SUNGIRLS
+    scores:
+      mor: 30.6
+      mate: 32.0
+      nas: 33.0
+      mafia: 31.0
+    unreadable: []
+    total: 126.6
+    flagged:
+    - mafia
+    place: 7
+  - participant: FEM DI VAS
+    scores:
+      mor: 30.1
+      mate: 31.0
+      nas: 32.0
+      mafia: 33.0
+    unreadable: []
+    total: 126.1
+    flagged:
+    - mafia
+    place: 8
+  - participant: FREAKS IN THE CITY
+    scores:
+      mor: 29.8
+      mate: 32.0
+      nas: 28.0
+      mafia: 34.0
+    unreadable: []
+    total: 123.8
+    flagged:
+    - mor
+    place: 9
+  - participant: G72
+    scores:
+      mor: 30.7
+      mate: 31.5
+      nas: 29.0
+      mafia: 31.9
+    unreadable: []
+    total: 123.1
+    flagged: []
+    place: 10
+  - participant: SQ.FAM
+    scores:
+      mor: 30.2
+      mate: 30.0
+      nas: 31.0
+      mafia: 30.4
+    unreadable: []
+    total: 121.6
+    flagged: []
+    place: 11
+  - participant: GROTESK STYLE
+    scores:
+      mor: 29.7
+      mate: 28.2
+      nas: 29.0
+      mafia: 27.9
+    unreadable: []
+    total: 114.8
+    flagged:
+    - mor
+    - mate
+    - mafia
+    place: 12
+  - participant: HOTSHOT DIVAS
+    scores:
+      mor: 30.6
+      mate: 27.7
+      nas: 28.0
+      mafia: 28.0
+    unreadable: []
+    total: 114.3
+    flagged:
+    - mate
+    place: 13
+  - participant: LIVEN
+    scores:
+      mor: 29.5
+      mate: 28.0
+      nas: 28.5
+      mafia: 27.8
+    unreadable: []
+    total: 113.8
+    flagged: []
+    place: 14
+- nomination: show-pro
+  day: 2
+  number: 7
+  judges:
+  - mor
+  - mate
+  - nas
+  - mafia
+  rows:
+  - participant: '44.1'
+    scores:
+      mor: 41.0
+      mate: 42.9
+      nas: 44.5
+      mafia: 41.9
+    unreadable: []
+    total: 170.3
+    flagged: []
+    place: 1
+  - participant: MAFIA JUNIOR
+    scores:
+      mor: 39.0
+      mate: 42.5
+      nas: 39.5
+      mafia: 38.7
+    unreadable: []
+    total: 159.7
+    flagged:
+    - nas
+    place: 2
+  - participant: ДУХОВКА
+    scores:
+      mor: 37.0
+      mate: 40.2
+      nas: 39.7
+      mafia: 37.3
+    unreadable: []
+    total: 154.2
+    flagged: []
+    place: 3
+  - participant: OK'LOCK PROJECT
+    scores:
+      mor: 35.9
+      mate: 37.7
+      nas: 42.0
+      mafia: 38.2
+    unreadable: []
+    total: 153.8
+    flagged:
+    - nas
+    place: 4
+  - participant: NEVEZHIN PROJECT
+    scores:
+      mor: 37.0
+      mate: 38.4
+      nas: 41.5
+      mafia: 36.1
+    unreadable: []
+    total: 153.0
+    flagged:
+    - mafia
+    place: 5
+  - participant: ЕДИНИЧКА
+    scores:
+      mor: 35.6
+      mate: 34.7
+      nas: 41.3
+      mafia: 37.5
+    unreadable: []
+    total: 149.1
+    flagged: []
+    place: 6
+  - participant: SILVA
+    scores:
+      mor: 36.4
+      mate: 37.0
+      nas: 34.0
+      mafia: 32.7
+    unreadable: []
+    total: 140.1
+    flagged: []
+    place: 7
+  - participant: ФИЧИ
+    scores:
+      mor: 33.2
+      mate: 36.5
+      nas: 35.0
+      mafia: 32.5
+    unreadable: []
+    total: 137.2
+    flagged:
+    - mor
+    - nas
+    - mafia
+    place: 8
+  - participant: EKLMN
+    scores:
+      mor: 32.3
+      mate: 33.7
+      nas: 32.5
+      mafia: 33.3
+    unreadable: []
+    total: 131.8
+    flagged:
+    - mor
+    place: 9
+  - participant: В КВАДРАТЕ
+    scores:
+      mor: 31.6
+      mate: 34.7
+      nas: 29.5
+      mafia: 32.2
+    unreadable: []
+    total: 128.0
+    flagged:
+    - mate
+    - nas
+    place: 10
+  - participant: СТУДИЯ ТАНЦА "МАМАСИТА"
+    scores:
+      mor: 30.6
+      mate: 33.0
+      nas: 32.0
+      mafia: 28.5
+    unreadable: []
+    total: 124.1
+    flagged: []
+    place: 11
+  - participant: ELEENA
+    scores:
+      mor: 30.4
+      mate: 33.7
+      nas: 29.0
+      mafia: 29.0
+    unreadable: []
+    total: 122.1
+    flagged:
+    - mate
+    - nas
+    place: 12
+- nomination: ex
+  day: 2
+  number: 8
+  judges:
+  - mor
+  - mate
+  - nas
+  - mafia
+  rows:
+  - participant: '44.1'
+    scores:
+      mor: 40.0
+      mate: 41.4
+      nas: 42.0
+      mafia: 39.2
+    unreadable: []
+    total: 162.6
+    flagged:
+    - mafia
+    place: 1
+  - participant: ИНТЕГРАЛ
+    scores:
+      mor: 32.0
+      mate: 32.9
+      nas: 33.5
+      mafia: 35.0
+    unreadable: []
+    total: 133.4
+    flagged: []
+    place: 2
+  - participant: JAZZ TOUCH
+    scores:
+      mor: 24.6
+      mate: 41.0
+      nas: 32.5
+      mafia: 30.8
+    unreadable: []
+    total: 128.9
+    flagged:
+    - mor
+    place: 3
+  - participant: СТУДИЯ ТАНЦА "МАМАСИТА"
+    scores:
+      mor: 29.9
+      mate: 33.0
+      nas: 33.0
+      mafia: 32.9
+    unreadable: []
+    total: 128.8
+    flagged:
+    - mor
+    - nas
+    place: 4
+  - participant: КЛЮЧИ
+    scores:
+      mor: 26.8
+      mate: 34.2
+      nas: 32.0
+      mafia: 32.1
+    unreadable: []
+    total: 125.1
+    flagged:
+    - mor
+    place: 5
+- nomination: mini-group
+  day: 2
+  number: 9
+  judges:
+  - mor
+  - mate
+  - nas
+  - mafia
+  rows:
+  - participant: РИСЛИНГ
+    scores:
+      mor: 35.6
+      mate: 36.5
+      nas: 34.0
+      mafia: 38.3
+    unreadable: []
+    total: 144.4
+    flagged: []
+    place: 1
+  - participant: ОНИ
+    scores:
+      mor: 32.0
+      mate: 34.5
+      nas: 36.0
+      mafia: 39.1
+    unreadable: []
+    total: 141.6
+    flagged:
+    - mor
+    place: 2
+  - participant: OTHER
+    scores:
+      mor: 35.2
+      mate: 37.5
+      nas: 31.0
+      mafia: 37.5
+    unreadable: []
+    total: 141.2
+    flagged:
+    - mate
+    place: 3
+  - participant: СТУДИЯ ТАНЦА "МАМАСИТА"
+    scores:
+      mor: 37.5
+      mate: 36.0
+      nas: 32.0
+      mafia: 32.7
+    unreadable: []
+    total: 138.2
+    flagged:
+    - mor
+    place: 4
+  - participant: TWIRLSSS
+    scores:
+      mor: 35.4
+      mate: 36.5
+      nas: 32.0
+      mafia: 34.2
+    unreadable: []
+    total: 138.1
+    flagged:
+    - mate
+    - nas
+    - mafia
+    place: 5
+  - participant: TAKIE
+    scores:
+      mor: 32.0
+      mate: 32.5
+      nas: 32.0
+      mafia: 36.0
+    unreadable: []
+    total: 132.5
+    flagged: []
+    place: 6
+- nomination: strip-beg
+  day: 2
+  number: 10
+  judges:
+  - mor
+  - mate
+  - nas
+  - mafia
+  rows:
+  - participant: TUNE
+    scores:
+      mor: 30.4
+      mate: 32.5
+      nas: 32.5
+      mafia: 31.0
+    unreadable: []
+    total: 126.4
+    flagged: []
+    place: 1
+  - participant: ПО ЛЮБВИ
+    scores:
+      mor: 30.9
+      mate: 34.0
+      nas: 31.2
+      mafia: 28.0
+    unreadable: []
+    total: 124.1
+    flagged: []
+    place: 2
+  - participant: SVETFAMIREN
+    scores:
+      mor: 30.0
+      mate: 30.5
+      nas: 30.5
+      mafia: 29.3
+    unreadable: []
+    total: 120.3
+    flagged:
+    - mor
+    place: 3
+  - participant: KAMUR
+    scores:
+      mor: 31.6
+      mate: 28.0
+      nas: 27.5
+      mafia: 27.8
+    unreadable: []
+    total: 114.9
+    flagged: []
+    place: 4
+- nomination: heels-beg
+  day: 2
+  number: 11
+  judges:
+  - mor
+  - mate
+  - nas
+  - mafia
+  rows:
+  - participant: WHITE TIGHTS
+    scores:
+      mor: 33.5
+      mate: 39.5
+      nas: 35.0
+      mafia: 34.9
+    unreadable: []
+    total: 142.9
+    flagged:
+    - nas
+    place: 1
+  - participant: HESTRIES
+    scores:
+      mor: 34.1
+      mate: 35.0
+      nas: 34.5
+      mafia: 30.7
+    unreadable: []
+    total: 134.3
+    flagged: []
+    place: 2
+  - participant: ДОБРЫЙ ВЕЧЕР
+    scores:
+      mor: 33.8
+      mate: 36.0
+      nas: 30.0
+      mafia: 29.1
+    unreadable: []
+    total: 128.9
+    flagged: []
+    place: 3
+  - participant: GRACE HEELS
+    scores:
+      mor: 31.6
+      mate: 33.0
+      nas: 29.0
+      mafia: 29.5
+    unreadable: []
+    total: 123.1
+    flagged: []
+    place: 4
+  - participant: АДМИНИСТРАЦИЯ
+    scores:
+      mor: 33.8
+      mate: 34.0
+      nas: 27.0
+      mafia: 25.3
+    unreadable: []
+    total: 120.1
+    flagged: []
+    place: 5
+  - participant: ХИЛСТЕ!
+    scores:
+      mor: 32.3
+      mate: 34.0
+      nas: 27.0
+      mafia: 26.8
+    unreadable: []
+    total: 120.1
+    flagged: []
+    place: 6
+- nomination: heels-strip-pro
+  day: 2
+  number: 12
+  judges:
+  - mor
+  - mate
+  - nas
+  - mafia
+  rows:
+  - participant: БРЮТ
+    scores:
+      mor: 40.0
+      mate: 38.7
+      nas: 38.0
+      mafia: 39.2
+    unreadable: []
+    total: 155.9
+    flagged: []
+    place: 1
+  - participant: ХИHEELS
+    scores:
+      mor: 35.6
+      mate: 40.0
+      nas: 33.0
+      mafia: 34.5
+    unreadable: []
+    total: 143.1
+    flagged: []
+    place: 2
+  - participant: SILVA KOMBA
+    scores:
+      mor: 35.0
+      mate: 34.5
+      nas: 33.5
+      mafia: 34.3
+    unreadable: []
+    total: 137.3
+    flagged:
+    - mafia
+    place: 3
+  - participant: В КВАДРАТЕ
+    scores:
+      mor: 30.9
+      mate: 35.8
+      nas: 34.5
+      mafia: 34.9
+    unreadable: []
+    total: 136.1
+    flagged:
+    - mor
+    place: 4
+  - participant: G POINT
+    scores:
+      mor: 35.4
+      mate: 34.8
+      nas: 36.5
+      mafia: 29.3
+    unreadable: []
+    total: 136.0
+    flagged: []
+    place: 5
+  - participant: P27
+    scores:
+      mor: 35.5
+      mate: 37.4
+      nas: 32.5
+      mafia: 30.1
+    unreadable: []
+    total: 135.5
+    flagged: []
+    place: 6
+  - participant: ELL'S
+    scores:
+      mor: 34.9
+      mate: 32.9
+      nas: 33.0
+      mafia: 34.2
+    unreadable: []
+    total: 135.0
+    flagged: []
+    place: 7
+  - participant: LU
+    scores:
+      mor: 35.0
+      mate: 32.5
+      nas: 33.5
+      mafia: 33.5
+    unreadable: []
+    total: 134.5
+    flagged:
+    - nas
+    place: 8
+  - participant: IL MARE
+    scores:
+      mor: 33.7
+      mate: 32.0
+      nas: 34.5
+      mafia: 29.7
+    unreadable: []
+    total: 129.9
+    flagged:
+    - mor
+    place: 9
+  - participant: TIPO SI
+    scores:
+      mor: 34.0
+      mate: 34.0
+      nas: 32.0
+      mafia: 28.3
+    unreadable: []
+    total: 128.3
+    flagged: []
+    place: 10
+  - participant: AVANTURA
+    scores:
+      mor: 33.5
+      mate: 32.0
+      nas: 31.0
+      mafia: 29.6
+    unreadable: []
+    total: 126.1
+    flagged: []
+    place: 11
+  - participant: CLASSICA
+    scores:
+      mor: 34.3
+      mate: 34.1
+      nas: 28.5
+      mafia: 28.3
+    unreadable: []
+    total: 125.2
+    flagged: []
+    place: 12
+  - participant: GORGONA TEAM
+    scores:
+      mor: 31.1
+      mate: 32.4
+      nas: 28.0
+      mafia: 29.0
+    unreadable: []
+    total: 120.5
+    flagged:
+    - mor
+    place: 13
+notes:
+- 'Место — расчёт по судейским листам: официального протокола с местами и баллами организаторы не публиковали.'
+- Балл судьи — сумма пяти критериев листа. Звёздочка значит, что напечатанный на листе «общий балл» с
+  суммой не сошёлся.
+- '«н/ч» — цифра не читается: участник выпадает из рейтинга, остальные места сохраняют.'
+- '«—» — листа этого судьи нет в источнике: в такой номинации места не присваиваются никому.'
+- 'В детских номинациях (соло и дуэты до 18) фамилий нет: только инициалы или сценическое имя — согласий на публикацию данных детей у проекта нет.'
