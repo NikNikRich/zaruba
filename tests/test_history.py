@@ -27,6 +27,10 @@ def test_history_page_shows_every_confirmed_year(client: TestClient) -> None:
     assert "4 декабря 2022" in html, "дата выпуска 2022 — из анонса сообщества"
     assert "3 декабря 2023" in html, "2023 подтверждён программой от 30.11.2023"
     assert "«Мой-портал»" in html, "у первого выпуска ссылка на новость, а не на архив"
+    assert "Номинации выпуска: 21" in html, "реальная сетка 2025 из судейских листов"
+    assert "BEST ZARUBA SOLO KIDS 3-9" in html
+    assert "Судейские листы Заруба 2025" in html, "у списка номинаций виден источник"
+    assert "Соло · Hip-Hop · 6–11" not in html, "демо-каркас каталога в архив не попадает"
     assert "текущий" in html
     assert "https://vk.com/zaruba72champ" in html
     assert 'rel="noopener noreferrer nofollow"' in html, "чужие ссылки — nofollow (§6.9)"
@@ -39,7 +43,8 @@ def test_history_page_lists_missing_years_explicitly(client: TestClient) -> None
 
     assert "2020 и 2021" in html
     assert "победители" in html.lower()
-    assert "официальные протоколы" in html
+    assert "Итоговой таблицы в публикации нет" in html
+    assert "результаты 2025" in html, "у разобранного выпуска есть расчёт, и это видно"
 
 
 def test_history_rows_merge_archive_and_editions() -> None:
@@ -57,6 +62,12 @@ def test_history_rows_merge_archive_and_editions() -> None:
         if row.year in archived:
             assert row.link is None, "архивным годам некуда вести — ссылок в никуда нет"
             assert row.source is not None
+
+    edition_2025 = next(row for row in rows if row.year == 2025)
+    assert len(edition_2025.nominations) == 21
+    assert edition_2025.link is None, "демонстрационный каталог не выдаём за выступления 2025"
+    assert edition_2025.nomination_source is not None
+    assert "disk.yandex.ru" in str(edition_2025.nomination_source.url)
 
 
 def test_archive_does_not_duplicate_loaded_edition() -> None:

@@ -31,10 +31,27 @@
         <td class="mono">
           {% if row.link %}<a href="{{ row.link }}">{{ row.year }}</a>{% else %}{{ row.year }}{% endif %}
           {% if row.live %}<span class="badge">текущий</span>{% endif %}
+          {% if row.results_url %}<a class="small" href="{{ row.results_url }}">результаты</a>{% endif %}
         </td>
         <td class="mono">{% if row.dates %}{{ row.dates|fmt_dates }}{% else %}не подтверждены{% endif %}</td>
         <td>
           <strong>{{ row.title }}</strong>{% if row.note %} — {{ row.note }}{% endif %}
+          {% if row.nominations %}
+          <details class="small">
+            <summary>Номинации выпуска: {{ row.nominations|length }}</summary>
+            <ul class="facts">
+              {% for name in row.nominations %}<li>{{ name }}</li>{% endfor %}
+            </ul>
+            {% if row.nomination_source %}
+            <p class="muted small">Названия — из
+            <a href="{{ row.nomination_source.url }}" rel="noopener noreferrer nofollow">{{ row.nomination_source.title }}</a>,
+            проверено {{ row.nomination_source.retrieved_at|fmt_dt }}.
+            {% if row.results_url %}Итоговой таблицы в публикации нет: баллы и места мы
+            посчитали по фотографиям листов — <a href="{{ row.results_url }}">результаты
+            {{ row.year }}</a>.{% else %}Итоговой таблицы мест и баллов в публикации нет.{% endif %}</p>
+            {% endif %}
+          </details>
+          {% endif %}
         </td>
         <td>
           {% if row.source %}
@@ -96,9 +113,11 @@
 <section class="section">
   <h2>Чего здесь нет</h2>
   <ul class="facts">
-    <li><span class="lbl">победители</span> официальные протоколы прошлых лет публично
-    не сохранились: отдельные результаты 2024 и 2025 известны из постов команд, но полного
-    рейтинга с баллами нет — он появится только вместе с методикой и протоколами.</li>
+    <li><span class="lbl">победители</span> протокола с местами и баллами организаторы
+    не публикуют. {% if results_year %}За {{ results_year }} листы разобраны и посчитаны —
+    <a href="/results">результаты {{ results_year }}</a>: места там расчётные, а не выписка
+    из протокола.{% endif %} За остальные годы полного протокола нет: отдельные места
+    известны только из подписей к видео и постов команд.</li>
     <li><span class="lbl">2020 и 2021</span> упоминаний в архиве сообщества нет:
     ни постов, ни афиш, ни видео — «не было» мы не пишем, года просто нет в таблице.</li>
     <li><span class="lbl">фото и видео</span> чужие записи не перепубликуем пачками:
