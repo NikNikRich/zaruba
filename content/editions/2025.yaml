@@ -1,9 +1,22 @@
-# Выпуск 2025 — единственный публично подтверждённый на 23.10.2026.
-# Подтверждено (docs/01-research.md): название, даты, площадка, вместимость,
-# возрастной ценз, жюри, двухдневный формат.
-# НЕ подтверждено и помечено demo: true — номинации, участники, студии,
-# тайминг блоков и выступлений. Это каркас для страниц, а не факты:
-# заменяется реальными данными без правки кода.
+# Выпуск 2025 — «ЮБИЛЕЙНАЯ ЗАРУБА 2025», первый двухдневный формат.
+#
+# Подтверждено публичными источниками (docs/01-research.md §1.6.8):
+#   * даты 6–7 декабря, КТЗ «Золотые ворота Сибири», ценз 6+ — «Кассы Ру»;
+#   * деление дней: 6 декабря — соло и дуэты, 7 декабря — команды и мини-группы;
+#   * 21 реальная номинация — из официальной папки «Судейские листы Заруба 2025»
+#     (Яндекс.Диск, опубликована 8 декабря 2025): 9 в первый день, 12 во второй;
+#   * жюри — Анастасия Юрасова (MATÈ), Андрей Морыженков, Наталья Мафия; MC — GEO.
+#
+# Чего здесь нет и почему:
+#   * тайминга блоков и порядка выходов — не публиковались;
+#   * списков участников — в судейских листах только имена и фото, без согласий;
+#   * мест и баллов — протокол не публиковался: судейские листы выложены
+#     фотографиями, таблицы результатов нет;
+#   * цен билетов — страница «Касс Ру» без цен, в постах их нет.
+#
+# Номинации с `demo: true` и связанные с ними студии, участники и выступления —
+# каркас страниц каталога, а не факты выпуска: в архивный список на /history
+# они не попадают и уступают место реальным данным, когда появятся согласия.
 edition: 2025
 title: ЮБИЛЕЙНАЯ ЗАРУБА 2025
 dates: ["2025-12-06", "2025-12-07"]
@@ -12,7 +25,9 @@ status: confirmed
 timezone: Asia/Yekaterinburg
 age_rating: "6+"
 updated_at: "2026-10-23T12:40:00+05:00"
-note: Юбилейный выпуск и первый двухдневный формат.
+note: >-
+  Юбилейный выпуск и первый двухдневный формат: 6 декабря — соло и дуэты,
+  7 декабря — команды и мини-группы; 21 номинация.
 
 sources:
   - id: kassy-event
@@ -24,6 +39,16 @@ sources:
     title: Сообщество «ЗАРУБА72» во ВКонтакте
     url: https://vk.com/zaruba72champ
     retrieved_at: "2026-10-23"
+    trust: official
+  - id: judge-sheets-2025
+    title: «Судейские листы Заруба 2025» — папка на Яндекс.Диске
+    url: https://disk.yandex.ru/d/TSub-yJlXr_T_g
+    retrieved_at: "2026-10-24"
+    trust: official
+  - id: telegram-sheets
+    title: «ЗАРУБА ЧЕМП» — пост с судейскими листами (8 декабря 2025)
+    url: https://t.me/zaruba72champ/780
+    retrieved_at: "2026-10-24"
     trust: official
 
 studios:
@@ -38,6 +63,177 @@ studios:
     demo: true
 
 nominations:
+  # День 1 — папка «6.12 - SOLO, DUET» судейских листов: 9 номинаций.
+  # Возраст и зачёт взяты из названия папки; BEG/PRO вынесены в levels,
+  # чтобы не дублировать их в заголовке.
+  - slug: solo-kids-3-9
+    name: BEST ZARUBA SOLO KIDS 3-9
+    format: solo
+    age_group: "3-9"
+    day: 1
+    status: done
+    source_id: judge-sheets-2025
+  - slug: solo-juniors-10-14-beg
+    name: BEST ZARUBA SOLO JUNIORS 10-14
+    format: solo
+    age_group: "10-14"
+    levels: [beg]
+    day: 1
+    status: done
+    source_id: judge-sheets-2025
+  - slug: solo-juniors-10-14-pro
+    name: BEST ZARUBA SOLO JUNIORS 10-14
+    format: solo
+    age_group: "10-14"
+    levels: [pro]
+    day: 1
+    status: done
+    source_id: judge-sheets-2025
+  - slug: duet-up-to-14
+    name: BEST ZARUBA DUET ДО 14
+    format: duet
+    age_group: "up-to-14"
+    day: 1
+    status: done
+    source_id: judge-sheets-2025
+  - slug: solo-varsity-14-18-beg
+    name: BEST ZARUBA SOLO VARSITY 14-18
+    format: solo
+    age_group: "14-18"
+    levels: [beg]
+    day: 1
+    status: done
+    source_id: judge-sheets-2025
+  - slug: solo-varsity-14-18-pro
+    name: BEST ZARUBA SOLO VARSITY 14-18
+    format: solo
+    age_group: "14-18"
+    levels: [pro]
+    day: 1
+    status: done
+    source_id: judge-sheets-2025
+  - slug: solo-adults-18-beg
+    name: BEST ZARUBA SOLO ADULTS 18+
+    format: solo
+    age_group: "18+"
+    levels: [beg]
+    day: 1
+    status: done
+    source_id: judge-sheets-2025
+  - slug: duet-from-15
+    name: BEST ZARUBA DUET ОТ 15
+    format: duet
+    age_group: "15+"
+    day: 1
+    status: done
+    source_id: judge-sheets-2025
+  - slug: solo-adults-18-pro
+    name: BEST ZARUBA SOLO ADULTS 18+
+    format: solo
+    age_group: "18+"
+    levels: [pro]
+    day: 1
+    status: done
+    source_id: judge-sheets-2025
+  # День 2 — папка «7.12 - команды, мини»: 12 номинаций. Блок назван
+  # «команды, мини», поэтому формат — team, кроме MINI GROUP (small-group).
+  # У SHOW, EX, MINI GROUP, STRIP и HEELS возраст в листах не назван:
+  # ставим not-specified, а не «любой возраст».
+  - slug: baby-3-7
+    name: BEST ZARUBA BABY (3-7)
+    format: team
+    age_group: "3-7"
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: kids-8-12-beg
+    name: BEST ZARUBA KIDS 8-12
+    format: team
+    age_group: "8-12"
+    levels: [beg]
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: kids-8-12-pro
+    name: BEST ZARUBA KIDS 8-12
+    format: team
+    age_group: "8-12"
+    levels: [pro]
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: juniors-13-15-beg
+    name: BEST ZARUBA JUNIORS 13-15
+    format: team
+    age_group: "13-15"
+    levels: [beg]
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: juniors-13-15-pro
+    name: BEST ZARUBA JUNIORS 13-15
+    format: team
+    age_group: "13-15"
+    levels: [pro]
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: show-beg
+    name: BEST ZARUBA SHOW
+    format: team
+    age_group: "not-specified"
+    levels: [beg]
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: show-pro
+    name: BEST ZARUBA SHOW
+    format: team
+    age_group: "not-specified"
+    levels: [pro]
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: ex
+    name: BEST ZARUBA EX
+    format: team
+    age_group: "not-specified"
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: mini-group
+    name: BEST ZARUBA MINI GROUP
+    format: small-group
+    age_group: "not-specified"
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: strip-beg
+    name: BEST ZARUBA STRIP
+    format: team
+    age_group: "not-specified"
+    levels: [beg]
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: heels-beg
+    name: BEST ZARUBA HEELS
+    format: team
+    age_group: "not-specified"
+    levels: [beg]
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+  - slug: heels-strip-pro
+    name: BEST ZARUBA HEELSSTRIP
+    format: team
+    age_group: "not-specified"
+    levels: [pro]
+    day: 2
+    status: done
+    source_id: judge-sheets-2025
+
+  # --- Каркас каталога: демонстрационные номинации, не факты выпуска. ---
   - slug: solo-hip-hop-6-11
     style: hip-hop
     format: solo
@@ -46,6 +242,7 @@ nominations:
     starts_at: "12:00"
     ends_at: "12:30"
     stage: Зал A
+    demo: true
   - slug: solo-hip-hop-12-17
     style: hip-hop
     format: solo
@@ -54,6 +251,7 @@ nominations:
     starts_at: "12:30"
     ends_at: "13:10"
     stage: Зал A
+    demo: true
   - slug: solo-hip-hop-18
     style: hip-hop
     format: solo
@@ -62,6 +260,7 @@ nominations:
     starts_at: "13:10"
     ends_at: "13:40"
     stage: Зал A
+    demo: true
   - slug: solo-heels-18
     style: heels-girly
     format: solo
@@ -70,6 +269,7 @@ nominations:
     starts_at: "13:40"
     ends_at: "14:20"
     stage: Зал A
+    demo: true
   - slug: solo-contemporary-12-17
     style: contemporary
     format: solo
@@ -78,6 +278,7 @@ nominations:
     starts_at: "14:20"
     ends_at: "15:00"
     stage: Зал A
+    demo: true
   - slug: team-jazz-funk-12-17
     style: jazz-funk
     format: team
@@ -86,6 +287,7 @@ nominations:
     starts_at: "12:00"
     ends_at: "12:50"
     stage: Зал A
+    demo: true
   - slug: team-contemporary-18
     style: contemporary
     format: team
@@ -94,6 +296,7 @@ nominations:
     starts_at: "12:50"
     ends_at: "13:40"
     stage: Зал A
+    demo: true
   - slug: show-experimental-18
     style: experimental
     format: show
@@ -102,6 +305,7 @@ nominations:
     starts_at: "13:40"
     ends_at: "14:40"
     stage: Зал A
+    demo: true
 
 blocks:
   - slug: day1-solo
@@ -236,9 +440,9 @@ performances:
     order_no: 8
     demo: true
 
-# Жюри 2025 — подтверждено страницей события «Касс Ру» (docs/01, строка «Жюри 2025»).
-# Города, регалии и распределение по блокам публично не описаны: полей нет,
-# страница /judges честно пишет «уточняется» вместо выдуманных деталей.
+# Жюри 2025 — из страницы события «Касс Ру» (docs/01 §1.1). Города и регалии
+# собраны в §1.6.8, но в карточку не попали: у Judge один source_id, а факты
+# пришли из трёх страниц — показываем «уточняется», а не склейку из источников.
 judges:
   - slug: yurasova
     name: Анастасия Юрасова

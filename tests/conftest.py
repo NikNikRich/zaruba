@@ -49,6 +49,7 @@ def content_settings(tmp_path: Path) -> Settings:
         glossary_file=content / "glossary.yaml",
         faq_file=content / "faq.yaml",
         history_file=content / "history.yaml",
+        results_dir=content / "results",
     )
 
 

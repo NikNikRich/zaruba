@@ -26,6 +26,7 @@ from zaruba.content import (
 from zaruba.models import (  # noqa: I001 - импорт моделей одним блоком
     AgeGroup,
     DanceStyle,
+    EventStatus,
     FaqGroup,
     GlossaryEntry,
     Nomination,
@@ -62,7 +63,11 @@ def _broken_copy(tmp_path: Path, edition_path: Path, old: str, new: str) -> Path
 
 
 def test_edition_has_required_volume(edition_path: Path) -> None:
-    """Этап 0 из §6.22: один выпуск, 8 участников, 8 выступлений, 3 блока."""
+    """Этап 0 из §6.22: один выпуск, 8 участников, 8 выступлений, 3 блока.
+
+    Номинаций 29: 21 реальная из судейских листов 2025 и 8 демонстрационных —
+    каркас каталога, помеченный `demo`.
+    """
 
     edition = load_edition(edition_path).edition
 
@@ -71,7 +76,27 @@ def test_edition_has_required_volume(edition_path: Path) -> None:
     assert len(edition.blocks) == 3
     assert len(edition.participants) == 8
     assert len(edition.performances) == 8
-    assert len(edition.nominations) == 8
+    assert len(edition.nominations) == 29
+    assert len([item for item in edition.nominations if item.demo]) == 8
+
+
+def test_real_2025_nominations_come_from_judge_sheets(edition_path: Path) -> None:
+    """Сетка 2025 — из папки «Судейские листы Заруба 2025»: 9 + 12 номинаций."""
+
+    edition = load_edition(edition_path).edition
+    real = [item for item in edition.nominations if not item.demo]
+
+    assert len(real) == 21
+    assert sum(1 for item in real if item.day == 1) == 9
+    assert sum(1 for item in real if item.day == 2) == 12
+    assert {item.status for item in real} == {EventStatus.DONE}
+    assert {item.source_id for item in real} == {"judge-sheets-2025"}
+    titles = {item.title for item in real}
+    assert "BEST ZARUBA SOLO KIDS 3-9" in titles
+    assert "BEST ZARUBA DUET ДО 14" in titles
+    assert "BEST ZARUBA HEELSSTRIP" in titles
+    # Тайминга в листах нет — выдуманное «12:00» не появляется даже у фактов.
+    assert all(item.starts_at is None for item in real)
 
 
 def test_venue_is_resolved_from_catalog(edition_path: Path) -> None:

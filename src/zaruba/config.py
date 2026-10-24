@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     history_file: Path = BASE_DIR / "content" / "history.yaml"
     # Фотоархив: карточки со ссылкой в первоисточник и (если есть) своим файлом.
     photos_file: Path = BASE_DIR / "content" / "photos.yaml"
+    # Разобранные судейские листы по выпускам: `content/results/2025.yaml`.
+    # Пустая папка — законное состояние: страница объясняет, почему таблиц нет.
+    results_dir: Path = BASE_DIR / "content" / "results"
 
     # Кэш публичных страниц (docs/06 §6.20): 60 с, расписание — 15 с.
     cache_ttl_public: int = 60
