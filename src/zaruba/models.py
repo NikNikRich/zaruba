@@ -42,6 +42,18 @@ class AgeGroup(StrEnum):
     ADULTS_15 = "15+"
     ADULTS_16 = "16+"
     ADULTS = "18+"
+    # Сетка 2025 из судейских листов: границы не совпадают ни с 2019–2024,
+    # ни с 2026. Подгонять 3–9 под «3–6» значило бы соврать в источнике.
+    KIDS_3_9 = "3-9"
+    BABY_3_7 = "3-7"
+    KIDS_8_12 = "8-12"
+    JUNIORS_10_14 = "10-14"
+    JUNIORS_13_15 = "13-15"
+    VARSITY_14_18 = "14-18"
+    UP_TO_14 = "up-to-14"
+    # В части номинаций 2025 (SHOW, EX, MINI GROUP, STRIP, HEELS) возраст
+    # в судейских листах не назван: «любой возраст» был бы домыслом.
+    UNSPECIFIED = "not-specified"
     ANY = "any"
 
     @property
@@ -59,6 +71,14 @@ class AgeGroup(StrEnum):
             "16+": "16+",
             "18+": "18+",
             "any": "любой возраст",
+            "3-9": "3–9 лет",
+            "3-7": "3–7 лет",
+            "8-12": "8–12 лет",
+            "10-14": "10–14 лет",
+            "13-15": "13–15 лет",
+            "14-18": "14–18 лет",
+            "up-to-14": "до 14 лет",
+            "not-specified": "не указан",
         }[self.value]
 
 
@@ -225,6 +245,9 @@ class Nomination(Strict):
     status: EventStatus = EventStatus.SCHEDULED
     note: str | None = Field(default=None, max_length=240)
     source_id: Slug | None = None
+    # Каркас страниц каталога: номинация-пример не является фактом выпуска
+    # и в архивный список на `/history` не попадает.
+    demo: bool = False
 
     @model_validator(mode="after")
     def _schedule_shape(self) -> Nomination:
@@ -608,6 +631,147 @@ class Performance(Strict):
         if len(set(self.participants)) != len(self.participants):
             raise ValueError("участник указан дважды")
         return self
+
+
+class ResultRow(Strict):
+    """Строка итоговой таблицы: участник и баллы судей по одной номинации.
+
+    Балл судьи — сумма пяти критериев из его листа, а не напечатанный «общий
+    балл»: сумму можно пересчитать. Если напечатанный итог с ней не сошёлся,
+    судья попадает в `flagged` — на странице это звёздочка «итог на листе
+    расходится с суммой критериев», а не повод выбросить балл.
+
+    Число в `scores` — балл судьи; `None` — листа этого судьи в источнике нет
+    (клетка «—»); судья в `unreadable` — цифра есть, но не читается («н/ч»).
+    Разница принципиальная: без листа сравнивать суммы нельзя ни у кого
+    в номинации, а нечитаемая клетка выбивает из рейтинга только своего
+    участника (`docs/06` §6.24).
+    """
+
+    participant: str = Field(min_length=2, max_length=80)
+    scores: dict[Slug, float | None] = Field(max_length=6)
+    unreadable: list[Slug] = Field(default_factory=list, max_length=6)
+    total: float | None = Field(default=None, ge=0, le=800)
+    place: int | None = Field(default=None, ge=1, le=100)
+    flagged: list[Slug] = Field(default_factory=list, max_length=6)
+
+    @model_validator(mode="after")
+    def _consistent(self) -> ResultRow:
+        if not self.scores and not self.unreadable:
+            raise ValueError("нет ни баллов, ни пометки о нечитаемой клетке")
+        both = sorted(set(self.scores) & set(self.unreadable))
+        if both:
+            raise ValueError(f"судья не может быть и с баллом, и нечитаемым: {both}")
+        if len(set(self.unreadable)) != len(self.unreadable):
+            raise ValueError("unreadable: судья указан дважды")
+        if len(set(self.flagged)) != len(self.flagged):
+            raise ValueError("flagged: судья указан дважды")
+        unknown = sorted(set(self.flagged) - set(self.scores))
+        if unknown:
+            raise ValueError(f"flagged: судьи без балла — {unknown}")
+        if self.place is not None:
+            if self.total is None:
+                raise ValueError("место без итогового балла не присваивается")
+            if self.unreadable or any(value is None for value in self.scores.values()):
+                raise ValueError("при неполной строке место не присваивается")
+        values = [value for value in self.scores.values() if value is not None]
+        if self.total is not None and abs(round(sum(values), 1) - self.total) > 0.05:
+            raise ValueError("total не равен сумме баллов судей")
+        return self
+
+    @property
+    def complete(self) -> bool:
+        """У всех судей есть читаемый балл — только тогда строка участвует в местах."""
+
+        return not self.unreadable and all(value is not None for value in self.scores.values())
+
+
+class ResultNomination(Strict):
+    """Итоги одной номинации: листы всех судей, сведённые в одну таблицу."""
+
+    nomination: Slug
+    day: int = Field(ge=1, le=3)
+    number: int = Field(ge=1, le=30)
+    judges: list[Slug] = Field(min_length=1, max_length=6)
+    rows: list[ResultRow] = Field(min_length=1, max_length=80)
+    note: str | None = Field(default=None, max_length=240)
+
+    @model_validator(mode="after")
+    def _shape(self) -> ResultNomination:
+        if len(set(self.judges)) != len(self.judges):
+            raise ValueError("судья указан дважды")
+        for row in self.rows:
+            missing = sorted(set(self.judges) - set(row.scores) - set(row.unreadable))
+            extra = sorted((set(row.scores) | set(row.unreadable)) - set(self.judges))
+            if missing or extra:
+                raise ValueError(
+                    f"{row.participant}: состав судей строки не совпадает с номинацией "
+                    f"(нет {missing}, лишние {extra})"
+                )
+        # Нет листа хотя бы у одного судьи — суммы несопоставимы, и места
+        # не присваиваются никому: иначе участник с меньшим числом судей
+        # получил бы преимущество или, наоборот, несправедливый штраф.
+        if any(value is None for row in self.rows for value in row.scores.values()):
+            if any(row.place is not None for row in self.rows):
+                raise ValueError("нет листа судьи: места в номинации не присваиваются")
+            return self
+        places = [row.place for row in self.rows if row.place is not None]
+        if len(set(places)) != len(places):
+            raise ValueError("место присвоено дважды")
+        if places and sorted(places) != list(range(1, len(places) + 1)):
+            raise ValueError("места идут не подряд: пропуск читается как ошибка расчёта")
+        return self
+
+    @property
+    def complete(self) -> bool:
+        """Места можно считать: у всех судей есть листы и все клетки читаются."""
+
+        return all(row.complete for row in self.rows)
+
+
+class ResultJudge(Strict):
+    """Код судьи в листах и его имя: код — `mor`, имя — «Андрей Морыженков»."""
+
+    code: Slug
+    name: str = Field(min_length=2, max_length=60)
+    judge: Slug | None = None
+
+
+class Results(Strict):
+    """Разобранные судейские листы выпуска (`docs/06` §6.24).
+
+    Это не протокол организаторов: места здесь расчётные, поэтому у файла
+    есть статус (`unconfirmed`, пока организаторы не подтвердят) и источник.
+    """
+
+    edition: int = Field(ge=2010, le=2100)
+    updated_at: datetime
+    source_id: Slug
+    status: DataStatus = DataStatus.UNCONFIRMED
+    judges: list[ResultJudge] = Field(min_length=1, max_length=8)
+    nominations: list[ResultNomination] = Field(default_factory=list, max_length=40)
+    notes: list[str] = Field(default_factory=list, max_length=10)
+
+    @model_validator(mode="after")
+    def _integrity(self) -> Results:
+        codes = [judge.code for judge in self.judges]
+        if len(set(codes)) != len(codes):
+            raise ValueError("судья указан дважды")
+        slugs = [item.nomination for item in self.nominations]
+        if len(set(slugs)) != len(slugs):
+            raise ValueError("номинация описана дважды")
+        numbers = [(item.day, item.number) for item in self.nominations]
+        if len(set(numbers)) != len(numbers):
+            raise ValueError("номер номинации повторяется в одном дне")
+        for item in self.nominations:
+            unknown = sorted(set(item.judges) - set(codes))
+            if unknown:
+                raise ValueError(f"{item.nomination}: неизвестные коды судей {unknown}")
+        return self
+
+    @property
+    def rows(self) -> int:
+        return sum(len(item.rows) for item in self.nominations)
 
 
 class ScheduleBlock(Strict):

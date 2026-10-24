@@ -6,7 +6,7 @@ items:
   - slug: skolko-stoit
     group: spectator
     status: confirmed
-    source_id: vk-community
+    source_id: polozhenie-2026
     question: Сколько стоит билет?
     answer: >-
       На выпуск 2026 цены объявлены: 12 декабря — 1000 ₽, 13 декабря — 1000 ₽
@@ -115,7 +115,6 @@ items:
   - slug: kak-ispravit
     group: site
     status: confirmed
-    source_id: vk-community
     question: Как исправить или удалить данные о себе?
     answer: >-
       Напишите в сообщество «ЗАРУБА72» — это быстрый канал связи. Мы исправим

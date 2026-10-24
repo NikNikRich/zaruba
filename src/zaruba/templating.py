@@ -54,6 +54,7 @@ NAV_ITEMS: tuple[dict[str, str], ...] = (
     {"endpoint": "history_page", "label": "История"},
     {"endpoint": "schedule", "label": "Расписание"},
     {"endpoint": "performances", "label": "Выступления"},
+    {"endpoint": "results_page", "label": "Результаты"},
     {"endpoint": "participants", "label": "Участники"},
     {"endpoint": "ratings_page", "label": "Рейтинги"},
     {"endpoint": "venue_page", "label": "Площадка"},
@@ -157,6 +158,18 @@ def initials(value: str | None) -> str:
     return "".join(word[0].upper() for word in words[:2])
 
 
+def score(value: float | None) -> str:
+    """Балл листа: всегда один знак после запятой, пусто — длинное тире.
+
+    Ноль и «нет числа» — разные вещи: `None` в результатах значит «клетка
+    не читается или листа нет», и печатать вместо него 0.0 нельзя.
+    """
+
+    if value is None:
+        return "—"
+    return f"{value:.1f}".replace(".", ",")
+
+
 templates.env.filters.update(
     {
         "fmt_date": fmt_date,
@@ -167,6 +180,7 @@ templates.env.filters.update(
         "plural": plural,
         "money": money,
         "initials": initials,
+        "score": score,
     }
 )
 

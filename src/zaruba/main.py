@@ -14,7 +14,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import __version__
 from .config import Settings, get_settings
-from .content import ContentError, load_site
+from .content import ContentError, load_all_results, load_site
 from .errors import query_errors
 from .middleware import (
     REQUEST_ID_HEADER,
@@ -90,11 +90,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(RequestIdMiddleware)
     app.mount("/static", StaticFiles(directory=str(PACKAGE_DIR / "static")), name="static")
 
-    from .routers import catalogue, history, legal, public, ratings, schedule, seo
+    from .routers import catalogue, history, legal, public, ratings, results, schedule, seo
 
     app.include_router(public.router)
     app.include_router(history.router)
     app.include_router(ratings.router)
+    app.include_router(results.router)
     app.include_router(legal.router)
     app.include_router(schedule.router)
     app.include_router(catalogue.router)
@@ -195,6 +196,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         try:
             load_site(settings)
+            load_all_results(settings)
         except ContentError as exc:
             logger.error("healthz: контент не прошёл проверку: %s", exc)
             response.status_code = 503

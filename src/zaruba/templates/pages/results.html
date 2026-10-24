@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Результаты{% if view %} {{ view.year }}{% endif %} — расчёт по судейским листам{% endblock %}
+{% block description %}{% if view %}Результаты «ЗАРУБА» {{ view.year }}: места и баллы по {{ view.nominations }}
+номинациям, восстановленные из фотографий судейских листов. Места расчётные: официального
+протокола организаторы не публиковали.{% else %}Результаты «ЗАРУБА»: судейские листы разобраны
+не для всех выпусков, поэтому архив результатов по годам не ведём.{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <p class="kicker">Итоги</p>
+  <h1>{% if view %}Результаты {{ view.year }}{% else %}Результаты{% endif %}</h1>
+  {% if view %}
+  <p class="lead">{{ view.title }}: {{ view.nominations }}
+  {{ view.nominations|plural("номинация", "номинации", "номинаций") }},
+  {{ view.participants }}
+  {{ view.participants|plural("участник", "участника", "участников") }}.
+  Таблицы собраны из фотографий судейских листов, а не из протокола.</p>
+  {% else %}
+  <p class="lead">Судейские листы разобраны не для всех выпусков. Там, где их нет,
+  страницы результатов тоже нет: пустая таблица «данных не будет» хуже, чем её отсутствие.</p>
+  {% endif %}
+</div>
+
+{% if view %}
+<div class="callout">
+  <p><strong>Места расчётные.</strong> Организаторы публикуют листы, но не протокол:
+  места ниже — порядок по сумме баллов судей. Балл судьи — сумма пяти критериев листа;
+  звёздочка значит, что напечатанный на листе «общий балл» с ней не сошёлся.
+  Это арифметика по фотографиям, а не решение судейской коллегии.</p>
+</div>
+
+<div class="chips">
+  {% for day in view.days %}
+  <a class="badge" href="#day-{{ day.day }}">День {{ day.day }}{% if day.date %} · {{ day.date|fmt_date }}{% endif %}</a>
+  {% endfor %}
+</div>
+
+{% for day in view.days %}
+<section class="section" id="day-{{ day.day }}">
+  <h2>День {{ day.day }}{% if day.date %} — {{ day.date|fmt_date }}{% endif %}</h2>
+  <ul class="facts small">
+    {% for item in day.nominations %}
+    <li><a href="#nom-{{ item.slug }}">{{ item.number }}. {{ item.title }}
+      {%- if item.subtitle %} · {{ item.subtitle }}{% endif %}</a></li>
+    {% endfor %}
+  </ul>
+
+  {% for item in day.nominations %}
+  <section class="block" id="nom-{{ item.slug }}">
+    <div class="block-head">
+      <h3>{{ item.number }}. {{ item.title }}</h3>
+      {% if item.missing_sheet %}
+      <span class="badge">места не присваиваются</span>
+      {% elif not item.complete %}
+      <span class="badge">неполные данные</span>
+      {% endif %}
+    </div>
+    <p class="muted small">{{ item.subtitle }} · {{ item.participants }}
+    {{ item.participants|plural("участник", "участника", "участников") }} ·
+    {{ item.judges|length }}
+    {{ item.judges|length|plural("судья", "судьи", "судей") }}</p>
+
+    <div class="table-wrap">
+      <table class="table table--results">
+        <caption class="sr-only">Номинация «{{ item.title }}»: места, баллы судей и итог</caption>
+        <thead>
+          <tr>
+            <th scope="col">Место</th>
+            <th scope="col">Участник</th>
+            {% for judge in item.judges %}<th scope="col">{{ judge.name }}</th>{% endfor %}
+            <th scope="col">Итог</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in item.lines %}
+          <tr>
+            <td class="mono">{{ line.place if line.place is not none else "—" }}</td>
+            <td>{{ line.participant }}</td>
+            {% for cell in line.cells %}
+            <td class="mono">
+              {%- if cell.state == "value" -%}
+              {{ cell.value|score }}{% if cell.flagged %}<sup title="Напечатанный на листе итог расходится с суммой критериев">*</sup>{% endif %}
+              {%- elif cell.state == "unreadable" -%}
+              <span class="muted" title="Цифра не читается на фотографии листа">н/ч</span>
+              {%- else -%}
+              <span class="muted" title="Листа этого судьи нет в источнике">—</span>
+              {%- endif -%}
+            </td>
+            {% endfor %}
+            <td class="mono">{{ line.total|score }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if item.missing_sheet %}
+    <p class="muted small">Здесь нет листа одного из судей: суммы посчитаны по разному
+    числу оценок, поэтому места не присваиваются никому — сравнение было бы нечестным.</p>
+    {% elif not item.complete %}
+    <p class="muted small">Часть клеток не читается: такие участники выпадают из рейтинга,
+    остальные места сохраняют.</p>
+    {% endif %}
+  </section>
+  {% endfor %}
+</section>
+{% endfor %}
+
+<section class="section" id="how">
+  <h2>Как это разобрано</h2>
+  <ul class="facts">
+    {% for note in view.notes %}
+    <li>{{ note }}</li>
+    {% endfor %}
+  </ul>
+  <p class="muted small">Данные обновлены {{ view.updated_at|fmt_dt }}. Названия команд
+  оставлены как в листах: это коллективы, а не фамилии.</p>
+</section>
+
+<section class="sources">
+  <h2>Источник</h2>
+  <ul class="source-list">
+    {% if view.source %}
+    <li>
+      <a href="{{ view.source.url }}" rel="noopener noreferrer nofollow">{{ view.source.title }}</a>
+      <span class="muted small">проверено {{ view.source.retrieved_at|fmt_dt }} ·
+      {{ view.source.trust.label }}</span>
+    </li>
+    {% else %}
+    <li>Файл результатов не ссылается на источник выпуска — это ошибка данных, напишите нам.</li>
+    {% endif %}
+  </ul>
+  <p class="muted small">Официального протокола с местами и баллами нет: мы разобрали
+  фотографии листов и посчитали суммы сами. Нашли ошибку — напишите в сообщество,
+  исправление войдёт в дату обновления.</p>
+  <p class="section-link"><a href="/history">что известно о других выпусках →</a></p>
+</section>
+{% else %}
+<section class="section">
+  <h2>Почему таблиц нет</h2>
+  <ul class="facts">
+    <li><span class="lbl">листы</span> организаторы выкладывают фотографиями по номинациям,
+    без итоговой таблицы. Пока листы не разобраны, показывать нечего.</li>
+    <li><span class="lbl">архив</span> по прошлым годам результатов нет: видео 2019 года
+    подписано местами, но полного протокола не существует. Поэтому мы не рисуем
+    страницы «результаты 2019–2024» с пустыми таблицами.</li>
+    <li><span class="lbl">протокол</span> появится у организаторов — тогда сверим расчёт
+    с ним и снимем пометку «расчётные места».</li>
+  </ul>
+  <p class="section-link"><a href="/history">история выпусков →</a></p>
+</section>
+{% endif %}
+{% endblock %}

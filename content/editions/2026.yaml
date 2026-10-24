@@ -22,8 +22,8 @@ registration_until: "2026-12-07"
 sources:
   - id: polozhenie-2026
     title: «Положение ЗАРУБА 12-13 декабря 2026» (PDF, 18 страниц)
-    url: https://vk.com/zaruba72champ
-    retrieved_at: "2026-10-23"
+    url: https://disk.yandex.ru/i/Rg9cgX3GIz0y2A
+    retrieved_at: "2026-10-25"
     trust: official
   - id: registration-form
     title: Форма заявки на участие в выпуске 2026
@@ -35,10 +35,39 @@ sources:
     url: https://forms.gle/U8b24BxsLPGCAZdf8
     retrieved_at: "2026-10-23"
     trust: official
-  - id: vk-community
-    title: Сообщество «ЗАРУБА72» — посты о жюри, ценах и билетах
-    url: https://vk.com/zaruba72champ
-    retrieved_at: "2026-10-23"
+  # Ссылки-источники ведут на конкретную публикацию, а не на ленту сообщества
+  # (`docs/06` §6.17): по клику открывается тот пост, о котором факт в карточке.
+  - id: vk-fara
+    title: 'Сообщество «ЗАРУБА72» — пост о судье Фаре (04.09.2026)'
+    url: https://vk.com/wall-185685166_223
+    retrieved_at: "2026-10-25"
+    trust: official
+  - id: vk-burtsev
+    title: 'Сообщество «ЗАРУБА72» — пост о судье Александре Бурцеве (07.09.2026)'
+    url: https://vk.com/wall-185685166_224
+    retrieved_at: "2026-10-25"
+    trust: official
+  - id: vk-gubanova
+    title: 'Сообщество «ЗАРУБА72» — пост о судье Дарье Губановой (10.09.2026)'
+    url: https://vk.com/wall-185685166_226
+    retrieved_at: "2026-10-25"
+    trust: official
+  - id: vk-bonchinche
+    title: 'Сообщество «ЗАРУБА72» — пост о судье Дмитрии Бончинче (14.09.2026)'
+    url: https://vk.com/wall-185685166_227
+    retrieved_at: "2026-10-25"
+    trust: official
+  - id: vk-geo
+    title: 'Сообщество «ЗАРУБА72» — пост о ведущем Гео (25.09.2026)'
+    url: https://vk.com/wall-185685166_231
+    retrieved_at: "2026-10-25"
+    trust: official
+  # Билеты: цены — из «Положения», продажа — страница организатора на «Кассах Ру».
+  # Корень tyumen.kassy.ru ведёт на витрину «актуальных мероприятий нет» — не он.
+  - id: kassy-organizer
+    title: '«Кассы Ру» — страница организатора ИП Богданова А.В. (билеты «ЗАРУБА»)'
+    url: https://tyumen.kassy.ru/organizer/2-846/
+    retrieved_at: "2026-10-25"
     trust: official
 
 # «Положение 2026»: БЕГ — команда занимается до 3 лет и выступает без хореографа,
@@ -221,28 +250,28 @@ tickets:
     title: 12 декабря, один день
     day: 1
     price: 1000
-    source_id: vk-community
+    source_id: kassy-organizer
   - slug: day2-kids-block
     title: 13 декабря, 1-й блок (детские команды)
     day: 2
     block: 1-й блок
     price: 1000
-    source_id: vk-community
+    source_id: kassy-organizer
   - slug: day2-adults-block
     title: 13 декабря, 2-й блок (взрослые команды)
     day: 2
     block: 2-й блок
     price: 800
-    source_id: vk-community
+    source_id: kassy-organizer
   - slug: day2-full
     title: 13 декабря, весь день
     day: 2
     price: 1600
-    source_id: vk-community
+    source_id: kassy-organizer
   - slug: both-days
     title: 12–13 декабря, оба дня
     price: 1800
-    source_id: vk-community
+    source_id: kassy-organizer
 
 master_classes:
   - slug: mc-gubanova
@@ -317,7 +346,7 @@ judges:
     name: Фара
     role: judge
     regalia: Афро-направление, победитель и призёр мировых чемпионатов
-    source_id: vk-community
+    source_id: vk-fara
     photo: img/people/fara.webp
     photo_author: 'сообщество «ЗАРУБА72»'
     photo_use: citation
@@ -327,7 +356,7 @@ judges:
     name: Александр Бурцев
     role: judge
     regalia: MDC NRG, ABUFAM, финалист «Новых танцев» на ТНТ
-    source_id: vk-community
+    source_id: vk-burtsev
     photo: img/people/burtsev.webp
     photo_author: 'Московский танцевальный центр MDC NRG'
     photo_use: citation
@@ -337,7 +366,7 @@ judges:
     name: Дарья Губанова
     role: judge
     regalia: Официальный представитель Frame up strip, хореограф Gorchitsa
-    source_id: vk-community
+    source_id: vk-gubanova
     photo: img/people/gubanova.webp
     photo_author: 'сообщество «ЗАРУБА72»'
     photo_use: citation
@@ -347,7 +376,7 @@ judges:
     name: Дмитрий Бончинче
     role: judge
     regalia: House of Bonchinche, победитель «Лиги Танцев»
-    source_id: vk-community
+    source_id: vk-bonchinche
     photo: img/people/bonchinche.webp
     photo_author: 'сообщество «ЗАРУБА72»'
     photo_use: citation
@@ -357,7 +386,7 @@ judges:
     name: Гео (GEO)
     role: mc
     regalia: MC «Лиги Танцев Winline», финалист «Новых танцев» на ТНТ
-    source_id: vk-community
+    source_id: vk-geo
     photo: img/people/mc-geo.webp
     photo_author: 'PROТАНЦЫ CAMP'
     photo_use: citation

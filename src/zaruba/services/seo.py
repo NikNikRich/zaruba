@@ -31,6 +31,7 @@ STATIC_PAGES: tuple[tuple[str, str, str], ...] = (
     ("/history", "0.7", "yearly"),
     ("/schedule", "0.9", "weekly"),
     ("/performances", "0.9", "daily"),
+    ("/results", "0.9", "yearly"),
     ("/participants", "0.9", "weekly"),
     ("/studios", "0.8", "monthly"),
     ("/judges", "0.7", "monthly"),

@@ -13,12 +13,18 @@ from pydantic import TypeAdapter, ValidationError
 
 from .config import Settings, get_settings
 from .models import (
+    INITIALS_RE,
+    AgeGroup,
+    DanceFormat,
     Edition,
     EditionBundle,
     FaqItem,
     GlossaryEntry,
     HistoryEntry,
+    Nomination,
     Photo,
+    ResultNomination,
+    Results,
     Venue,
 )
 
@@ -27,6 +33,7 @@ GLOSSARY_ADAPTER = TypeAdapter(list[GlossaryEntry])
 FAQ_ADAPTER = TypeAdapter(list[FaqItem])
 HISTORY_ADAPTER = TypeAdapter(list[HistoryEntry])
 PHOTOS_ADAPTER = TypeAdapter(list[Photo])
+RESULTS_ADAPTER = TypeAdapter(Results)
 
 
 class ContentError(Exception):
@@ -53,6 +60,27 @@ def _validation_error(path: Path, exc: ValidationError) -> ContentError:
     return ContentError(f"{path}: данные не прошли проверку\n" + "\n".join(lines))
 
 
+# Корень сообщества и витрины билетов — это лента, а не публикация: клик по
+# такому источнику не показывает факт, ради которого он поставлен. Правило
+# `docs/06` §6.17: источник — конкретный пост, документ или страница события.
+SOURCE_ROOT_URLS = frozenset(
+    {
+        "https://vk.com/zaruba72champ",
+        "https://t.me/zaruba72champ",
+        "https://tyumen.kassy.ru",
+    }
+)
+
+
+def _check_source_link(path: Path, url: str, where: str) -> None:
+    root = url.rstrip("/")
+    if root in SOURCE_ROOT_URLS:
+        raise ContentError(
+            f"{path}: {where}: ссылка ведёт на корень «{root}» — нужен адрес "
+            "конкретного поста, документа или страницы события"
+        )
+
+
 def load_venues(path: Path) -> dict[str, Venue]:
     raw = _read_yaml(path)
     try:
@@ -75,6 +103,9 @@ def load_edition(path: Path, venues: dict[str, Venue] | None = None) -> EditionB
         edition = Edition.model_validate(raw)
     except ValidationError as exc:
         raise _validation_error(path, exc) from exc
+
+    for source in edition.sources:
+        _check_source_link(path, source.url, f"sources.{source.id}")
 
     if venues is None:
         venues = load_venues(path.parent.parent / "venues.yaml")
@@ -217,6 +248,8 @@ def load_history(path: Path) -> list[HistoryEntry]:
     duplicates = sorted({year for year in years if years.count(year) > 1})
     if duplicates:
         raise ContentError(f"{path}: год описан дважды — {duplicates}")
+    for entry in entries:
+        _check_source_link(path, entry.source.url, f"entries.{entry.year}.source")
     return sorted(entries, key=lambda entry: entry.year, reverse=True)
 
 
@@ -240,7 +273,169 @@ def load_photos(path: Path) -> list[Photo]:
         if photo.slug in seen:
             raise ContentError(f"{path}: фото «{photo.slug}» описано дважды")
         seen.add(photo.slug)
+        _check_source_link(path, photo.source.url, f"photos.{photo.slug}.source")
     return list(photos)
+
+
+@lru_cache(maxsize=8)
+def _results_cached(path: str, fingerprint: tuple[int, int, int]) -> Results:
+    return load_results(Path(path))
+
+
+def load_results(path: Path, bundle: EditionBundle | None = None) -> Results:
+    """Разобранные судейские листы выпуска (`docs/06` §6.24).
+
+    Файл проверяется дважды: сам по себе (суммы, места, состав судей) и против
+    выпуска. Вторая проверка не формальность: номер номинации в листах должен
+    указывать на ту же номинацию того же дня, что в `content/editions`. Иначе
+    таблица «SOLO KIDS» однажды покажет баллы «BABY», и на странице это будет
+    выглядеть правдоподобно.
+    """
+
+    path = Path(path)
+    raw = _read_yaml(path, "полями выпуска и номинаций")
+    try:
+        results = RESULTS_ADAPTER.validate_python(raw)
+    except ValidationError as exc:
+        raise _validation_error(path, exc) from exc
+    if bundle is not None:
+        _check_results(results, bundle, path)
+    return results
+
+
+def _check_results(results: Results, bundle: EditionBundle, path: Path) -> None:
+    edition = bundle.edition
+    if results.edition != edition.edition:
+        raise ContentError(
+            f"{path}: в файле выпуск {results.edition}, а ожидался {edition.edition}"
+        )
+    if results.source_id not in edition.source_index:
+        raise ContentError(f"{path}: неизвестный source_id «{results.source_id}»")
+
+    judge_slugs = {judge.slug for judge in edition.judges}
+    for judge in results.judges:
+        if judge.judge is not None and judge.judge not in judge_slugs:
+            raise ContentError(
+                f"{path}: судья «{judge.code}» ссылается на неизвестного «{judge.judge}»"
+            )
+
+    nominations = edition.nomination_index
+    # Порядок номинаций внутри дня = порядок строк в файле выпуска: по нему
+    # листы и нумеровались. Демо-каркас каталога в этот порядок не входит.
+    order: dict[int, list[str]] = {}
+    for nomination in edition.nominations:
+        if nomination.demo or nomination.day is None:
+            continue
+        order.setdefault(nomination.day, []).append(nomination.slug)
+
+    for item in results.nominations:
+        found = nominations.get(item.nomination)
+        if found is None:
+            raise ContentError(
+                f"{path}: номинации «{item.nomination}» нет в выпуске {edition.edition}"
+            )
+        if found.demo:
+            raise ContentError(
+                f"{path}: «{item.nomination}» — каркас каталога, а не номинация выпуска"
+            )
+        if found.day != item.day:
+            raise ContentError(
+                f"{path}: {item.nomination}: день {item.day}, а в выпуске — {found.day}"
+            )
+        day_slugs = order.get(item.day, [])
+        if not 1 <= item.number <= len(day_slugs):
+            raise ContentError(
+                f"{path}: {item.nomination}: номера {item.number} нет в дне {item.day} "
+                f"(номинаций в дне: {len(day_slugs)})"
+            )
+        expected = day_slugs[item.number - 1]
+        if expected != item.nomination:
+            raise ContentError(
+                f"{path}: {item.nomination} в листах идёт под номером {item.number}, "
+                f"а в выпуске на этом месте «{expected}»"
+            )
+        _check_participant_names(path, item, found)
+
+
+def _check_participant_names(path: Path, item: ResultNomination, nomination: Nomination) -> None:
+    """Детское соло и дуэт — инициалы или сценическое имя, без фамилии (§6.1 п.6).
+
+    Проверка стоит на загрузке, а не только в импортёре: YAML правят руками,
+    и одно полное имя, вернувшееся из CSV, не должно доехать до страницы.
+    Дуэт в листах записан как «А. Б. и В. Г.» — поэтому проверяется каждая часть.
+
+    Одно слово без пробела разрешено осознанно: в листах есть сценические имена
+    («Лисичка», «Emily», «NUTS»), и превращать их в «Л.» значило бы выдумать
+    инициал. Фамилия без имени в листах не встречается — там всегда «Фамилия Имя».
+    """
+
+    if nomination.age_group is AgeGroup.ADULTS or nomination.format not in (
+        DanceFormat.SOLO,
+        DanceFormat.DUET,
+    ):
+        return
+    for row in item.rows:
+        parts = row.participant.split(" и ")
+        if not all(INITIALS_RE.match(part) or " " not in part for part in parts):
+            raise ContentError(
+                f"{path}: {item.nomination}: «{row.participant}» — детская номинация, "
+                "в ней публикуются только инициалы или сценическое имя"
+            )
+
+
+def load_results_file(path: Path, bundle: EditionBundle | None = None) -> Results:
+    """То же, что `load_results`, но с кэшем по mtime и размеру файла."""
+
+    path = Path(path)
+    if not path.exists():
+        raise ContentError(f"{path}: файл не найден")
+    stat = path.stat()
+    results = _results_cached(str(path), (stat.st_mtime_ns, stat.st_size, len(str(path))))
+    if bundle is not None:
+        _check_results(results, bundle, path)
+    return results
+
+
+def result_years(settings: Settings | None = None) -> list[int]:
+    """Годы, для которых листы разобраны: файл есть — ссылка честная.
+
+    Содержимое здесь не читается: страница проверит его сама, а `/history`
+    нужен только ответ «есть ли куда вести».
+    """
+
+    settings = settings or get_settings()
+    if not settings.results_dir.is_dir():
+        return []
+    years = [
+        int(path.stem)
+        for path in settings.results_dir.glob("*.yaml")
+        if path.stem.isdigit() and 2010 <= int(path.stem) <= 2100
+    ]
+    return sorted(years, reverse=True)
+
+
+def load_results_for(settings: Settings, year: int) -> Results | None:
+    """Результаты конкретного выпуска; `None` — файла нет, это не авария."""
+
+    path = settings.results_dir / f"{year}.yaml"
+    if not path.exists():
+        return None
+    bundle = next((item for item in load_site(settings) if item.year == year), None)
+    if bundle is None:
+        raise ContentError(f"{path}: выпуска {year} нет в content/editions")
+    return load_results_file(path, bundle)
+
+
+def load_all_results(settings: Settings | None = None) -> list[Results]:
+    """Все разобранные выпуски: проверка целостности — часть загрузки."""
+
+    settings = settings or get_settings()
+    loaded: list[Results] = []
+    for year in result_years(settings):
+        results = load_results_for(settings, year)
+        if results is not None:
+            loaded.append(results)
+    return loaded
 
 
 @lru_cache(maxsize=8)
@@ -318,6 +513,7 @@ def main(argv: list[str] | None = None) -> int:
                 bundles = load_site(settings)
                 archive = load_history(settings.history_file)
                 photos = load_photos(settings.photos_file)
+                results = load_all_results(settings)
                 print(f"OK  история: {len(archive)} записей до 2025 года")
                 own = sum(1 for photo in photos if photo.file)
                 cited = sum(1 for photo in photos if photo.is_citation)
@@ -325,6 +521,12 @@ def main(argv: list[str] | None = None) -> int:
                     f"OK  фотоархив: {len(photos)} карточек, из них с файлом {own} "
                     f"(цитат по ст. 1274 ГК РФ: {cited})"
                 )
+                for item in results:
+                    placed = sum(1 for n in item.nominations for row in n.rows if row.place)
+                    print(
+                        f"OK  результаты {item.edition}: {len(item.nominations)} номинаций, "
+                        f"{item.rows} строк, мест присвоено {placed}"
+                    )
             for bundle in bundles:
                 print(f"OK  {bundle.year}: {_summary(bundle)}")
             print(f"проверено выпусков: {len(bundles)}")

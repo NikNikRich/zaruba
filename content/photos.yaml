@@ -29,10 +29,10 @@
 #     author: Имя Фотографа
 #     license: разрешение организаторов
 #     source:
-#       id: vk-community
-#       title: Сообщество «ЗАРУБА72» во ВКонтакте
-#       url: https://vk.com/zaruba72champ
-#       retrieved_at: "2026-10-24"
+#       id: vk-2024-stage
+#       title: 'Сообщество «ЗАРУБА72» — анонс выпуска 2024 года'
+#       url: https://vk.com/wall-185685166_162
+#       retrieved_at: "2026-10-25"
 #       trust: official
 #
 # Пример цитаты того же кадра: вместо `license` —
@@ -49,13 +49,13 @@ photos:
     title: Юбилейная «ЗАРУБА 2025» · «Золотые ворота Сибири»
     caption: >-
       Юбилейный выпуск 6–7 декабря 2025: первый двухдневный формат и площадка
-      на Герцена, 87. Снимки и записи блоков — в публикациях сообщества.
+      на Герцена, 87. Снимки выпуска — в посте сообщества от 3 сентября 2026.
     kind: gallery
     source:
-      id: vk-community
-      title: Сообщество «ЗАРУБА72» во ВКонтакте
-      url: https://vk.com/zaruba72champ
-      retrieved_at: "2026-10-24"
+      id: vk-2025-photos
+      title: 'Сообщество «ЗАРУБА72» — фотокарточки выпуска 2025 (03.09.2026)'
+      url: https://vk.com/wall-185685166_222
+      retrieved_at: "2026-10-25"
       trust: official
 
   - slug: 2024-stage
@@ -66,36 +66,38 @@ photos:
       VADIM WHIPHEAD, MARINA ABRAMOVA, EMIL DALIVALOV. Кадры — в публикации выпуска.
     kind: gallery
     source:
-      id: vk-archive-2024
-      title: Архив сообщества «ЗАРУБА72» — анонс и «Положение 2024»
-      url: https://vk.com/zaruba72champ
-      retrieved_at: "2026-10-24"
+      id: vk-anons-2024
+      title: 'Сообщество «ЗАРУБА72» — анонс выпуска 2024 года'
+      url: https://vk.com/wall-185685166_162
+      retrieved_at: "2026-10-25"
       trust: official
 
   - slug: 2022-video
     year: 2022
     title: «ЗАРУБА 72 2022» · запись выпуска
     caption: >-
-      Выпуск прошёл 4 декабря 2022 в «Золотых воротах Сибири»; записи номеров —
-      в сообществе. Отдельного фотоальбома с датой публикации нет.
+      Выпуск прошёл 4 декабря 2022 в «Золотых воротах Сибири»; сведения о нём —
+      в анонсе сообщества от 24 ноября 2022. Отдельного фотоальбома с датой
+      публикации нет.
     kind: gallery
     source:
-      id: vk-archive-2022
-      title: Архив сообщества «ЗАРУБА72» — видео выпуска 2022 года
-      url: https://vk.com/zaruba72champ
-      retrieved_at: "2026-10-24"
+      id: vk-anons-2022
+      title: 'Сообщество «ЗАРУБА72» — анонс выпуска 2022 года (24.11.2022)'
+      url: https://vk.com/wall-185685166_132
+      retrieved_at: "2026-10-25"
       trust: official
 
   - slug: 2019-workshops
     year: 2019
     title: ZARUBA 72 DANCE FEST · воркшопы
     caption: >-
-      Фестиваль прошёл 3 ноября 2019 в СК «Строймаш», воркшопы — 4 ноября: занятия
-      с Игорем Настобурским и видео «Селект 5–11» в архиве сообщества.
+      Фестиваль прошёл 3 ноября 2019 в СК «Строймаш», воркшопы — 4 ноября:
+      занятия с Игорем Настобурским. Афиша и детали — в новости «Мой-портала»
+      от 2 ноября 2019.
     kind: gallery
     source:
-      id: vk-archive-2019
-      title: Архив сообщества «ЗАРУБА72» — видео и анонсы 2019 года
-      url: https://vk.com/zaruba72champ
-      retrieved_at: "2026-10-24"
-      trust: official
+      id: moi-portal-2019
+      title: '«Мой-портал»: в Тюмени впервые пройдёт «Заруба 72» (02.11.2019)'
+      url: https://moi-portal.ru/novosti/661210-v-tyumeni-vpervye-proydet-tantsevalnyy-chempionat-zaruba-72/
+      retrieved_at: "2026-10-25"
+      trust: public
