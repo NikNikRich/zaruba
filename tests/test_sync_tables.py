@@ -8,11 +8,13 @@ import shutil
 from pathlib import Path
 
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 
 from zaruba.config import Settings
 from zaruba.content import ContentError, load_edition, load_site, merge_overlay, overlay_dir
 from zaruba.main import create_app
+from zaruba.models import Edition
 from zaruba.sync_tables import (
     TABLE_SPECS,
     TAG_PREVIEW,
@@ -493,3 +495,42 @@ def test_duplicate_slug_names_the_sheet_and_keeps_the_overlay(
     assert {path.name: path.read_bytes() for path in written} == before, (
         "невалидная таблица перезаписала существующий overlay"
     )
+
+
+def test_media_and_commerce_come_from_tables() -> None:
+    """Листы `media.csv` и `commerce.csv` дают overlay, который читает модель."""
+
+    overlay, summary = build_overlay(TABLES, BASE)
+
+    assert summary.preview["media"] == 3
+    assert summary.preview["commerce"] == 3
+    assert [row["slug"] for row in overlay["media"]] == [
+        "teaser-2026",
+        "photos-2025-season",
+        "stream-final-2026",
+    ]
+
+    base = yaml.safe_load(BASE.read_text(encoding="utf-8"))
+    edition = Edition.model_validate(merge_overlay(base, [(BASE, overlay)]))
+    assert {item.kind.value for item in edition.media} == {"video", "photo", "stream"}
+    partner = next(item for item in edition.commerce if item.category.value == "partner")
+    assert partner.price is None
+    assert partner.erid == "2VtzqwXp4Cd"
+
+
+def test_media_table_header_is_checked(tmp_path: Path) -> None:
+    """Лишняя колонка в новой таблице — ошибка с именем листа, а не тихий пропуск."""
+
+    tables = _tables_copy(tmp_path)
+    _rewrite(tables / "media.csv", "meta;", "meta;extra;")
+
+    with pytest.raises(TableError, match="шапка не совпадает"):
+        build_overlay(tables, BASE)
+
+
+def test_write_overlay_includes_media_and_commerce(tmp_path: Path) -> None:
+    overlay, _ = build_overlay(TABLES, BASE)
+
+    written = write_overlay(overlay, tmp_path / "2026.d")
+
+    assert {"media.yaml", "commerce.yaml"} <= {path.name for path in written}

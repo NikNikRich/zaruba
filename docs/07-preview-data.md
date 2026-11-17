@@ -41,6 +41,8 @@ Overlay — не второй выпуск: загрузчик `merge_overlay` �
 | `performances.csv` | `slug`, `title`, `nomination`, `participants`, `scheduled_at`, `order_no`, `stage`, `status`, `video_url`, `source_id`, `demo`, `data_tag` |
 | `nominations.csv` | `slug`, `name`, `style`, `format`, `age_group`, `levels`, `min_participants`, `max_participants`, `day`, `starts_at`, `ends_at`, `stage`, `status`, `note`, `source_id`, `demo`, `data_tag` |
 | `judges.csv` | `slug`, `name`, `role`, `city`, `regalia`, `styles`, `blocks`, `source_id`, `photo`, `photo_author`, `photo_license`, `photo_use`, `photo_purpose`, `photo_source_url`, `photo_nature`, `demo`, `data_tag` |
+| `media.csv` | `slug`, `title`, `kind`, `platform`, `url`, `preview_image`, `meta`, `nomination_slug`, `data_tag` |
+| `commerce.csv` | `slug`, `title`, `category`, `price`, `status`, `description`, `cta_label`, `url`, `erid`, `data_tag` |
 
 Списки (`levels`, `nominations`, `participants`, `styles`, `blocks`) пишутся
 через `|` (запятая тоже принимается). Время — `ЧЧ:ММ`, дата-время —
@@ -49,6 +51,18 @@ ISO 8601 с часовым поясом (`2026-12-12T10:00:00+05:00`). Шапк�
 
 Для несовершеннолетних `display_name` — инициалы (`Л. В.`), для 18+ допустимо
 полное имя. Это проверяет модель `Participant`, а не только скрипт.
+
+**Медиа и коммерция.** `media.csv` — ссылки на внешние хостинги: `kind` и
+`platform` берутся из закрытых перечислений, `preview_image` — путь от
+`static/` (`img/media/<слаг>.webp`), пустая клетка означает типографскую
+заглушку. `commerce.csv` — товары, фотопакеты и партнёры: у `partner` цена
+пустая, а `erid` заполняется только настоящим токеном ОРД.
+
+У строк этих двух листов нет поля `demo`, поэтому `preview`-тег не проставляет
+его: презентационность видна по баннеру предпросмотра и по тому, что строки
+живут в overlay. Демонстрационные ссылки ведут на заглушки (`*.example`,
+тестовые id хостингов) и не выдают себя за настоящие публикации: показать
+вёрстку руководству можно, сослаться на несуществующий ролик — нельзя.
 
 ## 7.4. Тайминг номинаций
 
@@ -101,8 +115,11 @@ $env:ZARUBA_PREVIEW_ENABLED = "1"
 
 ## 7.6. Чего здесь нет
 
-- **Фото, видео и ссылок на соцсети участников** — только подтверждённые
-  источники; выдуманное фото нельзя ставить даже с пометкой.
+- **Файлов фото и видео в репозитории** — превью-карточки ссылаются на внешний
+  хостинг и не копируют чужой кадр; изображение-постер — только своё и с правами
+  (`docs/06` §6.5), иначе типографская заглушка.
+- **`erid` из головы** — токен выдаёт ОРД; придуманный «пример» ломает
+  `content check` по шаблону, даже если карточка живёт в overlay.
 - **XLSX** — в зависимостях нет `openpyxl`, а лок заморожен; формат CSV
   открывается в Excel и не требует новой библиотеки.
 - **Записи `real` из таблицы** — намеренно, чтобы импорт не мог подменить

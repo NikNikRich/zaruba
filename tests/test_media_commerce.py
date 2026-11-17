@@ -7,13 +7,21 @@
 
 from __future__ import annotations
 
+import re
+import shutil
 from datetime import date, datetime
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 
 import pytest
+import yaml
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from zaruba.config import Settings
 from zaruba.content import ContentError, load_edition, main, merge_overlay
+from zaruba.main import create_app
 from zaruba.models import (
     CommerceOffer,
     Edition,
@@ -23,6 +31,7 @@ from zaruba.models import (
     OfferCategory,
     OfferStatus,
 )
+from zaruba.templating import _footer_partners
 
 
 def _edition(**overrides: object) -> Edition:
@@ -241,6 +250,130 @@ def test_overlay_can_add_media_and_commerce() -> None:
 
     assert edition.media[0].slug == "teaser-2026"
     assert edition.commerce[0].category is OfferCategory.MERCH
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _preview_settings(tmp_path: Path) -> Settings:
+    """Копия `content/` с предпросмотром: медиа и коммерция лежат в overlay."""
+
+    content = tmp_path / "content"
+    shutil.copytree(REPO_ROOT / "content", content)
+    return Settings(
+        content_dir=content / "editions",
+        venues_file=content / "venues.yaml",
+        glossary_file=content / "glossary.yaml",
+        faq_file=content / "faq.yaml",
+        history_file=content / "history.yaml",
+        photos_file=content / "photos.yaml",
+        results_dir=content / "results",
+        preview_enabled=True,
+    )
+
+
+def _html(tmp_path: Path, path: str) -> str:
+    return TestClient(create_app(_preview_settings(tmp_path))).get(path).text
+
+
+def test_home_renders_media_cards_and_offers(tmp_path: Path) -> None:
+    html = _html(tmp_path, "/")
+
+    assert html.count('class="media-card"') == 3
+    assert "VK Видео" in html and "Яндекс Диск" in html
+    assert "media-card__badge" in html and ">Play<" in html
+    assert html.count('class="offer-card"') == 2
+    assert "4\u00a0900 ₽" in html
+    assert "Мерч и фотопакеты" in html
+    assert "Партнёры и спонсоры" in html
+
+
+def test_media_page_groups_items_and_sits_in_navigation(tmp_path: Path) -> None:
+    client = TestClient(create_app(_preview_settings(tmp_path)))
+    media = client.get("/media").text
+
+    assert "Видео · 1" in media
+    assert "Фото · 1" in media
+    assert "Трансляция · 1" in media
+    assert "<iframe" not in media.lower()
+    assert 'href="/media"' in client.get("/").text
+
+
+def test_media_cards_link_out_without_frames(tmp_path: Path) -> None:
+    media = _html(tmp_path, "/media")
+    links = re.findall(r'<a class="media-card"[^>]*>', media)
+
+    assert len(links) == 3
+    assert all('rel="noopener noreferrer"' in link for link in links)
+
+
+def test_commercial_links_are_sponsored_and_erid_is_optional(tmp_path: Path) -> None:
+    html = _html(tmp_path, "/tickets")
+    cards = re.findall(r'<article class="offer-card".*?</article>', html, flags=re.S)
+
+    assert len(cards) == 2
+    hoodie = next(card for card in cards if "hoodie-2026" in card)
+    photo_pack = next(card for card in cards if "photo-pack-2026" in card)
+    assert "Реклама" not in hoodie, "плашка рекламы без erid"
+    assert 'Реклама • erid: <span class="mono">2VtzqwXk9Ab</span>' in photo_pack
+
+    links = re.findall(r'<a[^>]+href="https://zaruba72\.example[^>]*>', html)
+    assert links, "коммерческие ссылки не отрендерились"
+    assert all('rel="sponsored noopener noreferrer"' in link for link in links), links
+
+
+def test_results_attach_media_to_nomination(tmp_path: Path) -> None:
+    """Материал с `nomination_slug` встаёт под таблицей своей номинации."""
+
+    settings = _preview_settings(tmp_path)
+    results = yaml.safe_load((settings.results_dir / "2025.yaml").read_text(encoding="utf-8"))
+    nomination = results["nominations"][0]["nomination"]
+    edition_path = settings.content_dir / "2025.yaml"
+    edition_path.write_text(
+        edition_path.read_text(encoding="utf-8")
+        + f"""
+media:
+  - slug: photo-2025-final
+    title: Фотоотчёт номинации — Яндекс Диск
+    kind: photo
+    platform: Яндекс Диск
+    url: https://disk.yandex.ru/d/zaruba-2025-final
+    nomination_slug: {nomination}
+""",
+        encoding="utf-8",
+    )
+
+    html = TestClient(create_app(settings)).get("/results").text
+
+    assert "Фотоотчёт номинации — Яндекс Диск" in html
+    assert html.count('class="media-card"') == 1
+
+
+def test_without_media_and_commerce_no_empty_sections(client: TestClient) -> None:
+    """Списки пусты — блоков нет вовсе, а не «0 материалов» и пустая сетка."""
+
+    home = client.get("/").text
+    assert "media-card" not in home
+    assert "offer-card" not in home
+    assert "Партнёры и спонсоры" not in home
+    assert "offer-grid" not in client.get("/tickets").text
+
+    media = client.get("/media").text
+    assert "Почему пусто" in media
+    assert "media-grid" not in media
+
+
+def test_footer_partners_are_skipped_on_error_pages_and_broken_content(
+    broken_settings: Settings,
+) -> None:
+    """Футер не грузит контент на странице ошибки и не падает от битого YAML."""
+
+    request: Any = SimpleNamespace(
+        app=SimpleNamespace(state=SimpleNamespace(settings=broken_settings))
+    )
+
+    assert _footer_partners(request, 503) == []
+    assert _footer_partners(request, 200) == []
 
 
 def test_media_nomination_must_exist() -> None:
