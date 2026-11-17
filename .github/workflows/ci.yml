@@ -56,9 +56,12 @@ jobs:
         run: python -m zaruba.content check
 
       - name: Синтаксис скриптов
-        # smoke.sh запускают на сервере после выкладки: bash -n ловит опечатку
-        # и CRLF в файле до того, как скрипт понадобится в аварии.
-        run: bash -n deploy/smoke.sh
+        # smoke.sh запускают на сервере после выкладки, setup_vps.sh — на чистом
+        # VPS: bash -n ловит опечатку и CRLF в файле до того, как скрипт
+        # понадобится в аварии.
+        run: |
+          bash -n deploy/smoke.sh
+          bash -n deploy/setup_vps.sh
 
       - name: Документы
         run: |
@@ -90,6 +93,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@v3
+
+      - name: Compose-файл валиден
+        # DOMAIN обязателен для caddy, поэтому подставляем фиктивный: проверяем
+        # синтаксис и тома, а не выпуск сертификата.
+        run: |
+          { cat .env.example; printf 'DOMAIN=example.test\n'; } > .env
+          docker compose config --quiet
 
       - name: Сборка образа
         uses: docker/build-push-action@v6

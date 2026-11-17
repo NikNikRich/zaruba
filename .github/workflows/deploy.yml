@@ -1,0 +1,109 @@
+name: deploy
+
+# Выкладка только из main: пуш в ветку показывает проверки, но ничего не
+# выкладывает. `workflow_dispatch` — для ручного повтора из вкладки Actions.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Два деплоя одновременно перетирали бы друг друга на одном хосте: второй
+# `git reset --hard` мог бы случиться посреди сборки первого.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Установка
+        # Тот же лок с хешами, что и в образе: проверяем то, что поедет в прод.
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install --no-deps -e .
+
+      - name: Линт
+        run: python -m ruff check src tests
+
+      - name: Форматирование
+        run: python -m ruff format --check src tests
+
+      - name: Типы
+        run: python -m mypy
+
+      - name: Тесты и покрытие
+        run: python -m pytest -q --cov=zaruba --cov-report=term-missing
+
+      - name: Контент выпусков
+        # Данные приехали из таблиц — проверяем их до сборки образа: битый YAML
+        # в проде означает 503 на всех страницах.
+        run: python -m zaruba.content check
+
+      - name: Скрипты деплоя
+        run: |
+          bash -n deploy/smoke.sh
+          bash -n deploy/setup_vps.sh
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ключ и known_hosts
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # Отпечаток хоста лучше положить в секрет VPS_KNOWN_HOSTS:
+          # `ssh-keyscan` — доверие на слово, а подмена хоста отдала бы
+          # deployment-ключ чужому серверу.
+          if [ -n "${KNOWN_HOSTS:-}" ]; then
+            printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+            echo "::warning::VPS_KNOWN_HOSTS не задан — отпечаток хоста получен ssh-keyscan"
+          fi
+
+      - name: Обновление на сервере
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/zaruba
+          git fetch --prune origin main
+          # reset, а не pull: сервер — копия main, локальные правки на нём не
+          # живут, а конфликт в pull оставил бы старый код и «успешный» деплой.
+          git reset --hard origin/main
+          docker compose up -d --build
+          docker image prune -f
+          REMOTE
+
+      - name: Проверка живого сайта
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          SITE_HOST: ${{ secrets.SITE_HOST }}
+        run: |
+          if [ -z "${SITE_HOST:-}" ]; then
+            echo "::notice::SITE_HOST не задан — smoke.sh пропущен"
+            exit 0
+          fi
+          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$VPS_USER@$VPS_HOST" "cd /opt/zaruba && SITE_HOST='$SITE_HOST' bash deploy/smoke.sh"

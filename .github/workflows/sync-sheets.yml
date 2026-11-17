@@ -1,0 +1,89 @@
+name: sync-sheets
+
+# Каждые 30 минут забираем листы из Google Таблиц: владелец правит таблицу в
+# браузере — сайт обновляется сам. GitHub может задержать запуск по расписанию
+# (в пиковые минуты — на десятки минут), но данные меняют руками, а не в бою,
+# поэтому это допустимо. Кнопка «Run workflow» — проверить сразу после правки.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  # Коммит обновлённых CSV и overlay: он же триггерит deploy.yml.
+  contents: write
+
+# Синхронизации не должны накладываться: две параллельные выгрузки коммитили бы
+# один и тот же файл.
+concurrency:
+  group: sync-sheets
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Всегда main: данные таблиц принадлежат продакшену, а не ветке, из
+          # которой случайно нажали «Run workflow».
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Установка
+        # pytest нужен здесь же: сверка таблиц с выпуском — часть прогона.
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install --no-deps -e .
+
+      - name: Настроена ли таблица
+        id: cfg
+        env:
+          ZARUBA_SHEETS_MAP: ${{ secrets.ZARUBA_SHEETS_MAP }}
+        run: |
+          # В форке или до настройки секретов синхронизация не падает, а честно
+          # пропускается: красный workflow каждые полчаса никому не поможет.
+          if [ -z "${ZARUBA_SHEETS_MAP:-}" ]; then
+            echo "ready=0" >> "$GITHUB_OUTPUT"
+            echo "::notice::ZARUBA_SHEETS_MAP не задан — синхронизация пропущена"
+          else
+            echo "ready=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Выгрузка листов
+        if: steps.cfg.outputs.ready == '1'
+        env:
+          ZARUBA_SHEET_ID: ${{ secrets.ZARUBA_SHEET_ID }}
+          ZARUBA_SHEETS_MAP: ${{ secrets.ZARUBA_SHEETS_MAP }}
+        # Скрипт атомарен: если хоть один лист не скачался или не прошёл
+        # проверку, файлы в репозитории остаются прежними, а шаг падает.
+        run: python -m zaruba.sync_tables --from-sheets
+
+      - name: Контент выпусков
+        if: steps.cfg.outputs.ready == '1'
+        run: python -m zaruba.content check
+
+      - name: Тесты
+        # Правка таблицы не должна ломать страницы: pytest сверяет overlay с
+        # выпуском и рендерит каталоги.
+        if: steps.cfg.outputs.ready == '1'
+        run: python -m pytest -q
+
+      - name: Коммит обновлённых данных
+        if: steps.cfg.outputs.ready == '1'
+        run: |
+          if git diff --quiet -- docs/templates content/editions; then
+            echo "изменений нет — коммитить нечего"
+            exit 0
+          fi
+          git config user.name "zaruba-sync[bot]"
+          git config user.email "zaruba-sync@users.noreply.github.com"
+          git add docs/templates content/editions
+          # Один коммит на выгрузку: в истории видно, какие данные приехали и
+          # когда, а deploy.yml срабатывает ровно один раз.
+          git commit -m "chore: данные таблиц из Google Sheets"
+          git push
