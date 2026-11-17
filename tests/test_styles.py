@@ -109,3 +109,65 @@ def test_smooth_scroll_respects_reduced_motion() -> None:
     assert "scroll-behavior: smooth" in _rule(css, "html")[0]
     reduced = _media_block(css, "prefers-reduced-motion: reduce")
     assert "scroll-behavior: auto" in reduced, "плавность не отключается для reduced-motion"
+
+
+def _token(css: str, name: str) -> str:
+    """HEX-значение токена: `--bg` не должен совпасть с `--bg2`."""
+
+    match = re.search(re.escape(name) + r":\s*(#[0-9a-fA-F]{6})", css)
+    assert match, f"нет токена {name}"
+    return match.group(1).lower()
+
+
+def _luminance(color: str) -> float:
+    """Относительная яркость по WCAG 2.x: каналы sRGB, затем линейное значение."""
+
+    channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+    linear = [
+        value / 12.92 if value <= 0.03928 else ((value + 0.055) / 1.055) ** 2.4
+        for value in channels
+    ]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast(foreground: str, background: str) -> float:
+    """Коэффициент контраста WCAG: (L1 + 0.05) / (L2 + 0.05)."""
+
+    lighter, darker = sorted((_luminance(foreground), _luminance(background)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def test_dim_text_meets_wcag_aa_on_every_surface() -> None:
+    """`--dim` — подписи 11 px: на всех трёх фонах нужно ≥ 4.5:1 (WCAG AA)."""
+
+    css = _css()
+    dim = _token(css, "--dim")
+
+    for surface in ("--bg", "--bg2", "--bg3"):
+        ratio = _contrast(dim, _token(css, surface))
+        assert ratio >= 4.5, f"--dim {dim} на {surface}: {ratio:.2f} < 4.5"
+
+    assert _luminance(dim) < _luminance(_token(css, "--ink")), "--dim светлее основного текста"
+    assert _luminance(dim) < _luminance(_token(css, "--muted")), (
+        "--dim должен оставаться спокойнее --muted, иначе иерархия пропала"
+    )
+
+
+def test_day_tabs_height_token_matches_rule() -> None:
+    """`--day-tabs-h` — сумма реальных частей `.day-tabs`, а не отдельное число."""
+
+    css = _css()
+    token = re.search(r"--day-tabs-h:\s*(\d+)px", css)
+    assert token, "нет токена --day-tabs-h"
+
+    tabs = _rule(css, ".day-tabs")[0]
+    padding = re.search(r"padding:\s*(\d+)px\s+[^;]+", tabs)
+    border = re.search(r"border-bottom:\s*(\d+)px", tabs)
+    link = _rule(css, ".day-tabs a")[0]
+    link_height = re.search(r"min-height:\s*(\d+)px", link)
+    assert padding and border and link_height, "изменилась запись padding/border/min-height"
+
+    computed = 2 * int(padding.group(1)) + int(border.group(1)) + int(link_height.group(1))
+    assert computed == int(token.group(1)), (
+        f"высота .day-tabs = {computed}px, а --day-tabs-h = {token.group(1)}px"
+    )
