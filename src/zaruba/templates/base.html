@@ -79,6 +79,12 @@
       {% endfor %}
     </nav>
     {% endif %}
+    {% if partners %}
+    <div class="footer-partners">
+      <p class="muted small">Партнёры и спонсоры</p>
+      {% include "partials/partner-list.html" %}
+    </div>
+    {% endif %}
     <p class="muted small">Все факты получены из публичных источников и помечены статусом.
     Нашли ошибку — напишите в сообщество, мы исправим и укажем источник.</p>
   </div>

@@ -19,7 +19,9 @@ from ..services.edition import (
     master_class_pass,
     master_class_prices,
     nominations_by_day,
+    partner_offers,
     registration_state,
+    shop_offers,
 )
 from ..services.history import history_rows
 from ..services.seo import event_json_ld, faq_json_ld, glossary_json_ld
@@ -51,6 +53,12 @@ def home(request: Request) -> HTMLResponse:
         judges=edition.judges,
         participants=edition.participants[:8],
         studios=edition.studio_index,
+        # Медиа на главной — три карточки: остальное живёт на `/media`, чтобы
+        # главная оставалась ответом «что, когда, где», а не лентой.
+        media=edition.media[:3],
+        media_total=len(edition.media),
+        offers=shop_offers(edition),
+        partners=partner_offers(edition),
         registration_state=registration_state(edition),
         archive=archive if archive.year != edition.edition else None,
         # §6.19: Event на главной — даты, место и ссылка на билеты.
@@ -205,6 +213,7 @@ def tickets_page(request: Request) -> HTMLResponse:
         fee_early_active=any(view.price.early_active for view in fee_views),
         registration_until=edition.registration_until,
         sales_closed=edition.dates[-1] < date.today(),
+        offers=shop_offers(edition),
         page_title="Билеты",
     )
 

@@ -1,0 +1,11 @@
+{# Партнёры: ссылки рекламные, поэтому `sponsored`; erid — по 38-ФЗ. #}
+<ul class="partner-list">
+  {% for offer in partners %}
+  <li>
+    <a href="{{ offer.url }}" rel="sponsored noopener noreferrer">{{ offer.title }}</a>
+    {% if offer.erid %}
+    <span class="partner-mark small">Реклама • erid: <span class="mono">{{ offer.erid }}</span></span>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>

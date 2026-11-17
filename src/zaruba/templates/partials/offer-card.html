@@ -1,0 +1,13 @@
+{# Коммерческая карточка: статус, цена, действие и маркировка рекламы (38-ФЗ). #}
+<article class="offer-card" id="offer-{{ offer.slug }}">
+  <span class="badge offer-card__status offer-card__status--{{ offer.status.value }}">{{ offer.status.label }}</span>
+  <strong class="offer-card__title">{{ offer.title }}</strong>
+  <p class="offer-card__text">{{ offer.description }}</p>
+  {% if offer.price is not none %}
+  <p class="offer-card__price">{{ offer.price|money }} ₽</p>
+  {% endif %}
+  <a class="btn{% if offer.cta_primary %} btn--primary{% endif %} offer-card__cta" href="{{ offer.url }}" rel="sponsored noopener noreferrer">{{ offer.cta_label }}</a>
+  {% if offer.erid %}
+  <p class="offer-card__erid">Реклама • erid: <span class="mono">{{ offer.erid }}</span></p>
+  {% endif %}
+</article>

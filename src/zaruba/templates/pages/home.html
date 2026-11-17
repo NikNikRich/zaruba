@@ -157,6 +157,29 @@
   {% endif %}
 </section>
 
+{% if media %}
+<section class="section">
+  <h2>Фото и видео</h2>
+  <div class="media-grid">
+    {% for item in media %}{% include "partials/media-card.html" %}{% endfor %}
+  </div>
+  {% if media_total > media|length %}
+  <p class="section-link"><a href="/media">все фото и видео →</a></p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if offers %}
+<section class="section">
+  <h2>Мерч и фотопакеты</h2>
+  <p class="lead muted">Коммерческие предложения организаторов и партнёров: ссылки
+  ведут на внешние страницы, маркировка рекламы — по 38-ФЗ.</p>
+  <div class="offer-grid">
+    {% for offer in offers %}{% include "partials/offer-card.html" %}{% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="section">
   <h2>Площадка</h2>
   <div class="venue-card">
@@ -181,6 +204,15 @@
   </ul>
   <p class="muted small">Сайт неофициальный: он не принимает заявки и не отвечает за расписание.
   Все вопросы — организаторам в сообществе «ЗАРУБА72».</p>
+</section>
+{% endif %}
+
+{% if partners %}
+<section class="section">
+  <h2>Партнёры и спонсоры</h2>
+  {% include "partials/partner-list.html" %}
+  <p class="muted small">Ссылки партнёров — рекламные. Если рядом указан токен,
+  он маркирует рекламу по 38-ФЗ; без токена плашки «Реклама» нет.</p>
 </section>
 {% endif %}
 

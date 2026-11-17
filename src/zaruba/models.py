@@ -1006,6 +1006,12 @@ class CommerceOffer(Strict):
             )
         return self
 
+    @property
+    def cta_primary(self) -> bool:
+        """Распроданный товар не подсвечивается лаймом: кнопка не обещает наличие."""
+
+        return self.status is not OfferStatus.SOLD_OUT
+
 
 class MasterClass(Strict):
     """Мастер-класс: время и педагог из афиши, цена до и после срока."""

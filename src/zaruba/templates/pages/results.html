@@ -102,6 +102,12 @@
     <p class="muted small">Часть клеток не читается: такие участники выпадают из рейтинга,
     остальные места сохраняют.</p>
     {% endif %}
+
+    {% if media_for_nominations.get(item.slug) %}
+    <div class="media-grid">
+      {% for item in media_for_nominations[item.slug] %}{% include "partials/media-card.html" %}{% endfor %}
+    </div>
+    {% endif %}
   </section>
   {% endfor %}
 </section>

@@ -1,0 +1,14 @@
+{# Карточка медиа: ссылка целиком, без iframe — CSP `frame-src 'none'` и zero-JS. #}
+<a class="media-card" href="{{ item.url }}" rel="noopener noreferrer">
+  <span class="media-card__frame">
+    {% if item.preview_image %}
+    <img class="media-card__image" src="{{ url_for('static', path=item.preview_image) }}" alt="" loading="lazy" decoding="async">
+    {% else %}
+    <span class="media-card__placeholder" aria-hidden="true">ЗАРУБА</span>
+    {% endif %}
+    <span class="media-card__badge">{{ item.kind.badge }}</span>
+    {% if item.meta %}<span class="media-card__meta">{{ item.meta }}</span>{% endif %}
+  </span>
+  <span class="media-card__platform">{{ item.platform.value }}</span>
+  <strong class="media-card__title">{{ item.title }}</strong>
+</a>

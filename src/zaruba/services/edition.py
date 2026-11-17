@@ -8,6 +8,7 @@ from datetime import date, time
 
 from ..models import (
     AgeGroup,
+    CommerceOffer,
     DanceFormat,
     DanceStyle,
     DataStatus,
@@ -15,7 +16,10 @@ from ..models import (
     EditionBundle,
     Fee,
     MasterClass,
+    MediaItem,
+    MediaKind,
     Nomination,
+    OfferCategory,
     Participant,
     Performance,
     ScheduleBlock,
@@ -372,3 +376,47 @@ def participant_view(bundles: Sequence[EditionBundle], slug: str) -> Participant
     return ParticipantView(
         participant=participant, studio=studio, performances=performances, year=year
     )
+
+
+@dataclass(frozen=True)
+class MediaGroup:
+    """Материалы одного типа: страница `/media` показывает их отдельными полками."""
+
+    kind: MediaKind
+    items: list[MediaItem]
+
+
+def media_groups(edition: Edition) -> list[MediaGroup]:
+    """Видео, фото и эфиры — в порядке перечисления, пустые полки не рисуются."""
+
+    return [
+        MediaGroup(kind=kind, items=[item for item in edition.media if item.kind is kind])
+        for kind in MediaKind
+        if any(item.kind is kind for item in edition.media)
+    ]
+
+
+def media_by_nomination(edition: Edition) -> dict[str, list[MediaItem]]:
+    """Материалы по номинациям: `/results` добавляет их под таблицей своей номинации.
+
+    Привязка необязательна: общий фотоотчёт остаётся на `/media`, а не
+    дублируется под каждой номинацией.
+    """
+
+    grouped: dict[str, list[MediaItem]] = {}
+    for item in edition.media:
+        if item.nomination_slug:
+            grouped.setdefault(item.nomination_slug, []).append(item)
+    return grouped
+
+
+def shop_offers(edition: Edition) -> list[CommerceOffer]:
+    """Товары и услуги: мерч, фотопакеты, VIP — всё, что не партнёрская ссылка."""
+
+    return [offer for offer in edition.commerce if offer.category is not OfferCategory.PARTNER]
+
+
+def partner_offers(edition: Edition) -> list[CommerceOffer]:
+    """Партнёры и спонсоры: цены у них нет, есть ссылка и, если нужно, `erid`."""
+
+    return [offer for offer in edition.commerce if offer.category is OfferCategory.PARTNER]

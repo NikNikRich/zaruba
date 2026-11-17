@@ -77,6 +77,18 @@
   <p class="section-link"><a href="/venue">как добраться до площадки →</a></p>
 </section>
 
+{% if offers %}
+<section class="section">
+  <h2>Мерч и фотопакеты</h2>
+  <p class="lead muted">Коммерческие предложения организаторов и партнёров: покупка
+  происходит на внешней странице, сайт не принимает платежи. Реклама с токеном
+  маркируется по 38-ФЗ.</p>
+  <div class="offer-grid">
+    {% for offer in offers %}{% include "partials/offer-card.html" %}{% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="section">
   <h2>Взносы за участие</h2>
   {% if fees %}

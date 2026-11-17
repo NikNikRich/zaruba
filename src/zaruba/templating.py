@@ -17,6 +17,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette.routing import NoMatchFound
 
+from .content import ContentError, load_latest
+from .models import CommerceOffer
+from .services.edition import partner_offers
 from .services.seo import breadcrumbs_json_ld, json_ld_script
 
 PACKAGE_DIR = Path(__file__).resolve().parent
@@ -55,6 +58,7 @@ NAV_ITEMS: tuple[dict[str, str], ...] = (
     {"endpoint": "schedule", "label": "Расписание"},
     {"endpoint": "performances", "label": "Выступления"},
     {"endpoint": "results_page", "label": "Результаты"},
+    {"endpoint": "media_page", "label": "Фото и видео"},
     {"endpoint": "participants", "label": "Участники"},
     {"endpoint": "ratings_page", "label": "Рейтинги"},
     {"endpoint": "venue_page", "label": "Площадка"},
@@ -251,6 +255,21 @@ def _json_ld_blocks(request: Request, context: dict[str, Any], status_code: int)
     return [json_ld_script(block) for block in blocks]
 
 
+def _footer_partners(request: Request, status_code: int) -> list[CommerceOffer]:
+    """Партнёры в футере — на каждой успешной странице, но без риска рекурсии.
+
+    Страница ошибки контент не грузит: битый YAML иначе вызвал бы её же через
+    обработчик `ContentError`, и ответ превратился бы в бесконечный цикл.
+    """
+
+    if status_code >= 400:
+        return []
+    try:
+        return partner_offers(load_latest(request.app.state.settings).edition)
+    except ContentError:
+        return []
+
+
 def render(
     request: Request, template_name: str, *, status_code: int = 200, **context: Any
 ) -> HTMLResponse:
@@ -270,6 +289,9 @@ def render(
         "robots": None,
     }
     payload.update(context)
+    # Партнёры нужны в футере каждой страницы; роутер может передать свой
+    # список (главная), и тогда он важнее общего. `setdefault` — после update.
+    payload.setdefault("partners", _footer_partners(request, status_code))
     # Preview-сборка не должна попасть в индекс: `noindex, nofollow` ставится
     # поверх любого значения роутера, потому что выдуманные карточки — не факты
     # выпуска, а ссылки с них ведут на такие же демонстрационные страницы.
