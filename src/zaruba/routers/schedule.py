@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import HTMLResponse
 
-from ..content import load_latest, load_service_tips
+from ..content import load_latest
 from ..models import TipSlot
 from ..services.edition import (
     day_views,
@@ -17,7 +17,7 @@ from ..services.edition import (
     master_class_slot,
     nominations_by_day,
 )
-from ..services.tips import tip_for_slot
+from ..services.tips import resolve_tip
 from ..templating import render
 
 router = APIRouter()
@@ -39,11 +39,7 @@ def schedule(
         nominations_days = [item for item in nominations_days if item.day == day]
 
     settings = request.app.state.settings
-    service_tip = (
-        tip_for_slot(load_service_tips(settings), TipSlot.SCHEDULE_TOP)
-        if settings.service_tips_visible
-        else None
-    )
+    service_tip = resolve_tip(settings, TipSlot.SCHEDULE_TOP)
 
     return render(
         request,

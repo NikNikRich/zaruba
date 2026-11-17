@@ -3,6 +3,7 @@
 # Пустой список — законное состояние: слоты в dev показывают заглушки, в prod
 # не рендерятся вовсе. Оффер обязан иметь `advertiser` и `erid` (38-ФЗ):
 # без маркировки строка не пройдёт `python -m zaruba.content check`.
+# Токены `DEMO-*` допустимы только в `content/offers.preview.yaml`.
 #
 # tips:
 #   - slug: coffee-2026

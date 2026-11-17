@@ -32,9 +32,9 @@
 | Фавикон и OG-обложка (§6.19) | готово: `favicon.svg` 32×32 и `og-cover.png` 1200×630, `theme-color`, OG/Twitter-теги | `static/`, `templates/base.html`, `tests/test_pages.py` |
 | Результаты 2025 (§6.24) | готово: `/results` — расчёт по 21 номинации судейских листов, места расчётные, дети по инициалам | `content/results/2025.yaml`, `services/results.py` |
 | Презентационные данные (`07`) | готово: таблицы `docs/templates/*.csv`, overlay `content/editions/2026.d/`, флаг `ZARUBA_PREVIEW_ENABLED`, `--drop-preview` | `sync_tables.py`, `content.py` |
-| Рекламные слоты (§6.27) | готово: три зарезервированных места, заглушки только в dev, `content/offers.yaml`, маркировка 38-ФЗ | `partials/service-tips.html`, `services/tips.py`, `tests/test_service_tips.py` |
+| Рекламные слоты (§6.27) | готово: три зарезервированных места, заглушки в dev, два демо-оффера в preview, `content/offers.yaml`, маркировка 38-ФЗ | `partials/service-tips.html`, `services/tips.py`, `tests/test_service_tips.py` |
 
-Проверки на 2026-11-17: `pytest` — 337 тестов (покрытие 94 % при пороге 90 %),
+Проверки на 2026-11-18: `pytest` — 457 тестов (покрытие 94 % при пороге 90 %),
 `ruff check src tests`, `ruff format --check src tests` и `mypy` — чисто,
 `python -m zaruba.content check` — ОК, проверки документов и презентации — ОК.
 Версии зависимостей зафиксированы локом с хешами (`requirements.lock`,
@@ -1171,9 +1171,22 @@ overlay прежними. Инструкция для владельца — `08
 - офферы — `content/offers.yaml` (список `tips`), модель `ServiceTip`:
   `advertiser` и `erid` обязательны. Нет валидного оффера — слот не рендерится;
   битый файл ломает `python -m zaruba.content check`, а не первую страницу;
+- демонстрационные офферы — отдельный `content/offers.preview.yaml`
+  (`ZARUBA_OFFERS_PREVIEW_FILE`). Он читается только при
+  `ZARUBA_PREVIEW_ENABLED=1` и только если для слота нет действующего оффера
+  в боевом файле. `content/offers.yaml` остаётся `tips: []`: придуманный
+  `erid` в публичный контент не попадает, а токен `DEMO-*` в боевом файле
+  загрузчик отклоняет. Два примера — `schedule_top` и `checklist_card`,
+  `protocols_inline` остаётся заглушкой, чтобы на показе было видно оба
+  состояния. Домены — `.example` (RFC 2606), переход по CTA никуда не уводит;
 - флаг `ZARUBA_SERVICE_TIPS_ENABLED`: не задан — включено в dev и выключено
   в prod; заглушки рендерятся только в dev. В prod рекламу включает явное
-  `ZARUBA_SERVICE_TIPS_ENABLED=true`, и только при валидном оффере с `erid`;
+  `ZARUBA_SERVICE_TIPS_ENABLED=true`, и только при валидном оффере с `erid`.
+  В preview слоты включены независимо от флага, а заглушка показывается
+  и в `env=prod`: это стенд, и страницы preview и так `noindex`;
+- `python -m zaruba.content check` проверяет оба файла и печатает
+  «рекламные слоты: N» и «демо-офферы: M (только preview)»: сломанный пример
+  ломает проверку до показа, а не в момент демонстрации;
 - маркировка 38-ФЗ: бейдж «Реклама», рекламодатель и `erid` в
   `.service-tip__meta` (11 px, `word-break: break-word`), ссылка с
   `rel="sponsored noopener noreferrer"`;

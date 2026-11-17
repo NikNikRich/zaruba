@@ -332,12 +332,16 @@ def load_faq(path: Path, source_ids: set[str] | None = None) -> list[FaqItem]:
     return items
 
 
-def load_offers(path: Path) -> list[ServiceTip]:
+def load_offers(path: Path, *, allow_demo: bool = False) -> list[ServiceTip]:
     """Рекламные офферы нативных слотов (§6.27).
 
     Отсутствие файла — законное состояние «рекламы нет», а не авария: сайт
     работает без него. А вот битая строка — ошибка с файлом и полем: реклама
     без `erid` или с неизвестным слотом не должна доехать до страницы.
+
+    `allow_demo` открывает токены `DEMO-*` только для презентационного файла:
+    маркировка ОРД не выдаётся с таким префиксом, и в боевом `offers.yaml`
+    он означал бы рекламу без настоящего `erid`.
     """
 
     path = Path(path)
@@ -353,6 +357,13 @@ def load_offers(path: Path) -> list[ServiceTip]:
     duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
     if duplicates:
         raise ContentError(f"{path}: офферы повторяются — {duplicates}")
+    if not allow_demo:
+        for tip in tips:
+            if tip.erid.startswith("DEMO-"):
+                raise ContentError(
+                    f"{path}: tips.{tip.slug}.erid: токен DEMO-* допустим только "
+                    "в content/offers.preview.yaml"
+                )
     return tips
 
 
@@ -370,6 +381,27 @@ def load_service_tips(settings: Settings | None = None) -> list[ServiceTip]:
         return []
     stat = path.stat()
     return list(_offers_cached(str(path), (stat.st_mtime_ns, stat.st_size, len(str(path)))))
+
+
+@lru_cache(maxsize=4)
+def _preview_offers_cached(path: str, fingerprint: tuple[int, int, int]) -> tuple[ServiceTip, ...]:
+    return tuple(load_offers(Path(path), allow_demo=True))
+
+
+def load_preview_service_tips(settings: Settings | None = None) -> list[ServiceTip]:
+    """Демо-офферы для показа (docs/07 §7.8).
+
+    Файл читается страницами только при `preview_enabled`, но `content check`
+    проверяет его всегда: сломанный пример должен ломать проверку до показа,
+    а не в момент демонстрации. Отсутствие файла — «примеров нет».
+    """
+
+    settings = settings or get_settings()
+    path = settings.offers_preview_file
+    if not path.exists():
+        return []
+    stat = path.stat()
+    return list(_preview_offers_cached(str(path), (stat.st_mtime_ns, stat.st_size, len(str(path)))))
 
 
 @dataclass(frozen=True)
@@ -662,12 +694,15 @@ def main(argv: list[str] | None = None) -> int:
                 results = load_all_results(settings)
                 knowledge = load_knowledge(settings)
                 # Офферы проверяются тем же прогоном: битый `offers.yaml` должен
-                # ломать pre-commit, а не первую же страницу в проде.
+                # ломать pre-commit, а не первую же страницу в проде. Демо-файл
+                # проверяется всегда, даже без preview: показ не должен падать.
                 tips = load_service_tips(settings)
+                demo_tips = load_preview_service_tips(settings)
                 print(f"OK  история: {len(archive)} записей до 2025 года")
                 print(f"OK  глоссарий: {len(knowledge.glossary)} статей")
                 print(f"OK  FAQ: {len(knowledge.faq)} вопросов")
                 print(f"OK  рекламные слоты: {len(tips)} офферов")
+                print(f"OK  демо-офферы: {len(demo_tips)} (только preview)")
                 own = sum(1 for photo in photos if photo.file)
                 cited = sum(1 for photo in photos if photo.is_citation)
                 print(

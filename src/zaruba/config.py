@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # Рекламные офферы нативных слотов (§6.27). Файл уровня сайта, а не выпуска:
     # overlay `editions/*.d` в prod выключен, и реклама из него исчезла бы.
     offers_file: Path = BASE_DIR / "content" / "offers.yaml"
+    # Демонстрационные офферы для показа (docs/07 §7.8). Отдельный файл, чтобы
+    # боевой `offers.yaml` оставался `tips: []`, а придуманный `erid` не попадал
+    # в публичный контент.
+    offers_preview_file: Path = BASE_DIR / "content" / "offers.preview.yaml"
     # Разобранные судейские листы по выпускам: `content/results/2025.yaml`.
     # Пустая папка — законное состояние: страница объясняет, почему таблиц нет.
     results_dir: Path = BASE_DIR / "content" / "results"
@@ -52,7 +56,8 @@ class Settings(BaseSettings):
     # Рекламные слоты (§6.27). Поле трёхзначное: `None` — «решает окружение»,
     # True/False — явное указание. В dev по умолчанию включено, чтобы дизайнер
     # видел заглушки; в prod — выключено: рамка «место под интеграцию» на
-    # публичном сайте выглядит как недоделка, а не как реклама.
+    # публичном сайте выглядит как недоделка, а не как реклама. Preview
+    # включает слоты поверх этого флага: на показе нужны примеры.
     service_tips_enabled: bool | None = None
 
     @property
@@ -61,17 +66,21 @@ class Settings(BaseSettings):
 
     @property
     def service_tips_visible(self) -> bool:
-        """Показывать ли рекламные слоты (офферы или заглушки)."""
+        """Показывать ли рекламные слоты (офферы или заглушки).
 
-        return (
+        Preview включает слоты независимо от прод-флага: на показе нужны
+        заполненные примеры, а страницы preview и так закрыты от индексации.
+        """
+
+        return self.preview_enabled or (
             self.service_tips_enabled if self.service_tips_enabled is not None else not self.is_prod
         )
 
     @property
     def service_tips_placeholders(self) -> bool:
-        """Заглушки — только в dev: в prod пустая рамка не публикуется."""
+        """Заглушки — только в dev и в preview: в prod пустая рамка не публикуется."""
 
-        return self.service_tips_visible and not self.is_prod
+        return self.preview_enabled or (self.service_tips_visible and not self.is_prod)
 
 
 @lru_cache

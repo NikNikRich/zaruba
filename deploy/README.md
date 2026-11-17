@@ -120,8 +120,9 @@ certbot, cron и `deploy/nginx.conf.example` для этой связки не �
 | `ZARUBA_RATINGS_ENABLED` | `false` | пока нет механики голосования; `true` открывает раздел для индексации |
 | `ZARUBA_FAN_VOTING_ENABLED` | `false` | механики нет (`docs/05`) |
 | `FORWARDED_ALLOW_IPS` | `*` (задан в compose) | `X-Forwarded-*` доверяем только сети compose: порт приложения наружу не опубликован |
-| `ZARUBA_PREVIEW_ENABLED` | `false` | презентационный overlay; `true` — только пока данные демонстрационные (`docs/07`) |
-| `ZARUBA_SERVICE_TIPS_ENABLED` | не задано | рекламные слоты (§6.27): не задано — включено в dev и выключено в prod; заглушки только в dev |
+| `ZARUBA_PREVIEW_ENABLED` | `false` | презентационный overlay и демо-офферы; `true` — только пока данные демонстрационные (`docs/07`) |
+| `ZARUBA_SERVICE_TIPS_ENABLED` | не задано | рекламные слоты (§6.27): не задано — включено в dev и выключено в prod; заглушки только в dev; preview включает слоты всегда |
+| `ZARUBA_OFFERS_PREVIEW_FILE` | `/app/content/offers.preview.yaml` | два демо-оффера для показа; без `ZARUBA_PREVIEW_ENABLED` не читаются |
 
 `http://` в адресе вместо `https://` — самая дорогая опечатка: сайт сам объявит
 себя небезопасным, а `sitemap.xml` уведёт робота на редирект.

@@ -10,11 +10,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from ..content import load_results_for, load_service_tips, load_site, result_years
+from ..content import load_results_for, load_site, result_years
 from ..models import TipSlot
 from ..services.edition import media_by_nomination
 from ..services.results import results_view
-from ..services.tips import tip_for_slot
+from ..services.tips import resolve_tip
 from ..templating import render
 
 router = APIRouter()
@@ -29,11 +29,7 @@ def results_page(request: Request) -> HTMLResponse:
     year = next((item for item in result_years(settings) if item in known), None)
     bundle = next((item for item in bundles if item.year == year), latest)
     results = load_results_for(settings, year) if year is not None else None
-    service_tip = (
-        tip_for_slot(load_service_tips(settings), TipSlot.PROTOCOLS_INLINE)
-        if settings.service_tips_visible
-        else None
-    )
+    service_tip = resolve_tip(settings, TipSlot.PROTOCOLS_INLINE)
 
     return render(
         request,

@@ -32,6 +32,7 @@ ENV ZARUBA_ENV=prod \
     ZARUBA_HISTORY_FILE=/app/content/history.yaml \
     ZARUBA_PHOTOS_FILE=/app/content/photos.yaml \
     ZARUBA_OFFERS_FILE=/app/content/offers.yaml \
+    ZARUBA_OFFERS_PREVIEW_FILE=/app/content/offers.preview.yaml \
     FORWARDED_ALLOW_IPS=127.0.0.1
 
 RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin zaruba \

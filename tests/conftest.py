@@ -24,6 +24,7 @@ def _settings_for(content: Path) -> Settings:
         history_file=content / "history.yaml",
         photos_file=content / "photos.yaml",
         offers_file=content / "offers.yaml",
+        offers_preview_file=content / "offers.preview.yaml",
         results_dir=content / "results",
     )
 
