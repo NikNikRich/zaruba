@@ -239,3 +239,28 @@ def test_internal_links_of_new_pages_resolve(client: TestClient) -> None:
                 broken.append(f"{page} → {path}")
 
     assert not broken, broken
+
+
+def test_wide_tables_are_wrapped_for_horizontal_scroll(client: TestClient) -> None:
+    """Таблица с 5+ колонками прокручивается внутри `.table-wrap`.
+
+    Без обёртки страница распирается по горизонтали, а карточная сетка на
+    четыре колонки оставляет пятую ячейку без места.
+    """
+
+    pages = ("/schedule", "/results", "/studios/demo-studio-a")
+    checked = 0
+    for page in pages:
+        html = client.get(page).text
+        wrapped = re.findall(r'<div class="table-wrap">.*?</div>', html, flags=re.DOTALL)
+        for table in re.findall(r"<table.*?</table>", html, flags=re.DOTALL):
+            if table.count('<th scope="col">') < 5:
+                continue
+            checked += 1
+            assert any(table in block for block in wrapped), (
+                f"{page}: широкая таблица без .table-wrap"
+            )
+            assert "table--results" in table or "table--wide" in table, (
+                f"{page}: у широкой таблицы нет класса table--wide"
+            )
+    assert checked >= 4, "таблицы с 5+ колонками не найдены — проверка выродилась"

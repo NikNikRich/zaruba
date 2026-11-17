@@ -171,3 +171,25 @@ def test_day_tabs_height_token_matches_rule() -> None:
     assert computed == int(token.group(1)), (
         f"высота .day-tabs = {computed}px, а --day-tabs-h = {token.group(1)}px"
     )
+
+
+def test_wide_tables_scroll_inside_their_wrapper() -> None:
+    """5+ колонок в карточки не раскладываются: скролл живёт внутри `.table-wrap`."""
+
+    css = _css()
+    wrap = _rule(css, ".table-wrap")[0]
+    for prop in (
+        "overflow-x: auto",
+        "max-width: 100%",
+        "scrollbar-width: thin",
+        "overscroll-behavior-x: contain",
+    ):
+        assert prop in wrap, f".table-wrap без `{prop}`"
+
+    wide = _rule(css, ".table--wide")
+    assert wide, "нет правила .table--wide"
+    assert re.search(r"min-width:\s*\d+px", wide[0]), "широкой таблице нужна min-width"
+
+    # Карточный режим не перехватывает широкие таблицы: пятая ячейка падала
+    # в авто-строку сетки, рассчитанной на четыре колонки.
+    assert not re.search(r"\.table:not\(\.table--results\)(?!:not\(\.table--wide\))", css)

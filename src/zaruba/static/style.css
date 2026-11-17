@@ -422,9 +422,21 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
 /* Результаты: колонок больше, чем в расписании, поэтому на телефоне таблица
    прокручивается, а не превращается в карточки (карточная сетка рассчитана
    на четыре колонки и с шестью разъезжается). */
-.table-wrap { overflow-x: auto; margin: 0 0 8px; }
+.table-wrap {
+  overflow-x: auto;
+  /* Широкая таблица не распирает страницу: скролл живёт в контейнере,
+     а свайп не «протекает» на body. Скроллбар — тонкий, как у меню. */
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+  margin: 0 0 8px;
+}
 .table--results { min-width: 480px; }
 .table--results td:first-child { width: 64px; }
+/* Пять колонок в карточки не раскладываются: такая таблица остаётся таблицей
+   и прокручивается внутри `.table-wrap`, как результаты (§6.20). */
+.table--wide { min-width: 520px; }
 
 .badge {
   display: inline-flex;
@@ -576,26 +588,34 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
 }
 
 /* §6.20: таблица расписания на телефоне — карточки, без горизонтального скролла.
-   Таблицы результатов (`table--results`) из этого правила исключены: у них
-   шесть колонок, и карточная сетка на четыре их не раскладывает. */
+   Исключены таблицы результатов (`table--results`, 6–7 колонок) и широкие
+   (`table--wide`, 5 колонок): карточная сетка рассчитана на четыре колонки,
+   а пятая ячейка падала в авто-строку. Такие таблицы прокручиваются внутри
+   `.table-wrap` — страница при этом не распирается. */
 @media (max-width: 640px) {
-  .table:not(.table--results),
-  .table:not(.table--results) tbody,
-  .table:not(.table--results) tr,
-  .table:not(.table--results) td { display: block; }
-  .table:not(.table--results) thead { display: none; }
-  .table:not(.table--results) tr {
+  .table:not(.table--results):not(.table--wide),
+  .table:not(.table--results):not(.table--wide) tbody,
+  .table:not(.table--results):not(.table--wide) tr,
+  .table:not(.table--results):not(.table--wide) td { display: block; }
+  .table:not(.table--results):not(.table--wide) thead { display: none; }
+  .table:not(.table--results):not(.table--wide) tr {
     display: grid;
     grid-template-columns: 96px 1fr;
     gap: 2px 10px;
     padding: 12px 0;
     border-bottom: 1px solid var(--line2);
   }
-  .table:not(.table--results) td { border: 0; padding: 0; }
-  .table:not(.table--results) td:nth-child(1) { grid-column: 1; grid-row: 1 / span 3; font-size: 13px; }
-  .table:not(.table--results) td:nth-child(2) { grid-column: 2; font-weight: 600; }
-  .table:not(.table--results) td:nth-child(3) { grid-column: 2; font-size: 12.5px; color: var(--muted); }
-  .table:not(.table--results) td:nth-child(4) { grid-column: 2; }
+  .table:not(.table--results):not(.table--wide) td { border: 0; padding: 0; }
+  .table:not(.table--results):not(.table--wide) td:nth-child(1) {
+    grid-column: 1; grid-row: 1 / span 3; font-size: 13px;
+  }
+  .table:not(.table--results):not(.table--wide) td:nth-child(2) {
+    grid-column: 2; font-weight: 600;
+  }
+  .table:not(.table--results):not(.table--wide) td:nth-child(3) {
+    grid-column: 2; font-size: 12.5px; color: var(--muted);
+  }
+  .table:not(.table--results):not(.table--wide) td:nth-child(4) { grid-column: 2; }
   .block { padding: 14px; }
   .filters label { flex: 1 1 140px; }
   .filters select { width: 100%; }

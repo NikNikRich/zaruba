@@ -56,29 +56,31 @@
 <section class="section">
   <h2>Выступления</h2>
   {% if performances %}
-  <table class="table">
-    <caption class="sr-only">Выступления студии {{ view.studio.name }}</caption>
-    <thead>
-      <tr>
-        <th scope="col">Год</th>
-        <th scope="col">Номинация</th>
-        <th scope="col">Когда</th>
-        <th scope="col">Кто</th>
-        <th scope="col">Карточка</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for item in performances %}
-      <tr>
-        <td class="mono">{{ item.year }}</td>
-        <td>{{ item.nomination.title }}</td>
-        <td>День {{ item.day }} · {{ item.performance.scheduled_at|fmt_date }}, {{ item.performance.scheduled_at|fmt_time }}</td>
-        <td>{{ item.participant_names }}</td>
-        <td><a href="/performances/{{ item.performance.slug }}">открыть</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-wrap">
+    <table class="table table--wide">
+      <caption class="sr-only">Выступления студии {{ view.studio.name }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">Год</th>
+          <th scope="col">Номинация</th>
+          <th scope="col">Когда</th>
+          <th scope="col">Кто</th>
+          <th scope="col">Карточка</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in performances %}
+        <tr>
+          <td class="mono">{{ item.year }}</td>
+          <td>{{ item.nomination.title }}</td>
+          <td>День {{ item.day }} · {{ item.performance.scheduled_at|fmt_date }}, {{ item.performance.scheduled_at|fmt_time }}</td>
+          <td>{{ item.participant_names }}</td>
+          <td><a href="/performances/{{ item.performance.slug }}">открыть</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
   <p class="empty">Выступлений нет. <a href="/performances">Каталог выступлений</a> и
   <a href="/schedule">расписание</a> покажут всю программу выпуска.</p>

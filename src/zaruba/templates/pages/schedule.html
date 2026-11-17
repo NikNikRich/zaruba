@@ -62,29 +62,31 @@
       <span class="block-time">тайминг уточняется</span>
       <h3>Номинации дня</h3>
     </header>
-    <table class="table">
-      <caption class="sr-only">Номинации дня {{ day.day }}</caption>
-      <thead>
-        <tr>
-          <th scope="col">Номинация</th>
-          <th scope="col">Формат</th>
-          <th scope="col">Возраст</th>
-          <th scope="col">Зачёты</th>
-          <th scope="col">Состав</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for nomination in nom_day.nominations %}
-        <tr>
-          <td>{{ nomination.title }}</td>
-          <td>{{ nomination.format.label }}</td>
-          <td>{{ nomination.age_group.label }}</td>
-          <td>{% if nomination.levels %}{{ nomination.levels_label }}{% else %}<span class="muted">без деления</span>{% endif %}</td>
-          <td>{% if nomination.team_size_label %}{{ nomination.team_size_label }}{% else %}<span class="muted">—</span>{% endif %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="table-wrap">
+      <table class="table table--wide">
+        <caption class="sr-only">Номинации дня {{ day.day }}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Номинация</th>
+            <th scope="col">Формат</th>
+            <th scope="col">Возраст</th>
+            <th scope="col">Зачёты</th>
+            <th scope="col">Состав</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for nomination in nom_day.nominations %}
+          <tr>
+            <td>{{ nomination.title }}</td>
+            <td>{{ nomination.format.label }}</td>
+            <td>{{ nomination.age_group.label }}</td>
+            <td>{% if nomination.levels %}{{ nomination.levels_label }}{% else %}<span class="muted">без деления</span>{% endif %}</td>
+            <td>{% if nomination.team_size_label %}{{ nomination.team_size_label }}{% else %}<span class="muted">—</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     <p class="muted small">Время и порядок выходов появятся, когда организаторы опубликуют
     тайминг: выдуманная сетка «12:00–15:00» хуже, чем честная пустая клетка.</p>
   </article>
