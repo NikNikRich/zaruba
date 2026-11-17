@@ -13,6 +13,12 @@
     .venv\\Scripts\\python.exe -m zaruba.sync_tables --check
     .venv\\Scripts\\python.exe -m zaruba.sync_tables
     .venv\\Scripts\\python.exe -m zaruba.sync_tables --drop-preview
+    .venv\\Scripts\\python.exe -m zaruba.sync_tables --from-sheets
+
+`--from-sheets` берёт листы не из `docs/templates`, а из Google Таблиц: адреса
+экспорта собираются из `ZARUBA_SHEET_ID` и `ZARUBA_SHEETS_MAP`. Выгрузка
+атомарна — пока не скачались и не прошли проверку все листы, локальные CSV и
+overlay остаются прежними.
 """
 
 from __future__ import annotations
@@ -20,12 +26,16 @@ from __future__ import annotations
 import argparse
 import contextlib
 import csv
+import json
+import os
 import sys
-from collections.abc import Callable
+import urllib.error
+import urllib.request
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 import yaml
 from pydantic import BaseModel, ValidationError
@@ -59,18 +69,17 @@ class TableError(Exception):
 UTF16_BOMS = (b"\xff\xfe", b"\xfe\xff")
 
 
-def _read_table_text(path: Path) -> str:
-    """Читает CSV в UTF-8 (с BOM или без) либо Windows-1251.
+def _decode_table(raw: bytes, label: str) -> str:
+    """Декодирует CSV в UTF-8 (с BOM или без) либо Windows-1251.
 
     Русский Excel сохраняет таблицы в cp1251, «Блокнот» и Google Sheets — в
     UTF-8. Порядок важен: cp1251 декодирует почти любые байты, поэтому её
     пробуем последней, иначе UTF-8 с кириллицей молча стал бы мусором.
     """
 
-    raw = path.read_bytes()
     if raw.startswith(UTF16_BOMS):
         raise TableError(
-            f"{path}: файл сохранён в UTF-16 — пересохраните таблицу в UTF-8 или Windows-1251"
+            f"{label}: файл сохранён в UTF-16 — пересохраните таблицу в UTF-8 или Windows-1251"
         )
     for encoding in ("utf-8-sig", "cp1251"):
         try:
@@ -78,8 +87,12 @@ def _read_table_text(path: Path) -> str:
         except UnicodeDecodeError:
             continue
     raise TableError(
-        f"{path}: не удалось определить кодировку — нужен UTF-8 (с BOM или без) или Windows-1251"
+        f"{label}: не удалось определить кодировку — нужен UTF-8 (с BOM или без) или Windows-1251"
     )
+
+
+def _read_table_text(path: Path) -> str:
+    return _decode_table(path.read_bytes(), str(path))
 
 
 def _text(row: dict[str, str], key: str) -> str | None:
@@ -419,6 +432,202 @@ TABLE_SPECS += (
 )
 
 
+# --- Google Таблицы: CSV по публичной ссылке -------------------------------
+#
+# Таблицу заполняет владелец в браузере, а не контент-менеджер в git. При доступе
+# «Все, у кого есть ссылка» у каждого листа есть постоянный адрес экспорта CSV —
+# без ключа API и без библиотеки Google. Разбор CSV у нас свой (`read_table`),
+# поэтому дополнительных зависимостей нет: качаем стандартной библиотекой, а
+# `pip`-лок остаётся таким, каким его собрал `uv`.
+
+DEFAULT_SHEETS_TIMEOUT = 10.0
+SHEETS_MAP_ENV = "ZARUBA_SHEETS_MAP"
+SHEETS_ID_ENV = "ZARUBA_SHEET_ID"
+SHEETS_BASE_URL = "https://docs.google.com/spreadsheets/d"
+SHEETS_USER_AGENT = "zaruba-sync-tables/1.0"
+
+# `opener` — точка подмены в тестах: сеть в pytest не нужна.
+Opener = Callable[[urllib.request.Request, float], IO[bytes]]
+
+
+def sheet_export_url(sheet_id: str, gid: str) -> str:
+    """Адрес экспорта листа: `.../d/<ID>/export?format=csv&gid=<GID>`."""
+
+    return f"{SHEETS_BASE_URL}/{sheet_id}/export?format=csv&gid={gid}"
+
+
+def _sheet_map(environ: Mapping[str, str]) -> dict[str, str]:
+    """Разбирает `ZARUBA_SHEETS_MAP`: раздел модели → gid или полный URL."""
+
+    raw = environ.get(SHEETS_MAP_ENV, "").strip()
+    sheet_id = environ.get(SHEETS_ID_ENV, "").strip()
+    if not raw:
+        if sheet_id:
+            raise TableError(
+                f"{SHEETS_ID_ENV} задан, а {SHEETS_MAP_ENV} нет — неизвестно, какой gid "
+                'у какого листа; пример: {"blocks": "0", "studios": "123456"}'
+            )
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise TableError(
+            f"{SHEETS_MAP_ENV}: не JSON ({exc.msg}, позиция {exc.pos}) — ожидался объект "
+            'вида {"blocks": "0", "studios": "123456"}'
+        ) from exc
+    if not isinstance(parsed, dict) or not parsed:
+        raise TableError(f'{SHEETS_MAP_ENV}: нужен непустой JSON-объект "лист": "gid"')
+
+    mapping: dict[str, str] = {}
+    for section, value in parsed.items():
+        if isinstance(value, int) and not isinstance(value, bool):
+            value = str(value)
+        if not isinstance(value, str) or not value.strip():
+            raise TableError(
+                f"{SHEETS_MAP_ENV}: у листа «{section}» пустое значение — нужен gid или URL"
+            )
+        mapping[str(section)] = value.strip()
+    return mapping
+
+
+def sheet_sources(environ: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Имя файла таблицы → адрес CSV.
+
+    Пустой словарь — переменные не заданы, работаем с локальными
+    `docs/templates/*.csv`. Неполная карта — ошибка, а не тихая замена
+    половины листов: иначе overlay соберётся из старых и новых данных сразу.
+    """
+
+    environ = os.environ if environ is None else environ
+    mapping = _sheet_map(environ)
+    if not mapping:
+        return {}
+
+    known = {spec.section for spec in TABLE_SPECS}
+    unknown = sorted(set(mapping) - known)
+    if unknown:
+        raise TableError(f"{SHEETS_MAP_ENV}: неизвестные листы {unknown}; есть {sorted(known)}")
+    missing = [spec.section for spec in TABLE_SPECS if spec.section not in mapping]
+    if missing:
+        raise TableError(
+            f"{SHEETS_MAP_ENV}: не заданы листы {missing} — выгрузка была бы неполной, "
+            "а частичная замена таблиц запрещена"
+        )
+
+    sheet_id = environ.get(SHEETS_ID_ENV, "").strip()
+    sources: dict[str, str] = {}
+    for spec in TABLE_SPECS:
+        value = mapping[spec.section]
+        if value.startswith(("http://", "https://")):
+            sources[spec.filename] = value
+        elif sheet_id:
+            sources[spec.filename] = sheet_export_url(sheet_id, value)
+        else:
+            raise TableError(
+                f"{SHEETS_MAP_ENV}: у листа «{spec.section}» указан gid «{value}», но "
+                f"{SHEETS_ID_ENV} не задан — нужен id таблицы или полный URL листа"
+            )
+    return sources
+
+
+def _opener(request: urllib.request.Request, timeout: float) -> IO[bytes]:
+    """Сетевой вызов по умолчанию; тесты подменяют модульный атрибут."""
+
+    return urllib.request.urlopen(request, timeout=timeout)
+
+
+# Google отдаёт страницу входа вместо CSV, когда ссылка закрыта. Признак
+# дешёвый, но однозначный: CSV никогда не начинается с тега документа.
+HTML_MARKERS = ("<!doctype html", "<html")
+
+
+def _looks_like_html(text: str) -> bool:
+    return text.lstrip("\ufeff \t\r\n").lower().startswith(HTML_MARKERS)
+
+
+def _http_hint(code: int) -> str:
+    if code in {401, 403}:
+        return "таблица закрыта: включите «Доступ по ссылке» → «Читатель» и проверьте gid"
+    if code in {400, 404}:
+        return "лист не найден: проверьте SHEET_ID и gid из адреса листа"
+    return "повторите запрос позже или проверьте адрес листа"
+
+
+def fetch_sheet_text(
+    url: str,
+    *,
+    timeout: float = DEFAULT_SHEETS_TIMEOUT,
+    opener: Opener | None = None,
+) -> str:
+    """Скачивает один лист. Любая ошибка называет адрес и причину, а не код."""
+
+    open_ = opener or _opener
+    request = urllib.request.Request(url, headers={"User-Agent": SHEETS_USER_AGENT})
+    try:
+        with open_(request, timeout) as response:
+            raw = response.read()
+    except urllib.error.HTTPError as exc:
+        raise TableError(f"{url}: HTTP {exc.code} — {_http_hint(exc.code)}") from exc
+    except TimeoutError as exc:
+        raise TableError(f"{url}: нет ответа за {timeout:g} с — лист не скачался") from exc
+    except urllib.error.URLError as exc:
+        # URLError(TimeoutError) — таймаут, обёрнутый в «нет соединения».
+        if isinstance(exc.reason, TimeoutError):
+            raise TableError(f"{url}: нет ответа за {timeout:g} с — лист не скачался") from exc
+        raise TableError(f"{url}: сетевая ошибка — {exc.reason}") from exc
+
+    if not raw.strip():
+        raise TableError(f"{url}: пустой ответ вместо CSV — лист пуст или закрыт")
+    text = _decode_table(raw, url)
+    if _looks_like_html(text):
+        raise TableError(
+            f"{url}: вместо CSV пришёл HTML — таблица закрыта. Откройте «Доступ по ссылке» "
+            "(«Читатель») и проверьте, что адрес ведёт на export?format=csv"
+        )
+    return text
+
+
+def fetch_sheets(
+    sources: Mapping[str, str],
+    *,
+    timeout: float = DEFAULT_SHEETS_TIMEOUT,
+    opener: Opener | None = None,
+) -> dict[str, str]:
+    """Все листы или ничего: первый сбой прерывает выгрузку.
+
+    Ошибка дополняется именем листа: «лист judges.csv: …: нет ответа за 10 с» —
+    по такому сообщению видно, что именно чинить, не открывая таблицу.
+    """
+
+    texts: dict[str, str] = {}
+    for filename, url in sorted(sources.items()):
+        try:
+            texts[filename] = fetch_sheet_text(url, timeout=timeout, opener=opener)
+        except TableError as exc:
+            raise TableError(f"лист {filename}: {exc}") from exc
+    return texts
+
+
+def write_tables(texts: Mapping[str, str], tables_dir: Path) -> list[Path]:
+    """Заменяет локальные CSV скачанными: сначала `.tmp`, потом подмена файла.
+
+    Вызывается только после проверки всей выгрузки, поэтому «половина
+    обновилась» из-за ошибки данных невозможна; `.tmp` + `os.replace` закрывают
+    вторую половину случая — обрыв записи на середине.
+    """
+
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    staged: list[tuple[Path, Path]] = []
+    for filename, text in sorted(texts.items()):
+        target = tables_dir / filename
+        tmp = target.with_name(f".{target.name}.tmp")
+        tmp.write_bytes(text.encode("utf-8"))
+        staged.append((tmp, target))
+    for tmp, target in staged:
+        os.replace(tmp, target)
+    return sorted(target for _, target in staged)
+
+
 @dataclass(frozen=True)
 class Summary:
     real: dict[str, int]
@@ -446,7 +655,12 @@ def read_table(spec: TableSpec, tables_dir: Path) -> list[dict[str, str]]:
     path = tables_dir / spec.filename
     if not path.is_file():
         raise TableError(f"{path}: файл таблицы не найден")
-    raw = _read_table_text(path)
+    return _parse_table(spec, _read_table_text(path), path)
+
+
+def _parse_table(spec: TableSpec, raw: str, path: Path) -> list[dict[str, str]]:
+    """Разбор прочитанного CSV: один код и для файла, и для скачанного листа."""
+
     if not raw.strip():
         raise TableError(f"{path}: таблица пуста")
 
@@ -628,9 +842,16 @@ def timing_patches(
 
 
 def build_overlay(
-    tables_dir: Path, base_path: Path
+    tables_dir: Path,
+    base_path: Path,
+    *,
+    texts: Mapping[str, str] | None = None,
 ) -> tuple[dict[str, list[dict[str, Any]]], Summary]:
-    """Читает таблицы, сверяет real-строки и собирает overlay в память."""
+    """Читает таблицы, сверяет real-строки и собирает overlay в память.
+
+    `texts` (имя файла → CSV) — уже скачанные листы. Проверяем их до записи на
+    диск: иначе сбой на середине оставил бы каталог наполовину обновлённым.
+    """
 
     if not base_path.is_file():
         raise TableError(f"{base_path}: файл выпуска не найден")
@@ -643,8 +864,16 @@ def build_overlay(
     real: dict[str, int] = {}
     preview: dict[str, int] = {}
     for spec in TABLE_SPECS:
-        path = tables_dir / spec.filename
-        rows = read_table(spec, tables_dir)
+        if texts is None:
+            path = tables_dir / spec.filename
+            rows = read_table(spec, tables_dir)
+        else:
+            raw = texts.get(spec.filename)
+            if raw is None:
+                raise TableError(f"{spec.filename}: лист не скачан — выгрузка неполная")
+            # Метка вместо пути: сообщение скажет, что дело в листе, а не в файле.
+            path = Path(f"<лист {spec.section}>")
+            rows = _parse_table(spec, raw, path)
         _check_real_rows(spec, rows, _base_rows(base, spec.section, base_path), path, base_path)
         real[spec.section] = sum(1 for row in rows if row["data_tag"] == TAG_REAL)
         prepared = _preview_rows(spec, rows, path)
@@ -744,6 +973,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out-dir", type=Path, help="папка overlay (по умолчанию <год>.d)")
     parser.add_argument("--check", action="store_true", help="только проверить, не писать")
     parser.add_argument("--drop-preview", action="store_true", help="удалить overlay и выйти")
+    parser.add_argument(
+        "--from-sheets",
+        action="store_true",
+        help="скачать листы из Google Таблиц (ZARUBA_SHEET_ID + ZARUBA_SHEETS_MAP)",
+    )
+    parser.add_argument(
+        "--sheets-timeout",
+        type=float,
+        default=DEFAULT_SHEETS_TIMEOUT,
+        help=f"таймаут запроса к таблице, с (по умолчанию {DEFAULT_SHEETS_TIMEOUT:g})",
+    )
     args = parser.parse_args(argv)
     out_dir = args.out_dir or overlay_dir(args.base)
 
@@ -752,7 +992,16 @@ def main(argv: list[str] | None = None) -> int:
             removed = drop_preview(out_dir)
             print(f"OK: удалено файлов overlay: {len(removed)}")
             return 0
-        overlay, summary = build_overlay(args.tables_dir, args.base)
+        texts: dict[str, str] | None = None
+        if args.from_sheets:
+            sources = sheet_sources()
+            if not sources:
+                raise TableError(
+                    f"{SHEETS_MAP_ENV} не задан — --from-sheets работать не может; "
+                    "укажите таблицу или запустите без флага на локальных CSV"
+                )
+            texts = fetch_sheets(sources, timeout=args.sheets_timeout)
+        overlay, summary = build_overlay(args.tables_dir, args.base, texts=texts)
         if args.check:
             problems = _check_overlay(overlay, out_dir)
             if problems:
@@ -764,8 +1013,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"OK  таблицы: {summary.line()}")
             print(f"OK  overlay совпадает: {out_dir}")
             return 0
+        # Запись только после проверки всех листов: до этой строки любая ошибка
+        # оставляет и CSV, и overlay прежними.
+        written_tables = write_tables(texts, args.tables_dir) if texts else []
         written = write_overlay(overlay, out_dir)
         print(f"OK  таблицы: {summary.line()}")
+        if texts:
+            print(f"OK  листов из Google Таблиц: {len(written_tables)} → {args.tables_dir}")
         print(f"OK  записано файлов overlay: {len(written)} → {out_dir}")
         return 0
     except (TableError, ContentError) as exc:

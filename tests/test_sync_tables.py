@@ -3,28 +3,41 @@
 from __future__ import annotations
 
 import csv
+import io
+import json
 import re
 import shutil
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import pytest
 import yaml
 from fastapi.testclient import TestClient
 
+from zaruba import sync_tables as sync_tables_module
 from zaruba.config import Settings
 from zaruba.content import ContentError, load_edition, load_site, merge_overlay, overlay_dir
 from zaruba.main import create_app
 from zaruba.models import Edition
 from zaruba.sync_tables import (
+    DEFAULT_SHEETS_TIMEOUT,
+    SHEETS_ID_ENV,
+    SHEETS_MAP_ENV,
     TABLE_SPECS,
     TAG_PREVIEW,
     TAG_REAL,
     TableError,
+    TableSpec,
     _base_rows,
     build_overlay,
     drop_preview,
+    fetch_sheet_text,
+    fetch_sheets,
     main,
     read_table,
+    sheet_export_url,
+    sheet_sources,
     timing_patches,
     write_overlay,
 )
@@ -528,9 +541,316 @@ def test_media_table_header_is_checked(tmp_path: Path) -> None:
         build_overlay(tables, BASE)
 
 
+# --- Листы из Google Таблиц -------------------------------------------------
+#
+# Сеть в тестах не нужна: подменяем `_opener` — ровно ту функцию, которой
+# `fetch_sheet_text` по умолчанию качает URL. Так проверяются и успешная
+# выгрузка, и HTML вместо CSV, и таймаут, и то, что при сбое локальные файлы
+# остаются прежними.
+
+
+def _sheet_map() -> dict[str, str]:
+    """Карта листов, как её пишет владелец: раздел → gid."""
+    return {spec.section: str(index) for index, spec in enumerate(TABLE_SPECS)}
+
+
+def _google_csv(spec: TableSpec, tables: Path) -> bytes:
+    """Как отдаёт Google: разделитель `,`, UTF-8 без BOM."""
+    with (tables / spec.filename).open(encoding="utf-8-sig") as handle:
+        rows = list(csv.reader(handle, delimiter=";"))
+    buffer = io.StringIO()
+    csv.writer(buffer, lineterminator="\n").writerows(rows)
+    return buffer.getvalue().encode("utf-8")
+
+
+def _payloads(tables: Path, **override: bytes) -> dict[str, bytes]:
+    payloads = {spec.filename: _google_csv(spec, tables) for spec in TABLE_SPECS}
+    payloads.update(override)
+    return payloads
+
+
+def _by_url(
+    urls: dict[str, str], payloads: dict[str, bytes | Exception]
+) -> dict[str, bytes | Exception]:
+    """Адреса экспорта → ответы: подменять `urlopen` удобнее по URL."""
+    return {urls[filename]: value for filename, value in payloads.items()}
+
+
+def _responder(payloads: dict[str, bytes | Exception]):
+    """Подмена `urlopen`: адрес → байты ответа или исключение."""
+
+    def opener(request: urllib.request.Request, timeout: float) -> io.BytesIO:
+        value = payloads[request.full_url]
+        if isinstance(value, Exception):
+            raise value
+        return io.BytesIO(value)
+
+    return opener
+
+
+def _constant_opener(payload: bytes):
+    def opener(request: urllib.request.Request, timeout: float) -> io.BytesIO:
+        return io.BytesIO(payload)
+
+    return opener
+
+
+def _google_env(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    """Переменные окружения «как на сервере» плюс адреса листов для подмены."""
+    monkeypatch.setenv(SHEETS_MAP_ENV, json.dumps(_sheet_map()))
+    monkeypatch.setenv(SHEETS_ID_ENV, "spreadsheet-id")
+    return sheet_sources()
+
+
+def test_sheet_export_url_is_the_public_csv_export() -> None:
+    assert sheet_export_url("abc", "0") == (
+        "https://docs.google.com/spreadsheets/d/abc/export?format=csv&gid=0"
+    )
+
+
+def test_sheet_sources_build_export_urls_from_env() -> None:
+    env = {SHEETS_ID_ENV: "spreadsheet-id", SHEETS_MAP_ENV: json.dumps(_sheet_map())}
+
+    sources = sheet_sources(env)
+
+    assert set(sources) == {spec.filename for spec in TABLE_SPECS}
+    assert sources["blocks.csv"].endswith("/spreadsheet-id/export?format=csv&gid=2")
+    assert sources["commerce.csv"].endswith("gid=7")
+
+
 def test_write_overlay_includes_media_and_commerce(tmp_path: Path) -> None:
     overlay, _ = build_overlay(TABLES, BASE)
 
     written = write_overlay(overlay, tmp_path / "2026.d")
 
     assert {"media.yaml", "commerce.yaml"} <= {path.name for path in written}
+
+
+@pytest.mark.parametrize(
+    ("env", "message"),
+    [
+        ({SHEETS_ID_ENV: "spreadsheet-id"}, SHEETS_MAP_ENV),
+        ({SHEETS_MAP_ENV: "{blocks: 0"}, "не JSON"),
+        ({SHEETS_MAP_ENV: json.dumps(["blocks"])}, "объект"),
+        ({SHEETS_MAP_ENV: json.dumps({**_sheet_map(), "bogus": "1"})}, "bogus"),
+        ({SHEETS_MAP_ENV: json.dumps({"blocks": "0"})}, "nominations"),
+        ({SHEETS_MAP_ENV: json.dumps(_sheet_map())}, SHEETS_ID_ENV),
+    ],
+)
+def test_sheet_sources_name_what_is_wrong_in_the_configuration(
+    env: dict[str, str], message: str
+) -> None:
+    with pytest.raises(TableError, match=re.escape(message)):
+        sheet_sources(env)
+
+
+def test_fetch_sheets_reads_every_export() -> None:
+    env = {SHEETS_ID_ENV: "spreadsheet-id", SHEETS_MAP_ENV: json.dumps(_sheet_map())}
+    urls = sheet_sources(env)
+
+    texts = fetch_sheets(urls, opener=_responder(_by_url(urls, _payloads(TABLES))))
+
+    assert set(texts) == {spec.filename for spec in TABLE_SPECS}
+    overlay, summary = build_overlay(TABLES, BASE, texts=texts)
+    assert summary.preview["studios"] == 12
+    assert [row["slug"] for row in overlay["media"]] == [
+        "teaser-2026",
+        "photos-2025-season",
+        "stream-final-2026",
+    ]
+
+
+def test_fetch_sheet_text_has_a_ten_second_timeout() -> None:
+    """Таймаут не «когда-нибудь»: без него `--from-sheets` в CI висит до отмены."""
+
+    assert DEFAULT_SHEETS_TIMEOUT == 10
+    seen: list[float] = []
+
+    def opener(request: urllib.request.Request, timeout: float) -> io.BytesIO:
+        seen.append(timeout)
+        return io.BytesIO(b"slug,name\na,b\n")
+
+    fetch_sheet_text("https://example.test/x.csv", opener=opener)
+
+    assert seen == [DEFAULT_SHEETS_TIMEOUT]
+
+
+def test_html_instead_of_csv_names_the_shared_link() -> None:
+    """Закрытая таблица отвечает HTML-страницей входа — говорим это словами."""
+
+    html = b"<!DOCTYPE html><html><body>Sign in</body></html>"
+
+    with pytest.raises(TableError, match="HTML") as raised:
+        fetch_sheet_text("https://example.test/x.csv", opener=_constant_opener(html))
+
+    assert "Доступ по ссылке" in str(raised.value)
+
+
+@pytest.mark.parametrize(
+    ("error", "message"),
+    [
+        (TimeoutError("timed out"), "10"),
+        (urllib.error.URLError(TimeoutError("timed out")), "10"),
+        (urllib.error.URLError("нет маршрута"), "сетевая ошибка"),
+        (urllib.error.HTTPError("https://example.test/x.csv", 403, "Forbidden", {}, None), "403"),
+        (
+            urllib.error.HTTPError("https://example.test/x.csv", 404, "Gone", {}, None),
+            "лист не найден",
+        ),
+        (urllib.error.HTTPError("https://example.test/x.csv", 500, "Ouch", {}, None), "500"),
+    ],
+)
+def test_network_failures_are_reported_per_sheet(error: Exception, message: str) -> None:
+    url = "https://example.test/blocks.csv"
+
+    with pytest.raises(TableError, match=message) as raised:
+        fetch_sheets({"blocks.csv": url}, opener=_responder({url: error}))
+
+    assert "blocks.csv" in str(raised.value), "ошибка не называет лист"
+
+
+def test_empty_export_is_an_error_not_an_empty_overlay() -> None:
+    with pytest.raises(TableError, match="пустой"):
+        fetch_sheet_text("https://example.test/x.csv", opener=_constant_opener(b"\n"))
+
+
+def test_from_sheets_rewrites_tables_and_overlay(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Успешная выгрузка: локальные CSV и overlay получают данные из таблицы."""
+
+    tables = _tables_copy(tmp_path)
+    out_dir = tmp_path / "2026.d"
+    urls = _google_env(monkeypatch)
+    renamed = _google_csv(TABLE_SPECS[0], TABLES).replace(
+        "«Печать танца»".encode(), "«Печать танца 2.0»".encode()
+    )
+    payloads = _payloads(TABLES, **{"studios.csv": renamed})
+    monkeypatch.setattr(sync_tables_module, "_opener", _responder(_by_url(urls, payloads)))
+
+    args = [
+        "--from-sheets",
+        "--tables-dir",
+        str(tables),
+        "--base",
+        str(BASE),
+        "--out-dir",
+        str(out_dir),
+    ]
+    assert main(args) == 0
+
+    assert "Google Таблиц" in capsys.readouterr().out
+    assert "Печать танца 2.0" in (tables / "studios.csv").read_text(encoding="utf-8")
+    assert "Печать танца 2.0" in (out_dir / "studios.yaml").read_text(encoding="utf-8")
+    # Обновлённая таблица читается тем же загрузчиком, comma-разделитель не мешает.
+    _, summary = build_overlay(tables, BASE)
+    assert summary.preview["studios"] == 12
+
+
+def _snapshot(directory: Path, pattern: str) -> dict[str, bytes]:
+    return {path.name: path.read_bytes() for path in sorted(directory.glob(pattern))}
+
+
+def test_from_sheets_keeps_old_data_when_a_sheet_times_out(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Атомарность: один недоступный лист — и ни CSV, ни overlay не тронуты."""
+
+    tables = _tables_copy(tmp_path)
+    base = tmp_path / "2026.yaml"
+    shutil.copyfile(BASE, base)
+    out_dir = overlay_dir(base)
+    data, _ = build_overlay(tables, base)
+    write_overlay(data, out_dir)
+    before_tables = _snapshot(tables, "*.csv")
+    before_overlay = _snapshot(out_dir, "*.yaml")
+    assert before_tables and before_overlay
+
+    urls = _google_env(monkeypatch)
+    payloads = _payloads(TABLES)
+    payloads["judges.csv"] = TimeoutError("timed out")
+    monkeypatch.setattr(sync_tables_module, "_opener", _responder(_by_url(urls, payloads)))
+
+    assert main(["--from-sheets", "--tables-dir", str(tables), "--base", str(base)]) == 1
+
+    assert "judges.csv" in capsys.readouterr().err
+    assert _snapshot(tables, "*.csv") == before_tables
+    assert _snapshot(out_dir, "*.yaml") == before_overlay
+
+
+def test_from_sheets_keeps_old_data_when_a_sheet_fails_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Скачалось, но шапка не по модели: старые данные остаются на месте."""
+
+    tables = _tables_copy(tmp_path)
+    out_dir = tmp_path / "2026.d"
+    before_tables = _snapshot(tables, "*.csv")
+    urls = _google_env(monkeypatch)
+    broken = _google_csv(TABLE_SPECS[0], TABLES).replace(b"city,vk_url", b"city", 1)
+    payloads = _payloads(TABLES, **{"studios.csv": broken})
+    monkeypatch.setattr(sync_tables_module, "_opener", _responder(_by_url(urls, payloads)))
+
+    args = [
+        "--from-sheets",
+        "--tables-dir",
+        str(tables),
+        "--base",
+        str(BASE),
+        "--out-dir",
+        str(out_dir),
+    ]
+    assert main(args) == 1
+
+    assert "шапка" in capsys.readouterr().err
+    assert _snapshot(tables, "*.csv") == before_tables
+    assert not out_dir.exists(), "overlay не должен появиться из невалидной выгрузки"
+
+
+def test_from_sheets_check_writes_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`--check` с `--from-sheets` — проверка выгрузки без записи."""
+
+    tables = _tables_copy(tmp_path)
+    base = tmp_path / "2026.yaml"
+    shutil.copyfile(BASE, base)
+    out_dir = overlay_dir(base)
+    data, _ = build_overlay(tables, base)
+    write_overlay(data, out_dir)
+    before_tables = _snapshot(tables, "*.csv")
+    urls = _google_env(monkeypatch)
+    monkeypatch.setattr(sync_tables_module, "_opener", _responder(_by_url(urls, _payloads(TABLES))))
+
+    args = ["--from-sheets", "--check", "--tables-dir", str(tables), "--base", str(base)]
+    assert main(args) == 0
+
+    assert _snapshot(tables, "*.csv") == before_tables
+
+
+def test_from_sheets_without_configuration_is_an_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Флаг без переменных не должен «молча работать» на старых CSV."""
+
+    monkeypatch.delenv(SHEETS_MAP_ENV, raising=False)
+    monkeypatch.delenv(SHEETS_ID_ENV, raising=False)
+
+    assert main(["--from-sheets", "--tables-dir", str(_tables_copy(tmp_path))]) == 1
+    assert SHEETS_MAP_ENV in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("value", ["", "   ", None, True, {"gid": 1}])
+def test_sheet_sources_reject_an_empty_sheet_value(value: object) -> None:
+    mapping: dict[str, object] = {**_sheet_map(), "blocks": value}
+
+    with pytest.raises(TableError, match="пустое значение"):
+        sheet_sources({SHEETS_MAP_ENV: json.dumps(mapping)})
+
+
+def test_build_overlay_notices_a_missing_sheet() -> None:
+    """Неполная выгрузка не должна собирать overlay из остатков."""
+
+    texts = {spec.filename: _google_csv(spec, TABLES).decode() for spec in TABLE_SPECS}
+    del texts["nominations.csv"]
+
+    with pytest.raises(TableError, match="nominations.csv"):
+        build_overlay(TABLES, BASE, texts=texts)
