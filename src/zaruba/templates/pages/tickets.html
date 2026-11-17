@@ -25,10 +25,13 @@
       — {{ ticket_source.title }}, проверено {{ ticket_source.retrieved_at|fmt_dt }}.
       Там цены и наличие билетов; анонсы и изменения дат — в сообществе организаторов.
     </li>
+    {% for item in contacts %}
     <li>
-      Телефон организаторов: <a href="tel:+79129952877">+7 912 995-28-77</a> —
-      по вопросам билетов, заявок и возврата.
+      <a href="{{ item.contact.url }}">{{ item.contact.value }}</a> — {{ item.contact.label }}.
+      Источник: <a href="{{ item.source.url }}" rel="noopener noreferrer nofollow">{{ item.source.title }}</a>,
+      проверено {{ item.source.retrieved_at|fmt_dt }}.
     </li>
+    {% endfor %}
   </ul>
   {% else %}
   <p class="empty">Ссылки на официальный канал нет в загруженных источниках.

@@ -205,6 +205,52 @@ class Source(Strict):
     trust: SourceTrust = SourceTrust.OFFICIAL
 
 
+class ContactKind(StrEnum):
+    """Вид официального контакта: ссылка строится по нему, а не по тексту."""
+
+    PHONE = "phone"
+    EMAIL = "email"
+
+    @property
+    def label(self) -> str:
+        return {"phone": "телефон", "email": "e-mail"}[self.value]
+
+
+class EditionContact(Strict):
+    """Официальный контакт оргкомитета: без `source_id` на сайте не публикуется.
+
+    Это не личные контакты участников и не контакты редакции: телефон и почта
+    попадают в контент только вместе со ссылкой на «Положение» или официальный
+    пост, иначе контакт — выдумка.
+    """
+
+    kind: ContactKind
+    label: str = Field(min_length=3, max_length=80)
+    value: str = Field(min_length=5, max_length=120)
+    source_id: Slug
+
+    @model_validator(mode="after")
+    def _value_matches_kind(self) -> EditionContact:
+        if self.kind is ContactKind.PHONE:
+            digits = re.sub(r"\D", "", self.value)
+            if len(digits) != 11 or not digits.startswith(("7", "8")):
+                raise ValueError("телефон — 11 цифр, начиная с 7 или 8")
+        elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", self.value):
+            raise ValueError("e-mail должен содержать имя, @ и домен")
+        return self
+
+    @property
+    def url(self) -> str:
+        """`tel:` собирается из цифр, `mailto:` — из значения: шаблон без схемы."""
+
+        if self.kind is ContactKind.PHONE:
+            digits = re.sub(r"\D", "", self.value)
+            if digits.startswith("8"):
+                digits = "7" + digits[1:]
+            return f"tel:+{digits}"
+        return f"mailto:{self.value}"
+
+
 class Venue(Strict):
     slug: Slug
     name: str = Field(min_length=3, max_length=120)
@@ -875,6 +921,9 @@ class Edition(Strict):
     note: str | None = Field(default=None, max_length=300)
     organizers: list[str] = Field(default_factory=list, max_length=6)
     registration_until: date | None = None
+    # Контакты оргкомитета — со ссылкой на источник. Личных контактов участников
+    # и редакции здесь нет и быть не должно.
+    contacts: list[EditionContact] = Field(default_factory=list, max_length=8)
 
     sources: list[Source] = Field(default_factory=list)
     studios: list[Studio] = Field(default_factory=list)
@@ -931,6 +980,11 @@ class Edition(Strict):
                 raise ValueError(f"{name}: повторяются slug {duplicates}")
 
         source_ids = {s.id for s in self.sources}
+        for contact in self.contacts:
+            if contact.source_id not in source_ids:
+                raise ValueError(
+                    f"contacts.{contact.kind}: неизвестный source_id «{contact.source_id}»"
+                )
         studio_slugs = {s.slug for s in self.studios}
         nomination_index = self.nomination_index
         participant_slugs = {p.slug for p in self.participants}

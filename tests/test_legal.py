@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -10,6 +11,7 @@ from zaruba.config import Settings
 from zaruba.content import load_latest
 
 LEGAL_PAGES = ("/about", "/rules", "/privacy", "/takedown")
+TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "src" / "zaruba" / "templates"
 
 
 def test_legal_pages_render_and_are_indexable(client: TestClient) -> None:
@@ -86,6 +88,34 @@ def test_privacy_names_data_and_absence_of_forms(client: TestClient) -> None:
     assert "счётчиков аналитики" in html
     assert "48 часов" in html
     assert "Полей для персональных данных на сайте нет" in html
+
+
+def test_templates_have_no_hardcoded_phone_links() -> None:
+    """Телефон в разметке — контакт без источника. Только из данных выпуска."""
+
+    offenders = [
+        f"{path.relative_to(TEMPLATES_DIR)}:{number}"
+        for path in sorted(TEMPLATES_DIR.rglob("*.html"))
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        if "tel:" in line
+    ]
+
+    assert not offenders, f"захардкоженный tel: в шаблонах — {offenders}"
+
+
+def test_privacy_separates_official_contacts_from_personal_data(client: TestClient) -> None:
+    """`/privacy` не спорит сама с собой: контакты оргкомитета — не личные данные."""
+
+    edition = load_latest(Settings()).edition
+    html = client.get("/privacy").text
+
+    assert "ни телефонов, ни e-mail" not in html, "отрицание противоречит контактам оргкомитета"
+    assert "персональных контактов" in html or "личных контактов" in html
+    assert "оргкомитета" in html
+    assert edition.contacts, "в выпуске нет официальных контактов"
+    for contact in edition.contacts:
+        assert contact.value in html, contact.value
+        assert edition.source_index[contact.source_id].url in html, contact.source_id
 
 
 def test_takedown_promises_48_hours_and_a_human_channel(client: TestClient) -> None:

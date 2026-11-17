@@ -78,6 +78,18 @@ def test_tickets_registration_link_comes_from_content(content_settings: Settings
     assert "https://forms.gle/W5651Np7epysbeWWA" not in html
 
 
+def test_tickets_contacts_come_from_content(content_settings: Settings) -> None:
+    """Телефон на `/tickets` — из YAML: шаблон не хранит номер сам."""
+
+    with _client_with(
+        content_settings, 'value: "+7 912 995-28-77"', 'value: "+7 912 995-28-70"'
+    ) as client:
+        html = client.get("/tickets").text
+
+    assert "+7 912 995-28-70" in html
+    assert "+7 912 995-28-77" not in html
+
+
 def test_tickets_marks_expired_early_fee(content_settings: Settings) -> None:
     """Истёкший ранний тариф помечен, а не выдан за действующую цену."""
 

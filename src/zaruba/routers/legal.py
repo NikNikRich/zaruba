@@ -22,7 +22,7 @@ from ..templating import render
 router = APIRouter()
 
 # Дата правки служебных текстов: меняется вместе с текстом, а не «сегодня».
-LEGAL_UPDATED = date(2026, 10, 23)
+LEGAL_UPDATED = date(2026, 11, 17)
 CONTACT_URL = "https://vk.com/zaruba72champ"
 
 
@@ -59,9 +59,18 @@ def rules_page(request: Request) -> HTMLResponse:
 
 @router.get("/privacy", response_class=HTMLResponse)
 def privacy_page(request: Request) -> HTMLResponse:
+    edition = load_latest(request.app.state.settings).edition
+    # Официальные контакты оргкомитета — со ссылкой на «Положение». Личных
+    # контактов участников и редакции на странице нет и не должно быть.
+    contacts = [
+        {"contact": contact, "source": edition.source_index[contact.source_id]}
+        for contact in edition.contacts
+    ]
     return render(
         request,
         "pages/legal/privacy.html",
+        edition=edition,
+        contacts=contacts,
         updated=LEGAL_UPDATED,
         contact=CONTACT_URL,
         page_title="Данные и приватность",

@@ -26,7 +26,9 @@ from zaruba.content import (
 )
 from zaruba.models import (  # noqa: I001 - импорт моделей одним блоком
     AgeGroup,
+    ContactKind,
     DanceStyle,
+    EditionContact,
     EventStatus,
     FaqGroup,
     GlossaryEntry,
@@ -853,6 +855,62 @@ def test_2026_tickets_link_to_the_organizer_page(edition_2026: Path) -> None:
 
     assert sources == {"kassy-organizer"}
     assert "tyumen.kassy.ru/organizer/2-846/" in edition.source_index["kassy-organizer"].url
+
+
+def test_contact_url_is_built_from_kind() -> None:
+    """Схема ссылки — из вида контакта: шаблон не собирает `tel:` руками."""
+
+    phone = EditionContact(
+        kind=ContactKind.PHONE,
+        label="телефон",
+        value="8 (912) 995-28-77",
+        source_id="polozhenie-2026",
+    )
+    email = EditionContact(
+        kind=ContactKind.EMAIL,
+        label="почта",
+        value="zaruba72champ@mail.ru",
+        source_id="polozhenie-2026",
+    )
+
+    assert phone.url == "tel:+79129952877", "восьмёрка в начале заменяется на +7"
+    assert email.url == "mailto:zaruba72champ@mail.ru"
+
+
+@pytest.mark.parametrize(
+    ("kind", "value"),
+    ((ContactKind.PHONE, "+7 912"), (ContactKind.EMAIL, "zaruba72champ")),
+)
+def test_contact_rejects_malformed_value(kind: ContactKind, value: str) -> None:
+    with pytest.raises(ValidationError):
+        EditionContact(kind=kind, label="контакт", value=value, source_id="polozhenie-2026")
+
+
+def test_2026_contacts_reference_a_real_source(edition_2026: Path) -> None:
+    """У каждого контакта на сайте есть источник из того же выпуска."""
+
+    edition = load_edition(edition_2026).edition
+
+    assert edition.contacts
+    for contact in edition.contacts:
+        assert contact.source_id in edition.source_index
+
+
+def test_contact_with_unknown_source_is_reported(tmp_path: Path) -> None:
+    """Контакт без источника — ошибка контента, а не «контакт без ссылки»."""
+
+    path = _replaced(
+        tmp_path,
+        CONTENT_DIR / "2026.yaml",
+        "source_id: polozhenie-2026",
+        "source_id: missing-source",
+        "2026.yaml",
+    )
+
+    with pytest.raises(ContentError) as error:
+        load_edition(path)
+
+    assert "contacts.phone" in str(error.value)
 
 
 def test_venue_map_opens_the_hall_card() -> None:

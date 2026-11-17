@@ -182,6 +182,12 @@ def tickets_page(request: Request) -> HTMLResponse:
             (source for source in edition.sources if "kassy" in source.url),
             edition.sources[0] if edition.sources else None,
         )
+    # Контакты оргкомитета — из YAML и вместе со своим источником: шаблон не
+    # знает ни номера, ни адреса почты, поэтому контакт нельзя «дописать» в HTML.
+    contacts = [
+        {"contact": contact, "source": edition.source_index[contact.source_id]}
+        for contact in edition.contacts
+    ]
     return render(
         request,
         "pages/tickets.html",
@@ -190,6 +196,7 @@ def tickets_page(request: Request) -> HTMLResponse:
         venue=bundle.venue,
         notice=edition_notice(bundle),
         ticket_source=ticket_source,
+        contacts=contacts,
         # Ссылка на форму участия — из YAML, а не строка в шаблоне.
         registration_source=edition.source_index.get("registration-form"),
         tickets=edition.tickets,
