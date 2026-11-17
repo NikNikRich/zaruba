@@ -399,6 +399,7 @@ def test_titles_and_descriptions_are_unique(client: TestClient) -> None:
         title = _head_text(response.text, TITLE_RE)
         description = _head_text(response.text, DESCRIPTION_RE)
         assert title, f"{path}: пустой <title>"
+        assert "ЗАРУБА" in title, f"{path}: title без названия чемпионата"
         assert len(description) >= 40, f"{path}: description короче 40 символов"
         titles[path] = title
         descriptions[path] = description
