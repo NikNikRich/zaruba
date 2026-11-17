@@ -115,27 +115,34 @@
 
 {% if master_classes %}
 <section class="section">
-  <h2>Мастер-классы 12 декабря</h2>
+  <h2>Мастер-классы {{ master_class_day|fmt_date }}</h2>
   <table class="table">
     <caption class="sr-only">Расписание мастер-классов</caption>
     <thead>
-      <tr><th scope="col">Время</th><th scope="col">Педагог</th><th scope="col">Один класс</th><th scope="col">После срока</th></tr>
+      <tr><th scope="col">Время</th><th scope="col">Педагог</th><th scope="col">Ранний тариф до {{ master_classes[0].price.early_until|fmt_dt }}{% if not master_classes[0].price.early_active %} (истёк){% endif %}</th><th scope="col">Базовый тариф</th></tr>
     </thead>
     <tbody>
       {% for item in master_classes %}
       <tr>
-        <td class="mono">{{ item.starts_at|fmt_time }}–{{ item.ends_at|fmt_time }}</td>
-        <td>{{ item.teacher }}</td>
-        <td class="mono">{{ item.price_early|money }} ₽</td>
-        <td class="mono">{{ item.price_late|money }} ₽</td>
+        <td class="mono">{{ item.master_class.starts_at|fmt_time }}–{{ item.master_class.ends_at|fmt_time }}</td>
+        <td>{{ item.master_class.teacher }}</td>
+        <td class="mono{% if item.price.expired %} muted{% endif %}">{{ item.price.early|money }} ₽{% if item.price.expired %} <span class="muted small">истёк</span>{% endif %}</td>
+        <td class="mono{% if item.price.expired %} current{% endif %}">{{ item.price.late|money }} ₽</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
-  {% if pass_early and pass_late %}
-  <p>Все четыре класса: <strong>{{ pass_early|money }} ₽</strong> до 12 ноября, после —
-  <strong>{{ pass_late|money }} ₽</strong>. Возрастных ограничений нет, место бронируется только
-  после оплаты; запись — в отдельной форме организаторов.</p>
+  {% if pass_price %}
+  {% if pass_price.early_active %}
+  <p>Все четыре класса: <strong>{{ pass_price.current|money }} ₽</strong> до
+  {{ pass_price.early_until|fmt_dt }}, после — <strong>{{ pass_price.late|money }} ₽</strong>.
+  Возрастных ограничений нет, место бронируется только после оплаты; запись — в отдельной
+  форме организаторов.</p>
+  {% else %}
+  <p>Все четыре класса: <strong>{{ pass_price.current|money }} ₽</strong> — ранний тариф до
+  {{ pass_price.early_until|fmt_dt }} истёк, действует базовая цена. Возрастных ограничений нет,
+  место бронируется только после оплаты; запись — в отдельной форме организаторов.</p>
+  {% endif %}
   {% endif %}
   <p class="muted small">Состав жюри и педагоги мастер-классов совпадают: это одна поездка,
   а не два события. Деньги за мастер-класс не возвращаются — место можно перепродать,

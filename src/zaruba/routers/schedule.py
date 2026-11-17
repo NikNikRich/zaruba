@@ -8,7 +8,14 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import HTMLResponse
 
 from ..content import load_latest
-from ..services.edition import day_views, edition_notice, nominations_by_day
+from ..services.edition import (
+    day_views,
+    edition_notice,
+    master_class_date,
+    master_class_prices,
+    master_class_slot,
+    nominations_by_day,
+)
 from ..templating import render
 
 router = APIRouter()
@@ -39,7 +46,9 @@ def schedule(
         days=days,
         all_days=all_days,
         nominations_days=nominations_days,
-        master_classes=bundle.edition.master_classes,
+        master_classes=master_class_prices(bundle.edition),
+        master_class_day=master_class_date(bundle.edition),
+        master_class_slot=master_class_slot(bundle.edition),
         active_day=day,
         page_title="Расписание",
     )

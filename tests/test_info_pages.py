@@ -1,6 +1,18 @@
 from fastapi.testclient import TestClient
 
+from zaruba.config import Settings
+from zaruba.main import create_app
 from zaruba.models import DanceStyle
+
+
+def _client_with(settings: Settings, old: str, new: str) -> TestClient:
+    """Клиент на копии контента с одной заменой: проверяем вычисление, а не эталон."""
+
+    path = settings.content_dir / "2026.yaml"
+    raw = path.read_text(encoding="utf-8")
+    assert old in raw, f"в 2026.yaml нет строки {old!r}"
+    path.write_text(raw.replace(old, new, 1), encoding="utf-8")
+    return TestClient(create_app(settings))
 
 
 def test_judges_page_shows_confirmed_people_only(client: TestClient) -> None:
@@ -50,6 +62,95 @@ def test_tickets_page_explains_refund_and_discount(client: TestClient) -> None:
     assert "Скидка 25 %" in html
     assert "7 декабря 2026" in html
     assert "возврат" in html.lower()
+
+
+def test_tickets_registration_link_comes_from_content(content_settings: Settings) -> None:
+    """Ссылка на форму заявки — из `source_index`, а не строка в шаблоне (§6.13)."""
+
+    with _client_with(
+        content_settings,
+        "https://forms.gle/W5651Np7epysbeWWA",
+        "https://example.test/registration-2026",
+    ) as client:
+        html = client.get("/tickets").text
+
+    assert 'href="https://example.test/registration-2026"' in html
+    assert "https://forms.gle/W5651Np7epysbeWWA" not in html
+
+
+def test_tickets_marks_expired_early_fee(content_settings: Settings) -> None:
+    """Истёкший ранний тариф помечен, а не выдан за действующую цену."""
+
+    with _client_with(
+        content_settings, 'early_until: "2026-11-14"', 'early_until: "2026-01-01"'
+    ) as client:
+        html = client.get("/tickets").text
+
+    assert "Ранний тариф" in html
+    assert "1 января 2026" in html
+    assert "истёк" in html
+    assert "Базовый" in html
+
+
+def test_judges_master_class_tariff_comes_from_content(content_settings: Settings) -> None:
+    """Срок и действующая цена мастер-классов берутся из `early_until`."""
+
+    with _client_with(
+        content_settings, 'early_until: "2026-11-12"', 'early_until: "2026-01-01"'
+    ) as client:
+        html = client.get("/judges").text
+
+    assert "1 января 2026" in html
+    assert "истёк" in html
+    assert "2\u00a0500 ₽" in html, "после срока действует базовая цена"
+
+
+def test_judges_master_class_date_comes_from_edition_dates(
+    content_settings: Settings,
+) -> None:
+    """Заголовок мастер-классов считается из `edition.dates`, а не зашит в HTML."""
+
+    with _client_with(
+        content_settings,
+        'dates: ["2026-12-12", "2026-12-13"]',
+        'dates: ["2026-12-19", "2026-12-20"]',
+    ) as client:
+        html = client.get("/judges").text
+
+    assert "Мастер-классы 19 декабря" in html
+    assert "Мастер-классы 12 декабря" not in html
+
+
+def test_schedule_master_class_slot_comes_from_content(content_settings: Settings) -> None:
+    """«10:00–16:00» — границы классов из YAML, а не константа шаблона."""
+
+    path = content_settings.content_dir / "2026.yaml"
+    raw = path.read_text(encoding="utf-8")
+    assert 'starts_at: "10:00"' in raw
+    assert 'ends_at: "16:00"' in raw
+    path.write_text(
+        raw.replace('starts_at: "10:00"', 'starts_at: "09:00"', 1).replace(
+            'ends_at: "16:00"', 'ends_at: "17:00"', 1
+        ),
+        encoding="utf-8",
+    )
+
+    with TestClient(create_app(content_settings)) as client:
+        html = client.get("/schedule").text
+
+    assert "09:00–17:00" in html
+    assert "10:00–16:00" not in html
+
+
+def test_schedule_shows_the_current_master_class_price(content_settings: Settings) -> None:
+    """После срока расписание показывает базовую цену, а не устаревшую раннюю."""
+
+    with _client_with(
+        content_settings, 'early_until: "2026-11-12"', 'early_until: "2026-01-01"'
+    ) as client:
+        html = client.get("/schedule").text
+
+    assert "2\u00a0500 ₽" in html
 
 
 def test_glossary_covers_every_style_and_terms(client: TestClient) -> None:

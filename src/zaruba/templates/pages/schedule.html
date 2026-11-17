@@ -92,24 +92,24 @@
   </article>
   {% endif %}
 
-  {% if master_classes and day.day == 1 %}
+  {% if master_classes and master_class_day == day.date %}
   <article class="block" id="master-classes">
     <header class="block-head">
-      <span class="block-time">10:00–16:00</span>
+      <span class="block-time">{% if master_class_slot %}{{ master_class_slot[0]|fmt_time }}–{{ master_class_slot[1]|fmt_time }}{% else %}тайминг уточняется{% endif %}</span>
       <h3>Мастер-классы</h3>
       <span class="badge">подтверждено</span>
     </header>
     <table class="table">
-      <caption class="sr-only">Мастер-классы 12 декабря</caption>
+      <caption class="sr-only">Мастер-классы {{ master_class_day|fmt_date }}</caption>
       <thead>
         <tr><th scope="col">Время</th><th scope="col">Педагог</th><th scope="col">Цена</th></tr>
       </thead>
       <tbody>
         {% for item in master_classes %}
         <tr>
-          <td class="mono">{{ item.starts_at|fmt_time }}–{{ item.ends_at|fmt_time }}</td>
-          <td>{{ item.teacher }}</td>
-          <td class="mono">{{ item.price_early|money }} ₽</td>
+          <td class="mono">{{ item.master_class.starts_at|fmt_time }}–{{ item.master_class.ends_at|fmt_time }}</td>
+          <td>{{ item.master_class.teacher }}</td>
+          <td class="mono">{{ item.price.current|money }} ₽{% if item.price.expired %} <span class="muted small">базовая</span>{% elif item.price.early_active %} <span class="muted small">ранняя</span>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

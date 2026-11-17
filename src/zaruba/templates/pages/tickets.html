@@ -83,27 +83,30 @@
       <tr>
         <th scope="col">Категория</th>
         <th scope="col">Формат</th>
-        <th scope="col">До {{ fees[0].early_until|fmt_dt }}</th>
-        <th scope="col">После</th>
+        <th scope="col">Ранний тариф{% if fee_early_until %} до {{ fee_early_until|fmt_dt }}{% endif %}{% if fees and not fee_early_active %} (истёк){% endif %}</th>
+        <th scope="col">Базовый тариф</th>
       </tr>
     </thead>
     <tbody>
-      {% for fee in fees %}
+      {% for item in fees %}
       <tr>
-        <td>{{ fee.audience.label }}</td>
-        <td>{{ fee.format.label }}{% if fee.unit %}, {{ fee.unit }}{% endif %}</td>
-        <td class="mono">{{ fee.amount_early|money }} ₽</td>
-        <td class="mono">{{ fee.amount_late|money }} ₽</td>
+        <td>{{ item.fee.audience.label }}</td>
+        <td>{{ item.fee.format.label }}{% if item.fee.unit %}, {{ item.fee.unit }}{% endif %}</td>
+        <td class="mono{% if item.price.expired %} muted{% endif %}">{{ item.price.early|money }} ₽{% if item.price.expired %} <span class="muted small">истёк</span>{% endif %}</td>
+        <td class="mono{% if item.price.expired %} current{% endif %}">{{ item.price.late|money }} ₽</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  {% if fees and not fee_early_active %}
+  <p class="muted small">Срок раннего тарифа истёк — действует базовая цена.</p>
+  {% endif %}
   <p class="muted small">Скидка 25 % — на каждую последующую номинацию (меньшую по стоимости);
   на соло и дуэты не действует. Возврат — до окончания регистрации
   {% if registration_until %}({{ registration_until|fmt_dt }}){% endif %}.</p>
-  {% if registration_until %}
-  <p><a class="btn" href="https://forms.gle/W5651Np7epysbeWWA" rel="noopener noreferrer nofollow">Официальная форма заявки</a></p>
-  <p class="muted small">Заявки принимают до {{ registration_until|fmt_dt }}; могут закрыть
+  {% if registration_source %}
+  <p><a class="btn" href="{{ registration_source.url }}" rel="noopener noreferrer nofollow">Официальная форма заявки</a></p>
+  <p class="muted small">Заявки принимают{% if registration_until %} до {{ registration_until|fmt_dt }}{% endif %}; могут закрыть
   раньше, если наберётся лимит. Форму заполняют у организаторов — сайт данные не собирает.</p>
   {% endif %}
   {% else %}

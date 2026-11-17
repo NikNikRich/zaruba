@@ -13,8 +13,13 @@ from ..services.edition import (
     catalogue_bundle,
     day_views,
     edition_notice,
+    fee_prices,
     flat_blocks,
+    master_class_date,
+    master_class_pass,
+    master_class_prices,
     nominations_by_day,
+    registration_state,
 )
 from ..services.history import history_rows
 from ..services.seo import event_json_ld, faq_json_ld, glossary_json_ld
@@ -39,12 +44,14 @@ def home(request: Request) -> HTMLResponse:
         blocks=flat_blocks(bundle)[:3],
         days=nominations_by_day(bundle),
         nominations=edition.nominations,
-        master_classes=edition.master_classes,
-        fees=edition.fees,
+        master_classes=master_class_prices(edition),
+        master_class_day=master_class_date(edition),
+        fees=fee_prices(edition),
         tickets=edition.tickets,
         judges=edition.judges,
         participants=edition.participants[:8],
         studios=edition.studio_index,
+        registration_state=registration_state(edition),
         archive=archive if archive.year != edition.edition else None,
         # §6.19: Event на главной — даты, место и ссылка на билеты.
         json_ld=[event_json_ld(bundle, base_url(request))],
@@ -150,9 +157,9 @@ def judges_page(request: Request) -> HTMLResponse:
         notice=edition_notice(bundle),
         cards=cards,
         criteria=edition.criteria,
-        master_classes=edition.master_classes,
-        pass_early=edition.master_class_pass_early,
-        pass_late=edition.master_class_pass_late,
+        master_classes=master_class_prices(edition),
+        master_class_day=master_class_date(edition),
+        pass_price=master_class_pass(edition),
         page_title="Жюри",
     )
 
@@ -164,6 +171,7 @@ def tickets_page(request: Request) -> HTMLResponse:
     bundle = load_latest(request.app.state.settings)
     edition = bundle.edition
     first_ticket = edition.tickets[0] if edition.tickets else None
+    fee_views = fee_prices(edition)
     ticket_source = (
         edition.source_index.get(first_ticket.source_id)
         if first_ticket is not None and first_ticket.source_id is not None
@@ -182,8 +190,12 @@ def tickets_page(request: Request) -> HTMLResponse:
         venue=bundle.venue,
         notice=edition_notice(bundle),
         ticket_source=ticket_source,
+        # Ссылка на форму участия — из YAML, а не строка в шаблоне.
+        registration_source=edition.source_index.get("registration-form"),
         tickets=edition.tickets,
-        fees=edition.fees,
+        fees=fee_views,
+        fee_early_until=min((view.price.early_until for view in fee_views), default=None),
+        fee_early_active=any(view.price.early_active for view in fee_views),
         registration_until=edition.registration_until,
         sales_closed=edition.dates[-1] < date.today(),
         page_title="Билеты",
