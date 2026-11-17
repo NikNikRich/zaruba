@@ -6,7 +6,19 @@
 <title>{% if page_title %}{{ page_title }} — {% endif %}ЗАРУБА · фан-сайт чемпионата</title>
 <meta name="description" content="{% block description %}Неофициальный сайт чемпионата по современным танцам «ЗАРУБА» в Тюмени: расписание, участники, площадка, источники данных.{% endblock %}">
 {% if robots %}<meta name="robots" content="{{ robots }}">{% endif %}
+<link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
+<meta name="theme-color" content="#0b0b0f">
 {% if canonical %}<link rel="canonical" href="{{ canonical }}">{% endif %}
+{% block open_graph %}
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ЗАРУБА">
+<meta property="og:title" content="{% block og_title %}ЗАРУБА 2026 — Всероссийский танцевальный чемпионат | Тюмень{% endblock %}">
+<meta property="og:description" content="{% block og_description %}12–13 декабря, Тюмень (КТЗ «Золотые ворота Сибири»). Соло, дуэты, команды и шоу-кейсы. Расписание, судейство и результаты. Зарубимся?{% endblock %}">
+<meta property="og:image" content="{% block og_image %}{{ url_for('static', path='og-cover.png') }}{% endblock %}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+{% endblock %}
 {% for block in json_ld %}
 <script type="application/ld+json">{{ block|safe }}</script>
 {% endfor %}

@@ -1,9 +1,14 @@
 import re
+import struct
+import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
 from zaruba.templating import money
+
+STATIC_DIR = Path(__file__).resolve().parents[1] / "src" / "zaruba" / "static"
 
 PAGES = (
     "/",
@@ -264,3 +269,68 @@ def test_wide_tables_are_wrapped_for_horizontal_scroll(client: TestClient) -> No
                 f"{page}: у широкой таблицы нет класса table--wide"
             )
     assert checked >= 4, "таблицы с 5+ колонками не найдены — проверка выродилась"
+
+
+def test_brand_assets_are_served(client: TestClient) -> None:
+    """§6.19: иконка и OG-обложка — часть сайта, а не файлы «где-то в репозитории»."""
+
+    for path, content_type in (
+        ("/static/favicon.svg", "image/svg+xml"),
+        ("/static/og-cover.png", "image/png"),
+    ):
+        response = client.get(path)
+
+        assert response.status_code == 200, path
+        assert response.headers["content-type"].startswith(content_type), path
+
+
+def test_og_cover_is_1200x630_png() -> None:
+    """Соцсети кадрируют карточку под 1.905:1: другой размер — обрезанный заголовок."""
+
+    raw = (STATIC_DIR / "og-cover.png").read_bytes()
+
+    assert raw.startswith(b"\x89PNG\r\n\x1a\n"), "og-cover.png — не PNG"
+    width, height = struct.unpack(">II", raw[16:24])
+    assert (width, height) == (1200, 630)
+
+
+def test_favicon_uses_the_lime_accent_from_the_stylesheet() -> None:
+    """HEX иконки берётся из `--lime`, а не «на глаз»: иначе фавикон живёт своей жизнью."""
+
+    css = (STATIC_DIR / "style.css").read_text(encoding="utf-8")
+    lime = re.search(r"--lime:\s*(#[0-9a-f]{6})", css)
+    assert lime is not None, "в style.css пропал токен --lime"
+    svg = (STATIC_DIR / "favicon.svg").read_text(encoding="utf-8")
+
+    assert 'rx="6"' in svg
+    assert lime.group(1) in svg.lower()
+    assert "#0b0b0f" in svg.lower()
+    # `--` внутри XML-комментария — синтаксическая ошибка, и браузер покажет
+    # пустой квадрат вместо иконки. Разбор XML ловит это раньше пользователя.
+    assert ET.fromstring(svg).tag == "{http://www.w3.org/2000/svg}svg"
+
+
+def test_home_has_favicon_and_social_meta(client: TestClient) -> None:
+    """§6.19: иконка, цвет адресной строки и карточка для VK, Telegram и X."""
+
+    html = client.get("/").text
+
+    assert (
+        '<link rel="icon" href="http://testserver/static/favicon.svg" type="image/svg+xml">' in html
+    )
+    assert '<meta name="theme-color" content="#0b0b0f">' in html
+    for tag in (
+        '<meta property="og:type" content="website">',
+        '<meta property="og:site_name" content="ЗАРУБА">',
+        '<meta property="og:title" '
+        'content="ЗАРУБА 2026 — Всероссийский танцевальный чемпионат | Тюмень">',
+        '<meta property="og:description" content="12–13 декабря, Тюмень '
+        "(КТЗ «Золотые ворота Сибири»). Соло, дуэты, команды и шоу-кейсы. "
+        'Расписание, судейство и результаты. Зарубимся?">',
+        '<meta property="og:image:width" content="1200">',
+        '<meta property="og:image:height" content="630">',
+        '<meta name="twitter:card" content="summary_large_image">',
+    ):
+        assert tag in html, tag
+    # Абсолютный адрес: VK и X не разрешают относительный путь к картинке.
+    assert '<meta property="og:image" content="http://testserver/static/og-cover.png">' in html
