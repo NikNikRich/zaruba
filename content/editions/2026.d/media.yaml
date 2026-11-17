@@ -1,0 +1,20 @@
+media:
+- slug: teaser-2026
+  title: Тизер ЗАРУБА 2026 — VK Видео
+  kind: video
+  platform: VK Видео
+  url: https://vk.com/video-185685166_456239017
+  meta: 01:12
+- slug: photos-2025-season
+  title: Фотоотчёт с прошлого сезона — Яндекс Диск
+  kind: photo
+  platform: Яндекс Диск
+  url: https://disk.yandex.ru/d/zaruba-2025
+  preview_image: img/media/photos-2025-season.webp
+  meta: 120 фото
+- slug: stream-final-2026
+  title: Прямой эфир финала 2026 — Rutube
+  kind: stream
+  platform: Rutube
+  url: https://rutube.ru/video/zaruba-final-2026/
+  meta: 2 часа

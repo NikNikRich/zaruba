@@ -32,7 +32,17 @@ from pydantic import BaseModel, ValidationError
 
 from .config import BASE_DIR
 from .content import ContentError, merge_overlay, overlay_dir
-from .models import Edition, Judge, Nomination, Participant, Performance, ScheduleBlock, Studio
+from .models import (
+    CommerceOffer,
+    Edition,
+    Judge,
+    MediaItem,
+    Nomination,
+    Participant,
+    Performance,
+    ScheduleBlock,
+    Studio,
+)
 
 TAG_REAL = "real"
 TAG_PREVIEW = "preview"
@@ -209,6 +219,43 @@ def _judge(row: dict[str, str], preview: bool) -> Judge:
     )
 
 
+def _media(row: dict[str, str], preview: bool) -> MediaItem:
+    # У медиа нет поля `demo`: карточка видна только с включённым предпросмотром,
+    # и общий баннер уже объясняет, что строки демонстрационные.
+    del preview
+    return MediaItem(
+        **_present(
+            slug=row["slug"],
+            title=row["title"],
+            kind=row["kind"],
+            platform=row["platform"],
+            url=row["url"],
+            preview_image=_text(row, "preview_image"),
+            meta=_text(row, "meta"),
+            nomination_slug=_text(row, "nomination_slug"),
+        )
+    )
+
+
+def _commerce(row: dict[str, str], preview: bool) -> CommerceOffer:
+    # `status` и `price` необязательны в таблице: пустая клетка — значение
+    # модели по умолчанию, а не «пустая строка вместо цены».
+    del preview
+    return CommerceOffer(
+        **_present(
+            slug=row["slug"],
+            title=row["title"],
+            category=row["category"],
+            price=_number(row, "price"),
+            status=_text(row, "status"),
+            description=row["description"],
+            cta_label=row["cta_label"],
+            url=row["url"],
+            erid=_text(row, "erid"),
+        )
+    )
+
+
 @dataclass(frozen=True)
 class TableSpec:
     section: str
@@ -333,6 +380,41 @@ TABLE_SPECS += (
         ),
         Judge,
         _judge,
+    ),
+    TableSpec(
+        "media",
+        "media.csv",
+        (
+            "slug",
+            "title",
+            "kind",
+            "platform",
+            "url",
+            "preview_image",
+            "meta",
+            "nomination_slug",
+            "data_tag",
+        ),
+        MediaItem,
+        _media,
+    ),
+    TableSpec(
+        "commerce",
+        "commerce.csv",
+        (
+            "slug",
+            "title",
+            "category",
+            "price",
+            "status",
+            "description",
+            "cta_label",
+            "url",
+            "erid",
+            "data_tag",
+        ),
+        CommerceOffer,
+        _commerce,
     ),
 )
 

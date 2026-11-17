@@ -8,7 +8,7 @@ from enum import StrEnum
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 Slug = Annotated[str, Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=64)]
 
@@ -876,6 +876,137 @@ class Ticket(Strict):
     source_id: Slug | None = None
 
 
+class MediaKind(StrEnum):
+    """Что открывает карточка: видео, альбом фото или эфир.
+
+    `badge` — надпись на крупной лаймовой кнопке превью. Это действие
+    («Play», «Альбом»), а не тип файла: посетитель должен понимать по клику,
+    что произойдёт, без иконок и скриптов.
+    """
+
+    VIDEO = "video"
+    PHOTO = "photo"
+    STREAM = "stream"
+
+    @property
+    def label(self) -> str:
+        return {"video": "видео", "photo": "фото", "stream": "трансляция"}[self.value]
+
+    @property
+    def badge(self) -> str:
+        return {"video": "Play", "photo": "Альбом", "stream": "Эфир"}[self.value]
+
+
+class MediaPlatform(StrEnum):
+    """Внешние хостинги, на которых лежит материал.
+
+    Тяжёлые iframe не встраиваем: CSP (`frame-src 'none'`) и zero-JS оставляют
+    только ссылку, поэтому платформа — это подпись карточки, а не плеер.
+    """
+
+    VK_VIDEO = "VK Видео"
+    RUTUBE = "Rutube"
+    YANDEX_DISK = "Яндекс Диск"
+    MAIL_CLOUD = "Облако Mail.ru"
+    YOUTUBE = "YouTube"
+    OTHER = "Другое"
+
+
+# Путь превью — от `static/`: только свой файл и только в известных папках.
+# Шаблон строит `url_for('static', path=...)`, поэтому `../`, `http://` и
+# произвольный каталог отсекаются моделью, а не проверкой в шаблоне.
+MEDIA_IMAGE_RE = r"^img/(?:history|media|people)/[a-z0-9]+(?:-[a-z0-9]+)*\.webp$"
+MediaImage = Annotated[str, Field(pattern=MEDIA_IMAGE_RE, max_length=120)]
+
+
+class MediaItem(Strict):
+    """Карточка предпросмотра: ссылка на внешний хостинг, без встраивания.
+
+    `preview_image` не обязателен: без файла рисуется типографская заглушка,
+    поэтому блок можно показать сразу, не выдумывая и не копируя чужой постер.
+    `nomination_slug` привязывает материал к номинации на `/results`.
+    """
+
+    slug: Slug
+    title: str = Field(min_length=3, max_length=120)
+    kind: MediaKind
+    platform: MediaPlatform
+    url: HttpUrl
+    preview_image: MediaImage | None = None
+    meta: str | None = Field(default=None, max_length=40)
+    nomination_slug: Slug | None = None
+
+
+class OfferCategory(StrEnum):
+    """Тип коммерческого предложения: товар, услуга или партнёрская ссылка."""
+
+    MERCH = "merch"
+    PHOTO_PACK = "photo_pack"
+    VIP = "vip"
+    PARTNER = "partner"
+
+    @property
+    def label(self) -> str:
+        return {
+            "merch": "мерч",
+            "photo_pack": "фотопакет",
+            "vip": "VIP",
+            "partner": "партнёр",
+        }[self.value]
+
+
+class OfferStatus(StrEnum):
+    """Наличие: «распродано» — честное состояние, а не спрятанная карточка."""
+
+    AVAILABLE = "available"
+    PREORDER = "preorder"
+    SOLD_OUT = "sold_out"
+
+    @property
+    def label(self) -> str:
+        return {"available": "в наличии", "preorder": "предзаказ", "sold_out": "распродано"}[
+            self.value
+        ]
+
+
+# Токен маркировки рекламы по 38-ФЗ: латиница, цифры, `_` и `-`. Проверяем
+# форму, а не подлинность: токен выдаёт ОРД, и придуманный «пример» должен
+# ломать `content check`, а не попадать в плашку «Реклама».
+ERID_RE = r"^[A-Za-z0-9_-]{6,64}$"
+
+
+class CommerceOffer(Strict):
+    """Мерч, фотопакет, VIP или партнёрская ссылка.
+
+    Цена есть у товара и услуги: без неё карточка обещала бы покупку без
+    цены. У партнёра цены нет — это ссылка на чужой сайт, поэтому `price`
+    запрещён, а не «просто пустой». `erid` добавляет плашку «Реклама» и
+    `rel="sponsored"`: маркировка нужна только там, где она указана.
+    """
+
+    slug: Slug
+    title: str = Field(min_length=3, max_length=120)
+    category: OfferCategory
+    price: int | None = Field(default=None, ge=1, le=1_000_000)
+    status: OfferStatus = OfferStatus.AVAILABLE
+    description: str = Field(min_length=10, max_length=300)
+    cta_label: str = Field(min_length=3, max_length=40)
+    url: HttpUrl
+    erid: str | None = Field(default=None, pattern=ERID_RE, max_length=64)
+
+    @model_validator(mode="after")
+    def _price_follows_category(self) -> CommerceOffer:
+        if self.category is OfferCategory.PARTNER:
+            if self.price is not None:
+                raise ValueError("партнёрская ссылка — не товар: price не задаётся")
+            return self
+        if self.price is None:
+            raise ValueError(
+                f"{self.category.value}: нужна цена в рублях — «ориентировочно» не пишем"
+            )
+        return self
+
+
 class MasterClass(Strict):
     """Мастер-класс: время и педагог из афиши, цена до и после срока."""
 
@@ -934,6 +1065,11 @@ class Edition(Strict):
     judges: list[Judge] = Field(default_factory=list)
     fees: list[Fee] = Field(default_factory=list, max_length=12)
     tickets: list[Ticket] = Field(default_factory=list, max_length=12)
+    # Медиа и коммерция расширяемы: лишняя строка в YAML не ломает модель,
+    # пока проходит перечисление. Ограничение по числу — защита от опечатки
+    # «скопировал список дважды», а не продуктовое решение.
+    media: list[MediaItem] = Field(default_factory=list, max_length=24)
+    commerce: list[CommerceOffer] = Field(default_factory=list, max_length=12)
     master_classes: list[MasterClass] = Field(default_factory=list, max_length=12)
     master_class_pass_early: int | None = Field(default=None, ge=1, le=100_000)
     master_class_pass_late: int | None = Field(default=None, ge=1, le=100_000)
@@ -973,6 +1109,8 @@ class Edition(Strict):
             "fees": [f.slug for f in self.fees],
             "tickets": [t.slug for t in self.tickets],
             "master_classes": [m.slug for m in self.master_classes],
+            "media": [m.slug for m in self.media],
+            "commerce": [o.slug for o in self.commerce],
         }
         for name, slugs in groups.items():
             duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
@@ -994,6 +1132,14 @@ class Edition(Strict):
             if nomination.source_id and nomination.source_id not in source_ids:
                 raise ValueError(
                     f"nominations.{nomination.slug}: неизвестный source_id «{nomination.source_id}»"
+                )
+
+        # Привязка к номинации — ссылка на сетку выпуска, а не на строку-опечатку:
+        # иначе блок «Фото и видео» на `/results` молча не показал бы материал.
+        for item in self.media:
+            if item.nomination_slug and item.nomination_slug not in nomination_index:
+                raise ValueError(
+                    f"media.{item.slug}: неизвестная номинация «{item.nomination_slug}»"
                 )
 
         for block in self.blocks:

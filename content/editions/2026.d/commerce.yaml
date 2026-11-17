@@ -1,0 +1,26 @@
+commerce:
+- slug: hoodie-2026
+  title: Худи «ЗАРУБА» — лимитированная серия
+  category: merch
+  price: 4900
+  status: available
+  description: 'Плотное худи с вышивкой и биркой выпуска: для участников, судей и зрителей.'
+  cta_label: Заказать мерч
+  url: https://zaruba72.example/shop/hoodie
+- slug: photo-pack-2026
+  title: Фотопакет участника 2026
+  category: photo_pack
+  price: 1500
+  status: preorder
+  description: Все кадры выступления в полном разрешении и печать 20×30 по желанию.
+  cta_label: Купить фотопакет
+  url: https://zaruba72.example/shop/photo-pack
+  erid: 2VtzqwXk9Ab
+- slug: partner-photo-school
+  title: Фотостудия «Кадр» — фотозона выпуска
+  category: partner
+  status: available
+  description: 'Партнёр выпуска: фотозона в фойе и съёмка за кулисами для участников.'
+  cta_label: Сайт партнёра
+  url: https://zaruba72.example/partners/kadr
+  erid: 2VtzqwXp4Cd

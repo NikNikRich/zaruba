@@ -175,7 +175,7 @@ def test_cli_check_write_and_drop(tmp_path: Path, capsys: pytest.CaptureFixture[
     out_dir = tmp_path / "2026.d"
 
     assert main(["--check", "--tables-dir", str(TABLES), "--base", str(BASE)]) == 0
-    assert "real: 20, preview: 136" in capsys.readouterr().out
+    assert "real: 20, preview: 142" in capsys.readouterr().out
 
     args = ["--tables-dir", str(TABLES), "--base", str(BASE), "--out-dir", str(out_dir)]
     assert main(args) == 0

@@ -76,6 +76,10 @@ OVERLAY_SECTIONS = frozenset(
         "fees",
         "tickets",
         "master_classes",
+        # Медиа и коммерция тоже приходят из таблиц: презентационные карточки
+        # не должны попадать в базовый YAML, который проверяют релиз и тесты.
+        "media",
+        "commerce",
     }
 )
 OVERLAY_KEY = {"sources": "id"}
