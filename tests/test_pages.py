@@ -368,3 +368,44 @@ def test_home_has_favicon_and_social_meta(client: TestClient) -> None:
         assert tag in html, tag
     # Абсолютный адрес: VK и X не разрешают относительный путь к картинке.
     assert '<meta property="og:image" content="http://testserver/static/og-cover.png">' in html
+
+
+TITLE_RE = re.compile(r"<title>(.*?)</title>", re.DOTALL)
+DESCRIPTION_RE = re.compile(r'<meta name="description" content="(.*?)">', re.DOTALL)
+
+
+def _head_text(html: str, pattern: re.Pattern[str]) -> str:
+    """Текст метатега без переносов: шаблоны могут переносить длинную строку."""
+
+    match = pattern.search(html)
+    return re.sub(r"\s+", " ", match.group(1)).strip() if match else ""
+
+
+def test_titles_and_descriptions_are_unique(client: TestClient) -> None:
+    """§6.19: у каждой страницы свой `<title>` и свой `description`.
+
+    Один дефолтный description на весь сайт — это не «краткое описание», а
+    дубль в выдаче: поисковик выбирает сниппет сам и теряет смысл страницы.
+    Проверяем все публичные разделы и по одной детальной карточке каждого типа.
+    """
+
+    pages = (*PAGES, "/results")
+    titles: dict[str, str] = {}
+    descriptions: dict[str, str] = {}
+
+    for path in pages:
+        response = client.get(path)
+        assert response.status_code == 200, path
+        title = _head_text(response.text, TITLE_RE)
+        description = _head_text(response.text, DESCRIPTION_RE)
+        assert title, f"{path}: пустой <title>"
+        assert len(description) >= 40, f"{path}: description короче 40 символов"
+        titles[path] = title
+        descriptions[path] = description
+
+    for label, values in (("title", titles), ("description", descriptions)):
+        grouped: dict[str, list[str]] = {}
+        for path, value in values.items():
+            grouped.setdefault(value, []).append(path)
+        duplicates = {value: paths for value, paths in grouped.items() if len(paths) > 1}
+        assert not duplicates, f"{label} повторяется на страницах: {duplicates}"

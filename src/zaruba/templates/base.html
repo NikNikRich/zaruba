@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% if page_title %}{{ page_title }} — {% endif %}ЗАРУБА · фан-сайт чемпионата</title>
+<title>{% block title %}{% if page_title %}{{ page_title }} — {% endif %}ЗАРУБА · фан-сайт чемпионата{% endblock %}</title>
 <meta name="description" content="{% block description %}Неофициальный сайт чемпионата по современным танцам «ЗАРУБА» в Тюмени: расписание, участники, площадка, источники данных.{% endblock %}">
 {% if robots %}<meta name="robots" content="{{ robots }}">{% endif %}
 <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml">
