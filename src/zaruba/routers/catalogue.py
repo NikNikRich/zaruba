@@ -29,6 +29,7 @@ from ..services.edition import (
     filter_performances,
     participant_view,
     performance_detail,
+    registration_state,
     siblings,
 )
 from ..services.search import MIN_QUERY, search_site
@@ -89,6 +90,7 @@ def performances(
         views=views[start : start + PAGE_SIZE],
         total=total,
         filtered=filtered,
+        registration_state=registration_state(edition),
         # §6.19: фильтры и пагинация закрыты от индексации, canonical — на чистый каталог.
         robots="noindex, follow" if filtered or current_page > 1 else None,
         current={
@@ -247,6 +249,7 @@ def participants(
         views=views[start : start + PAGE_SIZE],
         total=total,
         filtered=filtered,
+        registration_state=registration_state(edition),
         robots="noindex, follow" if filtered or current_page > 1 else None,
         current={
             "q": q or "",
@@ -320,6 +323,7 @@ def studios(
         views=views,
         total=len(views),
         filtered=filtered,
+        registration_state=registration_state(latest.edition),
         robots="noindex, follow" if filtered else None,
         current={"q": q or "", "city": city},
         filters={

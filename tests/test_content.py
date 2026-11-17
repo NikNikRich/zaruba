@@ -62,6 +62,31 @@ def _broken_copy(tmp_path: Path, edition_path: Path, old: str, new: str) -> Path
     return _replaced(tmp_path, edition_path, old, new, "broken.yaml")
 
 
+def test_real_2025_content_has_no_demo_skeleton() -> None:
+    """В публикуемом 2025 остаются только подтверждённые 21 номинация и жюри."""
+
+    edition = load_edition(CONTENT_DIR / "2025.yaml").edition
+
+    assert not edition.studios
+    assert not edition.participants
+    assert not edition.performances
+    assert not edition.blocks
+    assert not [item for item in edition.nominations if item.demo]
+    assert len(edition.nominations) == 21
+
+
+def test_demo_fixture_keeps_catalog_skeleton(demo_edition_path: Path, venues) -> None:
+    """Тесты каталогов опираются на фикстуру, а не на выдуманные данные в контенте."""
+
+    edition = load_edition(demo_edition_path, venues).edition
+
+    assert len(edition.studios) == 3
+    assert len(edition.participants) == 8
+    assert len(edition.performances) == 8
+    assert len(edition.blocks) == 3
+    assert len([item for item in edition.nominations if item.demo]) == 8
+
+
 def test_edition_has_required_volume(edition_path: Path) -> None:
     """Этап 0 из §6.22: один выпуск, 8 участников, 8 выступлений, 3 блока.
 
@@ -248,7 +273,8 @@ def test_cli_check_passes(capsys: pytest.CaptureFixture[str]) -> None:
     output = capsys.readouterr().out
 
     assert "2025" in output
-    assert "8 участников" in output
+    assert "21 номинаций" in output, "публикуемый 2025 — только реальная сетка"
+    assert "0 участников" in output, "демо-каркас в публикуемый контент не попадает"
     assert "проверено выпусков: 2" in output
 
 

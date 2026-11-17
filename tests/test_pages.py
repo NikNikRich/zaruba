@@ -136,6 +136,19 @@ def test_venue_page_states_unknowns_honestly(client: TestClient) -> None:
     assert "/schedule" in html
 
 
+def test_live_pages_show_registration_status_not_examples(live_client: TestClient) -> None:
+    """§6.21: пустой каталог говорит о ходе заявок, а не о «примерах» и «студии A»."""
+
+    for path in ("/", "/participants", "/performances", "/studios"):
+        html = live_client.get(path).text
+        assert "Студия A" not in html, path
+        assert "демонстрацион" not in html, path
+
+    for path in ("/", "/participants", "/performances"):
+        html = live_client.get(path).text
+        assert "приём заявок" in html, path
+
+
 def test_pages_warn_about_past_edition(client: TestClient) -> None:
     """§6.3: архивный выпуск помечен полосой, свежий — нет."""
 
@@ -165,12 +178,12 @@ def test_pages_warn_about_past_edition(client: TestClient) -> None:
 
 
 def test_demo_rows_are_marked(client: TestClient) -> None:
-    """Демонстрационные данные помечены бейджем «пример», а не выдаются за факты."""
+    """Демо-строки фикстуры помечены «пример», а страница называет архив архивом."""
 
     html = client.get("/performances").text
 
     assert "пример" in html
-    assert "демонстрационные" in html
+    assert "У каждой карточки виден статус номинации" in html
     assert "Это архив 2025 года" in html
 
 

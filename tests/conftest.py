@@ -11,12 +11,55 @@ from zaruba.main import create_app
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONTENT_DIR = REPO_ROOT / "content" / "editions"
 VENUES_FILE = REPO_ROOT / "content" / "venues.yaml"
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+FIXTURE_2025 = FIXTURES_DIR / "editions" / "2025.yaml"
+
+
+def _settings_for(content: Path) -> Settings:
+    return Settings(
+        content_dir=content / "editions",
+        venues_file=content / "venues.yaml",
+        glossary_file=content / "glossary.yaml",
+        faq_file=content / "faq.yaml",
+        history_file=content / "history.yaml",
+        photos_file=content / "photos.yaml",
+        results_dir=content / "results",
+    )
 
 
 @pytest.fixture(scope="session")
-def client() -> Iterator[TestClient]:
+def demo_settings(tmp_path_factory: pytest.TempPathFactory) -> Settings:
+    """Копия `content/` с демо-каркасом 2025 из фикстур.
+
+    Публикуемый `content/editions/2025.yaml` содержит только подтверждённые факты;
+    выдуманные студии и выступления нужны тестам каталогов и живут отдельно.
+    """
+
+    content = tmp_path_factory.mktemp("demo-content") / "content"
+    shutil.copytree(REPO_ROOT / "content", content)
+    shutil.copyfile(FIXTURE_2025, content / "editions" / "2025.yaml")
+    return _settings_for(content)
+
+
+@pytest.fixture(scope="session")
+def client(demo_settings: Settings) -> Iterator[TestClient]:
+    with TestClient(create_app(demo_settings)) as test_client:
+        yield test_client
+
+
+@pytest.fixture(scope="session")
+def live_client() -> Iterator[TestClient]:
+    """Приложение на реальном `content/`: проверяем состояние без демо-каркаса."""
+
     with TestClient(create_app()) as test_client:
         yield test_client
+
+
+@pytest.fixture(scope="session")
+def demo_edition_path() -> Path:
+    """Демо-каркас каталога живёт в фикстурах, а не в публикуемом контенте."""
+
+    return FIXTURE_2025
 
 
 @pytest.fixture(scope="session")
@@ -27,8 +70,10 @@ def venues():
 
 
 @pytest.fixture(scope="session")
-def edition_path() -> Path:
-    return CONTENT_DIR / "2025.yaml"
+def edition_path(demo_settings: Settings) -> Path:
+    """Копия 2025 с демо-каркасом: проверки объёма и порчи YAML не касаются контента."""
+
+    return demo_settings.content_dir / "2025.yaml"
 
 
 @pytest.fixture(scope="session")
@@ -43,14 +88,7 @@ def content_settings(tmp_path: Path) -> Settings:
     content = tmp_path / "content"
     shutil.copytree(REPO_ROOT / "content", content)
 
-    return Settings(
-        content_dir=content / "editions",
-        venues_file=content / "venues.yaml",
-        glossary_file=content / "glossary.yaml",
-        faq_file=content / "faq.yaml",
-        history_file=content / "history.yaml",
-        results_dir=content / "results",
-    )
+    return _settings_for(content)
 
 
 @pytest.fixture

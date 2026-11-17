@@ -135,12 +135,20 @@
   </div>
   <p class="section-link"><a href="/participants">все участники →</a> · <a href="/performances">все выступления →</a></p>
   {% else %}
-  <p class="empty">Списки участников выпуска {{ edition.edition }} появятся после закрытия заявок
-  {% if edition.registration_until %}({{ edition.registration_until|fmt_dt }}){% endif %}:
-  организаторы публикуют их в сообществе. Мы не подставляем правдоподобные имена вместо настоящих.</p>
+  {% if registration_state == "open" %}
+  <p class="empty">Идёт приём заявок до {{ edition.registration_until|fmt_dt }}. Списки участников
+  организаторы публикуют после закрытия приёма. Мы не подставляем правдоподобные имена
+  вместо настоящих.</p>
+  {% elif registration_state == "closed" %}
+  <p class="empty">Приём заявок завершён. Списки участников появятся, когда организаторы их
+  опубликуют. Мы не подставляем правдоподобные имена вместо настоящих.</p>
+  {% else %}
+  <p class="empty">Списки участников появятся после публикации заявок организаторами.
+  Мы не подставляем правдоподобные имена вместо настоящих.</p>
+  {% endif %}
   {% if archive %}
-  <p class="muted small">Пока можно посмотреть <a href="/performances">каталог выступлений {{ archive.year }} года</a>
-  — он демонстрационный и помечен бейджем «пример».</p>
+  <p class="muted small">Пока можно посмотреть <a href="/performances">каталог выступлений
+  {{ archive.year }} года</a> — у каждой карточки виден её статус.</p>
   {% endif %}
   {% endif %}
 </section>
