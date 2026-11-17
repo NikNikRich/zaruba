@@ -17,13 +17,24 @@
   /* Высота липкой шапки: одна точка правды для табов дней и (в §6.20) отступов
      якорей. Шапка обязана быть ровно такой — см. `.site-header`. */
   --header-h: 60px;
+  /* Липкие табы дней: 14 + 44 + 14 + 1 px — та же высота, что в `.day-tabs`.
+     Отдельный токен, потому что блоки расписания прячутся и под ними тоже. */
+  --day-tabs-h: 73px;
+  /* Воздух между липкой шапкой и заголовком, к которому перешли по `#якорю`. */
+  --anchor-air: 20px;
   --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
   --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 * { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  /* Один отступ для всех `#якорей`: заголовок не прячется под липкой шапкой.
+     Плавность отключается ниже, в `prefers-reduced-motion`. */
+  scroll-padding-top: calc(var(--header-h) + var(--anchor-air));
+  scroll-behavior: smooth;
+}
 
 body {
   margin: 0;
@@ -376,13 +387,15 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
 
 /* расписание */
 .day { padding: 24px 0 8px; }
+/* Блоки расписания стоят под липкими табами дней: их высота добавляется к
+   отступу `html`, иначе заголовок блока уезжает под табы. */
+.day .block { scroll-margin-top: var(--day-tabs-h); }
 .block {
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: var(--bg2);
   padding: 16px;
   margin: 0 0 14px;
-  scroll-margin-top: 130px;
 }
 .block:target { border-color: var(--lime); box-shadow: 0 0 0 1px rgba(232, 255, 58, 0.35); }
 .block-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -658,6 +671,8 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
+  /* Плавный скролл — тоже движение, а не только украшение. */
+  html { scroll-behavior: auto; }
 }
 
 @media (max-width: 640px) {

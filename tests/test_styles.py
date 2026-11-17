@@ -57,3 +57,55 @@ def test_nav_scrolls_instead_of_wrapping() -> None:
     assert "overflow-x: auto" in rules[0], "на узких экранах меню прокручивается (§6.3)"
     for body in rules:
         assert "flex-wrap: wrap" not in body, "меню снова переносится и растит шапку"
+
+
+def _media_block(css: str, query: str) -> str:
+    """Тело `@media`-блока с вложенными правилами (счёт фигурных скобок)."""
+
+    start = css.index(f"@media ({query}")
+    body_start = css.index("{", start)
+    depth = 0
+    for index in range(body_start, len(css)):
+        if css[index] == "{":
+            depth += 1
+        elif css[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return css[body_start + 1 : index]
+    raise AssertionError(f"не закрыт @media ({query}")
+
+
+def test_anchor_offsets_have_no_bare_pixels() -> None:
+    """Якоря считаются от `--header-h`: число в пикселях разъедется с шапкой."""
+
+    css = _css()
+
+    for prop in ("scroll-padding-top", "scroll-margin-top"):
+        values = re.findall(prop + r":\s*([^;}]+)", css)
+        assert values, f"нет ни одного {prop}"
+        for value in values:
+            assert "var(" in value, f"{prop}: {value} — не привязан к токену"
+            assert not re.search(r"\d+px", value), f"{prop}: {value} — захардкоженный пиксель"
+
+    assert "scroll-padding-top" in _rule(css, "html")[0], "отступ якорей должен быть на html"
+
+
+def test_schedule_blocks_clear_sticky_day_tabs() -> None:
+    """На расписании над блоком ещё и липкие табы: их высота — тоже токен."""
+
+    css = _css()
+
+    assert re.search(r"--day-tabs-h:\s*\d+px", css), "нет токена --day-tabs-h"
+    rules = _rule(css, ".day .block")
+    assert rules, "нет правила для блоков расписания"
+    assert "scroll-margin-top: var(--day-tabs-h)" in rules[0]
+
+
+def test_smooth_scroll_respects_reduced_motion() -> None:
+    """Плавный скролл — это движение: при `prefers-reduced-motion` он выключается."""
+
+    css = _css()
+
+    assert "scroll-behavior: smooth" in _rule(css, "html")[0]
+    reduced = _media_block(css, "prefers-reduced-motion: reduce")
+    assert "scroll-behavior: auto" in reduced, "плавность не отключается для reduced-motion"

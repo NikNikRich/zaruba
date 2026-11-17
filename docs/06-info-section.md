@@ -717,6 +717,13 @@ requirements.lock, requirements-dev.lock   лок: рантайм и dev (uv --u
   `.day-tabs { top: var(--header-h) }`. Линия шапки нарисована `box-shadow`,
   а не `border`: рамка добавила бы 1 px, и смещения разъехались бы с реальной
   высотой. Инвариант закреплён в `tests/test_styles.py`.
+- **Якоря.** `html { scroll-padding-top: calc(var(--header-h) + var(--anchor-air)) }`
+  — один отступ для всех ссылок с `#`: заголовок не прячется под шапкой.
+  На расписании над блоками стоят ещё и липкие табы дней, поэтому `.day .block`
+  получает `scroll-margin-top: var(--day-tabs-h)` (14 + 44 + 14 + 1 px).
+  Числа в `scroll-*` не хардкодятся: тест запрещает пиксели без токена.
+  Плавность — `scroll-behavior: smooth`; при `prefers-reduced-motion: reduce`
+  она переключается на `auto`.
 - Контраст ≥ 4.5:1, видимый фокус, `skip-link`, `aria-current` на активном
   пункте навигации, таблицы с `scope` и подписями.
 - **Скорость**: без hero-видео на инфо-страницах, постеры AVIF/WebP, `loading="lazy"`
