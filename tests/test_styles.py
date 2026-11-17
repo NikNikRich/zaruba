@@ -324,3 +324,53 @@ def test_reduced_motion_turns_off_transitions() -> None:
     )
     assert re.search(r"animation:\s*none", reduced), "анимации не отключаются для reduced-motion"
     assert re.search(r"transform:\s*none", reduced), "нажатие кнопки всё ещё двигает элемент"
+
+
+def test_touch_targets_are_at_least_44px() -> None:
+    """§6.20: палец попадает в ссылку, только если зона клика не ниже 44 px.
+
+    Мобильные тач-таргеты не видны в CI глазами, поэтому высота закреплена
+    здесь: меню шапки, чипы-фильтры, пагинация, футер, вопросы FAQ и якоря
+    результатов раньше были ниже нормы (24–40 px).
+    """
+
+    css = _css()
+
+    for selector in (
+        ".nav a",
+        ".chip",
+        ".pager a",
+        ".footer-links a",
+        ".faq-item summary",
+        "a.badge",
+    ):
+        rules = _rule(css, selector)
+        assert rules, f"правило {selector} не найдено"
+        assert any(re.search(r"min-height:\s*44px", body) for body in rules), (
+            f"{selector}: кликабельная зона ниже 44 px (§6.20)"
+        )
+
+    # Низкая высота пагинации — не «мелкая настройка», а промах по ссылке.
+    assert not re.search(r"\.pager a\s*\{[^}]*min-height:\s*(?:[0-3]\d)px", css), (
+        ".pager a снова ниже 44 px"
+    )
+
+
+def test_prose_links_are_underlined_not_only_colored() -> None:
+    """WCAG 1.4.1: ссылка в прозе отличается от текста не только цветом.
+
+    `main a` целиком не подчёркиваем: карточки-ссылки и кнопки — крупные
+    блоки, у них подчёркивание читается как ошибка вёрстки. Правило касается
+    только ссылок внутри абзацев и списков, где цвет — единственный признак.
+    """
+
+    css = _css()
+    body = re.search(r"main (?:p|li) a[^{]*\{([^}]*)\}", css)
+
+    assert body is not None, "нет правила подчёркивания ссылок в прозе"
+    assert "text-decoration: underline" in body.group(1), (
+        "ссылки в основном тексте различаются только цветом"
+    )
+    assert re.search(r"text-underline-offset:\s*[\d.]+em", body.group(1)), (
+        "подчёркивание липнет к буквам: нужен аккуратный text-underline-offset"
+    )

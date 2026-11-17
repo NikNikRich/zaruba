@@ -58,6 +58,14 @@ body {
 
 a { color: var(--lime); text-decoration: none; }
 a:hover { text-decoration: underline; }
+/* WCAG 1.4.1: в прозе ссылка отличается от текста не только цветом (1.01:1
+   к `--ink` — этого мало). Подчёркиваем только ссылки в абзацах и списках:
+   карточки-ссылки и кнопки — крупные блоки, им подчёркивание не нужно. */
+main p a:not(.btn):not(.badge):not(.chip),
+main li a:not(.btn):not(.badge):not(.chip) {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
 a:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--lime);
@@ -139,7 +147,10 @@ ul { margin: 0 0 12px; padding-left: 20px; }
   scrollbar-width: thin;
 }
 .nav a {
+  display: inline-flex;
+  align-items: center;
   flex: 0 0 auto;
+  min-height: 44px;
   color: var(--muted);
   font-size: 14px;
   padding: 8px 0;
@@ -472,6 +483,9 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
   white-space: nowrap;
 }
 
+/* Якорь дня в результатах — ссылка, а не подпись: палец должен попасть. */
+a.badge { min-height: 44px; }
+
 .empty {
   padding: 18px;
   border: 1px dashed var(--line);
@@ -524,6 +538,7 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
   padding: 6px 12px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -562,7 +577,7 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
 .pager a {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -599,6 +614,8 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
 }
 .site-footer strong { color: var(--ink); }
 .footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
+/* Ссылки футера — отдельные цели для пальца, а не строки в предложении. */
+.footer-links a { display: inline-flex; align-items: center; min-height: 44px; }
 
 @media (max-width: 720px) {
   /* Шапка остаётся одной строкой: перенос растил её до ~170 px и накрывал
@@ -715,7 +732,7 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
   background: var(--bg2);
 }
 .faq-item[open], .faq-item:target { border-color: rgba(232, 255, 58, 0.45); }
-.faq-item summary { cursor: pointer; font-weight: 700; }
+.faq-item summary { cursor: pointer; font-weight: 700; min-height: 44px; }
 .faq-item summary::marker { color: var(--lime); }
 .faq-item p { margin: 10px 0 0; }
 
