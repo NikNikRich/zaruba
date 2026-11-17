@@ -3,6 +3,7 @@ import runpy
 import sys
 import time
 import warnings
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -85,6 +86,14 @@ def test_demo_fixture_keeps_catalog_skeleton(demo_edition_path: Path, venues) ->
     assert len(edition.performances) == 8
     assert len(edition.blocks) == 3
     assert len([item for item in edition.nominations if item.demo]) == 8
+
+
+def test_editions_are_revised_for_release() -> None:
+    """P1-1: выпуски не показывают посетителю дату правки прошлого месяца."""
+
+    for path in (CONTENT_DIR / "2025.yaml", CONTENT_DIR / "2026.yaml"):
+        edition = load_edition(path).edition
+        assert edition.updated_at.date() >= date(2026, 11, 17), path.name
 
 
 def test_edition_has_required_volume(edition_path: Path) -> None:
