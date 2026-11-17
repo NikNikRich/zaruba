@@ -33,7 +33,7 @@
 | Результаты 2025 (§6.24) | готово: `/results` — расчёт по 21 номинации судейских листов, места расчётные, дети по инициалам | `content/results/2025.yaml`, `services/results.py` |
 | Презентационные данные (`07`) | готово: таблицы `docs/templates/*.csv`, overlay `content/editions/2026.d/`, флаг `ZARUBA_PREVIEW_ENABLED`, `--drop-preview` | `sync_tables.py`, `content.py` |
 
-Проверки на эту дату: `pytest` — 317 тестов (покрытие 94 % при пороге 90 %),
+Проверки на 2026-11-17: `pytest` — 337 тестов (покрытие 94 % при пороге 90 %),
 `ruff check src tests`, `ruff format --check src tests` и `mypy` — чисто,
 `python -m zaruba.content check` — ОК, проверки документов и презентации — ОК.
 Версии зависимостей зафиксированы локом с хешами (`requirements.lock`,
@@ -641,7 +641,7 @@ src/zaruba/
     base.html        шапка, футер, skip-link, meta/OG, JSON-LD
     pages/           по шаблону на маршрут (home, event, schedule, …)
     pages/legal/     about, rules, privacy, takedown
-  static/            style.css (15 КБ), print.css (1 КБ) — без JS и внешних шрифтов
+  static/            style.css (25 КБ), print.css (2,4 КБ) — без JS и внешних шрифтов
 content/             venues.yaml, glossary.yaml, faq.yaml, history.yaml, editions/*.yaml
 tests/               13 файлов тестов + conftest: роуты, каталоги, приватность, данные, CLI, SEO, безопасность, ошибки
 deploy/              README.md (развёртывание), zaruba.service, nginx.conf.example, smoke.sh
@@ -703,6 +703,10 @@ requirements.lock, requirements-dev.lock   лок: рантайм и dev (uv --u
 - `robots.txt` не закрывает фильтры через `Disallow` — иначе робот не увидит
   сам `noindex`. В файле это написано комментарием, чтобы через полгода никто
   не «починил»;
+- у каждой публичной страницы свой `<title>` и свой `meta description` (блоки
+  `title`/`description` в `base.html`). Один дефолтный текст на весь сайт —
+  дубль в выдаче, поэтому `test_titles_and_descriptions_are_unique` обходит
+  22 маршрута и запрещает повторы;
 - JSON-LD: `Event` на `/` и `/event`, `BreadcrumbList` — на всех страницах
   глубже главной (генерируется в `templating.py` из фактической навигации),
   `FAQPage` на `/faq`, `DefinedTermSet` на `/glossary`;
@@ -751,6 +755,9 @@ msedge --headless=new --disable-gpu --hide-scrollbars --force-device-scale-facto
   `overscroll-behavior-x: contain`) — страница по горизонтали не распирается.
   Обёртку проверяет `test_wide_tables_are_wrapped_for_horizontal_scroll`.
 - Липкие табы дней, фильтры — в нижнем листе (bottom sheet), кнопки ≥ 44 px.
+  Тот же порог у меню шапки, чипов, пагинации, ссылок футера, вопросов FAQ
+  (`summary`) и якорей дней в результатах: раньше они были 24–40 px, и палец
+  промахивался. Инвариант закреплён в `tests/test_styles.py`.
 - Высота липкой шапки — токен `--header-h`; от неё считаются смещения:
   `.day-tabs { top: var(--header-h) }`. Линия шапки нарисована `box-shadow`,
   а не `border`: рамка добавила бы 1 px, и смещения разъехались бы с реальной
@@ -769,6 +776,11 @@ msedge --headless=new --disable-gpu --hide-scrollbars --force-device-scale-facto
   `#6c6c7d` давал 3.3–3.8:1 и был ниже AA. Иерархия `--ink` (15.15) →
   `--muted` (6.17) → `--dim` закреплена в `tests/test_styles.py` вместе с
   расчётом относительной яркости по WCAG 2.x.
+- **Ссылки в прозе.** WCAG 1.4.1: цвет `--lime` к `--ink` даёт 1.01:1, поэтому
+  ссылки в абзацах и списках подчёркнуты (`text-decoration: underline`,
+  `text-underline-offset: 0.18em`). Карточки-ссылки и кнопки не подчёркиваются:
+  у них подчёркивание читается как ошибка вёрстки. Правило и тест —
+  `main p a`/`main li a` в `style.css` и `tests/test_styles.py`.
 - **Движение.** Один токен `--ease: 0.16s cubic-bezier(0.2, 0, 0, 1)` на все
   переходы: 150–180 мс хватает, чтобы отклик заметили, и мало, чтобы он
   догонял курсор. Анимируются только `color`, `background-color`,
@@ -790,13 +802,14 @@ msedge --headless=new --disable-gpu --hide-scrollbars --force-device-scale-facto
   ответить 503, чем держать соединения в очереди и копить их в памяти. 64 — с
   запасом к пулу потоков anyio (40), в котором работают синхронные роутеры.
 
-**Замеры на 2026-10-23.** Что проверено и чем:
+**Замеры на 2026-11-17.** Что проверено и чем:
 
 | Пункт | Факт | Как проверено |
 |---|---|---|
 | JS на инфо-страницах | 0 скриптов, кроме неисполняемого JSON-LD | `tests/test_security.py` |
 | Инлайновые стили | 0 (CSP без `unsafe-inline`) | `tests/test_security.py` |
-| CSS | `style.css` 15,1 КБ + `print.css` 1,1 КБ | размер файлов |
+| CSS | `style.css` 24,7 КБ + `print.css` 2,4 КБ | размер файлов |
+| Тесты | 337 passed, покрытие 93,99 % (порог 90 %) | `pytest --cov=zaruba` |
 | Внешние шрифты и CDN | нет | CSP `default-src 'self'` |
 | `scope` у таблиц, `skip-link`, `aria-current` | есть | шаблоны + `test_pages.py` |
 | Заголовки безопасности | CSP (`object-src`, `frame-src`, `worker-src` — `'none'`), `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, COOP, CORP, `X-Permitted-Cross-Domain-Policies` | живой прогон + `test_security.py` |
@@ -862,7 +875,7 @@ msedge --headless=new --disable-gpu --hide-scrollbars --force-device-scale-facto
 6. `[x]` Страница ребёнка без согласия — `noindex`, без фото и клипа:
    `catalogue.py` отдаёт `noindex, nofollow`, имя сокращается до инициалов.
 7. `[ ]` Lighthouse mobile ≥ 90, LCP < 2.5 с, первый экран ≤ 300 КБ: не измерено;
-   косвенно — 0 JS, 16 КБ CSS, без внешних шрифтов и изображений.
+   косвенно — 0 JS, 25 КБ CSS, без внешних шрифтов и изображений.
 8. `[x]` Нет ни одного «скоро» без альтернативы: пустые состояния объясняют
    причину и дают выход (архив, ссылка в сообщество, дата), это закреплено
    тестами страниц.
