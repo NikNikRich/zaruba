@@ -275,7 +275,53 @@ def test_cli_check_passes(capsys: pytest.CaptureFixture[str]) -> None:
     assert "2025" in output
     assert "21 номинаций" in output, "публикуемый 2025 — только реальная сетка"
     assert "0 участников" in output, "демо-каркас в публикуемый контент не попадает"
+    assert "глоссарий" in output, "check проверяет и справочники, а не только выпуски"
+    assert "FAQ" in output
     assert "проверено выпусков: 2" in output
+
+
+def test_cli_check_validates_glossary(
+    content_settings: Settings,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Битый глоссарий — ошибка команды, а не тихая страница /glossary."""
+
+    path = _replaced(
+        tmp_path,
+        content_settings.glossary_file,
+        "kind: style",
+        "kind: no-such-kind",
+        "glossary.yaml",
+    )
+    settings = content_settings.model_copy(update={"glossary_file": path})
+    monkeypatch.setattr("zaruba.content.get_settings", lambda: settings)
+
+    assert main(["check"]) == 1
+    assert "glossary.yaml" in capsys.readouterr().err
+
+
+def test_cli_check_validates_faq(
+    content_settings: Settings,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Битый FAQ закрывает релиз так же, как битый выпуск."""
+
+    path = _replaced(
+        tmp_path,
+        content_settings.faq_file,
+        "group: spectator",
+        "group: no-such-group",
+        "faq.yaml",
+    )
+    settings = content_settings.model_copy(update={"faq_file": path})
+    monkeypatch.setattr("zaruba.content.get_settings", lambda: settings)
+
+    assert main(["check"]) == 1
+    assert "faq.yaml" in capsys.readouterr().err
 
 
 def test_cli_import_is_idempotent(capsys: pytest.CaptureFixture[str], edition_path: Path) -> None:

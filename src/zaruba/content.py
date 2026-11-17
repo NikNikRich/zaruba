@@ -514,7 +514,10 @@ def main(argv: list[str] | None = None) -> int:
                 archive = load_history(settings.history_file)
                 photos = load_photos(settings.photos_file)
                 results = load_all_results(settings)
+                knowledge = load_knowledge(settings)
                 print(f"OK  история: {len(archive)} записей до 2025 года")
+                print(f"OK  глоссарий: {len(knowledge.glossary)} статей")
+                print(f"OK  FAQ: {len(knowledge.faq)} вопросов")
                 own = sum(1 for photo in photos if photo.file)
                 cited = sum(1 for photo in photos if photo.is_citation)
                 print(
