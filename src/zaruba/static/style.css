@@ -51,6 +51,9 @@ body {
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  /* Длинное имя или ссылка без пробелов не должны распирать страницу:
+     перенос разрешён на уровне текста, а не «спрятан» горизонтальным скроллом. */
+  overflow-wrap: break-word;
 }
 
 a { color: var(--lime); text-decoration: none; }
@@ -226,6 +229,7 @@ main { display: block; padding: 32px 0 56px; }
   border-radius: var(--r);
   background: var(--bg2);
   color: var(--ink);
+  overflow-wrap: anywhere;
   transition: border-color var(--ease);
 }
 .block-card:hover { border-color: rgba(232, 255, 58, 0.5); text-decoration: none; }
@@ -248,6 +252,7 @@ main { display: block; padding: 32px 0 56px; }
   border-radius: var(--r);
   background: var(--bg2);
   color: var(--ink);
+  overflow-wrap: anywhere;
   transition: border-color var(--ease);
 }
 a.person-card:hover { border-color: rgba(232, 255, 58, 0.45); text-decoration: none; }
@@ -542,6 +547,7 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: var(--bg2);
+  overflow-wrap: anywhere;
   transition: border-color var(--ease);
 }
 .perf-card:hover { border-color: rgba(232, 255, 58, 0.45); }
@@ -668,6 +674,7 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
   border: 1px solid var(--line2);
   border-radius: var(--r);
   background: var(--bg2);
+  overflow-wrap: anywhere;
 }
 .info-link { display: flex; flex-direction: column; gap: 4px; color: var(--ink); }
 .info-link:hover { text-decoration: none; }
@@ -679,11 +686,19 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
   gap: 12px;
   margin-top: 14px;
 }
+/* Прямой ребёнок сетки по умолчанию не уже своего содержимого: длинное слово
+   в одной карточке растягивает всю колонку. `min-width: 0` снимает этот пол. */
+.card-grid > * { min-width: 0; }
+.person-grid > * { min-width: 0; }
+.perf-grid > * { min-width: 0; }
+.block-grid > * { min-width: 0; }
+.glossary > * { min-width: 0; }
 .term-card {
   padding: 16px;
   border: 1px solid var(--line2);
   border-radius: var(--r);
   background: var(--bg2);
+  overflow-wrap: anywhere;
 }
 .term-card:target {
   border-color: var(--lime);

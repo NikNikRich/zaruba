@@ -38,7 +38,7 @@
   <div class="person-grid">
     {% for person in view.participants %}
     <a class="person-card" href="/participants/{{ person.participant.slug }}">
-      <span class="avatar" aria-hidden="true">{{ person.participant.display_name }}</span>
+      <span class="avatar" aria-hidden="true">{{ person.participant.display_name|initials }}</span>
       <strong>{{ person.participant.display_name }}</strong>
       <span class="muted">{{ person.participant.age_group.label }}</span>
       <span class="muted small">{{ person.performances|length }} {{ person.performances|length|plural("выступление", "выступления", "выступлений") }}</span>

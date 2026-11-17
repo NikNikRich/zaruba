@@ -127,7 +127,7 @@
   <div class="person-grid">
     {% for participant in participants %}
     <a class="person-card" href="/participants/{{ participant.slug }}">
-      <span class="avatar" aria-hidden="true">{{ participant.display_name }}</span>
+      <span class="avatar" aria-hidden="true">{{ participant.display_name|initials }}</span>
       <strong>{{ participant.display_name }}</strong>
       <span class="muted">{{ studios[participant.studio].name }}</span>
       <span class="muted small">{{ participant.age_group.label }}</span>

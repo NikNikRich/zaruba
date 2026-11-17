@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from zaruba.config import Settings
+from zaruba.main import create_app
 from zaruba.templating import money
 
 STATIC_DIR = Path(__file__).resolve().parents[1] / "src" / "zaruba" / "static"
@@ -185,6 +187,25 @@ def test_demo_rows_are_marked(client: TestClient) -> None:
     assert "пример" in html
     assert "У каждой карточки виден статус номинации" in html
     assert "Это архив 2025 года" in html
+
+
+def test_avatar_shows_initials_not_full_name(demo_settings: Settings) -> None:
+    """В круге `.avatar` — инициалы: полное имя вылезает за 44 px (§6.4).
+
+    Проверяем страницы с презентационным overlay: именно там в кружках
+    оказывались имена целиком, а карточка участника оставалась нечитаемой.
+    """
+
+    preview = demo_settings.model_copy(update={"preview_enabled": True})
+    with TestClient(create_app(preview)) as preview_client:
+        for path in ("/", "/participants", "/studios/pechat-tantsa"):
+            html = preview_client.get(path).text
+            avatars = re.findall(r'<span class="avatar"[^>]*>(.*?)</span>', html, flags=re.DOTALL)
+
+            assert avatars, f"{path}: не найдено ни одного .avatar"
+            for text in avatars:
+                plain = re.sub(r"<[^>]+>", "", text).strip()
+                assert 0 < len(plain) <= 4, f"{path}: в .avatar «{plain}» — не инициалы"
 
 
 def test_pages_have_no_none_artifacts(client: TestClient) -> None:

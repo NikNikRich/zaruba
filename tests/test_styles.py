@@ -173,6 +173,40 @@ def test_day_tabs_height_token_matches_rule() -> None:
     )
 
 
+GRID_SELECTORS = (
+    ".card-grid > *",
+    ".person-grid > *",
+    ".perf-grid > *",
+    ".block-grid > *",
+    ".glossary > *",
+)
+
+CARD_SELECTORS = (".info-card", ".person-card", ".perf-card", ".block-card", ".term-card")
+
+
+def test_long_words_do_not_stretch_layout() -> None:
+    """Длинное имя или слово в карточке не распирает сетку по горизонтали.
+
+    Сетка `repeat(auto-fill, minmax(...))` не даёт колонке сжаться меньше
+    минимума, а `min-width: 0` у ребёнка разрешает ей ужаться; без переноса
+    слово всё равно вылезает за карточку и растягивает страницу.
+    """
+
+    css = _css()
+
+    assert "overflow-wrap: break-word" in _rule(css, "body")[0], "body без переноса длинных слов"
+
+    for selector in GRID_SELECTORS:
+        rules = _rule(css, selector)
+        assert rules, f"нет правила {selector}"
+        assert "min-width: 0" in rules[0], f"{selector} без min-width: 0 — колонка не сожмётся"
+
+    for selector in CARD_SELECTORS:
+        rules = _rule(css, selector)
+        assert rules, f"нет правила {selector}"
+        assert "overflow-wrap: anywhere" in rules[0], f"{selector} без overflow-wrap: anywhere"
+
+
 def test_wide_tables_scroll_inside_their_wrapper() -> None:
     """5+ колонок в карточки не раскладываются: скролл живёт внутри `.table-wrap`."""
 

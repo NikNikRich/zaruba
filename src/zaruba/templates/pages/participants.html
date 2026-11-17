@@ -67,7 +67,7 @@
 <div class="person-grid">
   {% for view in views %}
   <a class="person-card" href="/participants/{{ view.participant.slug }}">
-    <span class="avatar" aria-hidden="true">{{ view.participant.display_name }}</span>
+    <span class="avatar" aria-hidden="true">{{ view.participant.display_name|initials }}</span>
     <strong>{{ view.participant.display_name }}</strong>
     <span class="muted">{{ view.studio.name }}</span>
     <span class="muted small">{{ view.participant.city }} · {{ view.participant.age_group.label }}</span>
