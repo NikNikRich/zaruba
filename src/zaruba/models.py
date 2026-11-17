@@ -840,6 +840,7 @@ class MasterClass(Strict):
     teacher: str = Field(min_length=2, max_length=80)
     price_early: int = Field(ge=1, le=100_000)
     price_late: int = Field(ge=1, le=100_000)
+    early_until: date
     source_id: Slug | None = None
 
     @model_validator(mode="after")
@@ -1000,6 +1001,11 @@ class Edition(Strict):
                 raise ValueError(
                     f"master_classes.{master_class.slug}: "
                     f"неизвестный source_id «{master_class.source_id}»"
+                )
+            if master_class.early_until > self.dates[0]:
+                raise ValueError(
+                    f"master_classes.{master_class.slug}: ранний срок "
+                    f"{master_class.early_until} позже начала выпуска"
                 )
 
         for fee in self.fees:

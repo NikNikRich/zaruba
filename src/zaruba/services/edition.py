@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, time
 
 from ..models import (
     AgeGroup,
     DanceFormat,
     DanceStyle,
     DataStatus,
+    Edition,
     EditionBundle,
+    Fee,
+    MasterClass,
     Nomination,
     Participant,
     Performance,
@@ -118,6 +121,111 @@ def edition_notice(bundle: EditionBundle, today: date | None = None) -> str | No
             f"ниже архив {edition.edition} года."
         )
     return None
+
+
+@dataclass(frozen=True)
+class Price:
+    """Тариф «до срока / после»: на странице показываем действующий, а не оба вслепую."""
+
+    early: int
+    late: int
+    early_until: date
+    today: date
+
+    @property
+    def early_active(self) -> bool:
+        # «До 12 ноября» включает сам день: ранняя цена ещё действует.
+        return self.today <= self.early_until
+
+    @property
+    def expired(self) -> bool:
+        return not self.early_active
+
+    @property
+    def current(self) -> int:
+        return self.early if self.early_active else self.late
+
+
+@dataclass(frozen=True)
+class FeePrice:
+    fee: Fee
+    price: Price
+
+
+@dataclass(frozen=True)
+class MasterClassPrice:
+    master_class: MasterClass
+    price: Price
+
+
+def _price(early: int, late: int, early_until: date, today: date | None) -> Price:
+    return Price(early=early, late=late, early_until=early_until, today=today or date.today())
+
+
+def fee_prices(edition: Edition, today: date | None = None) -> list[FeePrice]:
+    """Взносы с действующей ставкой: шаблон не сравнивает даты сам (§6.13)."""
+
+    return [
+        FeePrice(
+            fee=fee,
+            price=_price(fee.amount_early, fee.amount_late, fee.early_until, today),
+        )
+        for fee in edition.fees
+    ]
+
+
+def master_class_prices(edition: Edition, today: date | None = None) -> list[MasterClassPrice]:
+    return [
+        MasterClassPrice(
+            master_class=item,
+            price=_price(item.price_early, item.price_late, item.early_until, today),
+        )
+        for item in edition.master_classes
+    ]
+
+
+def master_class_pass(edition: Edition, today: date | None = None) -> Price | None:
+    """Абонемент на все классы: срок берётся из самих классов, а не из шаблона."""
+
+    if edition.master_class_pass_early is None or edition.master_class_pass_late is None:
+        return None
+    deadlines = [item.early_until for item in edition.master_classes]
+    if not deadlines:
+        return None
+    return _price(
+        edition.master_class_pass_early,
+        edition.master_class_pass_late,
+        min(deadlines),
+        today,
+    )
+
+
+def master_class_slot(edition: Edition) -> tuple[time, time] | None:
+    """Границы мастер-классов: «10:00–16:00» собирается из времени классов."""
+
+    if not edition.master_classes:
+        return None
+    return (
+        min(item.starts_at for item in edition.master_classes),
+        max(item.ends_at for item in edition.master_classes),
+    )
+
+
+def master_class_date(edition: Edition) -> date | None:
+    """Дата мастер-классов: день первого класса в датах выпуска."""
+
+    if not edition.master_classes:
+        return None
+    day = min(item.day for item in edition.master_classes)
+    return edition.dates[day - 1]
+
+
+def registration_state(edition: Edition, today: date | None = None) -> str:
+    """Статус приёма заявок для пустых состояний: open / closed / unknown."""
+
+    if edition.registration_until is None:
+        return "unknown"
+    return "open" if (today or date.today()) <= edition.registration_until else "closed"
 
 
 @dataclass(frozen=True)
