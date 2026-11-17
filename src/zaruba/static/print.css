@@ -32,6 +32,37 @@ h3 { font-size: 11pt; }
 
 .badge { border-color: #999; color: #333; }
 
-.day { break-inside: avoid; page-break-inside: avoid; }
+/* Один день — один лист: внутри дня разрыв разрешён, между днями — всегда. */
+.day { break-inside: auto; page-break-inside: auto; }
+.day + .day { break-before: page; page-break-before: always; }
+
+/* Карточки на экране тёмные. На бумаге фон и текст возвращаются к чёрному
+   на белом: иначе блок исчезает или печатается почти белым. */
+.perf-link,
+.person-card,
+.block-card,
+.info-card,
+.term-card {
+  color: #111;
+  background: #fff;
+}
+
+/* Цифры и время на экране лаймовые: на белом листе #e8ff3a не читается,
+   поэтому для печати — тот же чёрный, что и основной текст. */
+.table td.mono { color: #111; }
+.perf-when { color: #111; }
+.shot__year { color: #111; }
+
+/* Предупреждение — не навигация: в общем списке скрытого его нет, но именно
+   он несёт дисклеймер «сайт неофициальный». Возвращаем видимым, с рамкой. */
+.callout {
+  display: block;
+  border-left: 2px solid #999;
+  border-left-width: 2px;
+  padding-left: 3mm;
+  color: #111;
+  background: #fff;
+  break-inside: avoid;
+}
 
 a { color: #111; text-decoration: none; }

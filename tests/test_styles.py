@@ -11,10 +11,15 @@ import re
 from pathlib import Path
 
 STYLE_CSS = Path(__file__).resolve().parents[1] / "src" / "zaruba" / "static" / "style.css"
+PRINT_CSS = Path(__file__).resolve().parents[1] / "src" / "zaruba" / "static" / "print.css"
 
 
 def _css() -> str:
     return STYLE_CSS.read_text(encoding="utf-8")
+
+
+def _print_css() -> str:
+    return PRINT_CSS.read_text(encoding="utf-8")
 
 
 def _rule(css: str, selector: str) -> list[str]:
@@ -205,6 +210,27 @@ def test_long_words_do_not_stretch_layout() -> None:
         rules = _rule(css, selector)
         assert rules, f"нет правила {selector}"
         assert "overflow-wrap: anywhere" in rules[0], f"{selector} без overflow-wrap: anywhere"
+
+
+def test_print_keeps_callout_and_mono_text_visible() -> None:
+    """На бумаге предупреждение не прячется, а цифры остаются чёрными.
+
+    `.callout` скрыт в общем списке навигации ради места, но именно он несёт
+    дисклеймер «сайт неофициальный»; `--lime` на белом листе не читается.
+    """
+
+    css = _print_css()
+
+    callout = _rule(css, ".callout")
+    assert callout, "в print.css нет отдельного правила .callout"
+    assert any("display: block" in body for body in callout), "предупреждение скрыто при печати"
+    assert any("border-left-width: 2px" in body for body in callout), (
+        "у предупреждения нет заметной левой рамки"
+    )
+
+    mono = _rule(css, ".table td.mono")
+    assert mono, "в print.css нет правила .table td.mono"
+    assert "color: #111" in mono[0], "цифры таблицы печатаются цветом экрана"
 
 
 def test_wide_tables_scroll_inside_their_wrapper() -> None:
