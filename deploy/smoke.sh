@@ -27,9 +27,12 @@ case "$redirect" in
 esac
 
 # 2. www → канонический адрес (иначе два хоста с одним контентом)
+# Проверка мягкая: пока у www.<домен> нет A-записи, Caddy не выпустит на него
+# сертификат, и требовать редирект нельзя. Отсутствие DNS — warn, а не провал.
 www_redirect=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 10 "https://www.${HOST}/")
 case "$www_redirect" in
     "301 ${BASE}/" | "308 ${BASE}/") ok "www → https без www (${www_redirect})" ;;
+    "000 "*) printf 'warn www.%s не отвечает: A-записи нет — проверка редиректа пропущена\n' "$HOST" ;;
     *) bad "www: ожидали 301 на ${BASE}/, получили '${www_redirect}'" ;;
 esac
 else

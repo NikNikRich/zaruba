@@ -1,0 +1,41 @@
+# Caddy: HTTPS без ручных сертификатов.
+#
+# Домен приходит из .env (DOMAIN) и подставляется compose-переменной. Caddy сам
+# получает сертификат Let's Encrypt по http-01 и продлевает его за месяц до
+# истечения — certbot и cron не нужны.
+#
+# Проверка синтаксиса:  docker compose exec caddy caddy validate --config /etc/caddy/Caddyfile
+# Перезагрузка:         docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+{
+	# Админ-API Caddy на 2019-м порту снаружи не нужен: конфиг меняется через
+	# git, а открытый API — это лишняя поверхность атаки.
+	admin off
+	# Почта для ACME: Caddy работает и без неё, но тогда Let's Encrypt не
+	# предупредит о проблеме с продлением. Задайте ACME_EMAIL в .env и
+	# раскомментируйте строку.
+	# email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# /healthz — адрес контейнера, а не сайта: Docker проверяет его напрямую по
+	# 127.0.0.1:8000, и снаружи он не нужен (deploy/smoke.sh ждёт здесь 403).
+	respond /healthz 403
+
+	reverse_proxy web:8000 {
+		# Приложение собирает canonical, robots.txt, sitemap и og:image из
+		# X-Forwarded-Proto: без этого заголовка ссылки станут http://, а
+		# соцсети не покажут карточку.
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Host {host}
+	}
+}
+
+# www: включайте только после того, как у www.<домен> появится A-запись на этот
+# же сервер. Пока её нет, Caddy не выпустит сертификат и будет повторять попытку,
+# а Let's Encrypt считает неудачи и может временно заблокировать домен.
+# www.{$DOMAIN} {
+# 	redir https://{$DOMAIN}{uri} permanent
+# }

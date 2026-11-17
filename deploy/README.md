@@ -10,7 +10,9 @@
 
 ```
 Dockerfile                 образ: python:3.12.15-slim, non-root, healthcheck
-docker-compose.yml         публикация только на 127.0.0.1:8000, read_only, tmpfs
+docker-compose.yml         web (порт не публикуется) + caddy (80/443), read_only, tmpfs
+Caddyfile                  HTTPS: сертификат Let's Encrypt на DOMAIN, проксирование
+deploy/setup_vps.sh        подготовка чистого Ubuntu: Docker, compose, ufw, /opt/zaruba
 .env.example               шаблон окружения (префикс ZARUBA_)
 deploy/nginx.conf.example  HTTPS, gzip, /healthz только с loopback, X-Request-ID
 deploy/zaruba.service      вариант без Docker: systemd-юнит с минимумом прав
@@ -70,57 +72,64 @@ sudo systemctl restart systemd-journald
 ## 3. Запуск: Docker (рекомендуемый вариант)
 
 ```bash
-# Docker Engine + compose plugin
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker "$USER" && newgrp docker
-docker --version && docker compose version
+# Docker Engine, compose, ufw (22/80/443) и каталог приложения — одним скриптом
+sudo bash deploy/setup_vps.sh             # каталог по умолчанию /opt/zaruba
 
-sudo mkdir -p /srv && sudo chown "$USER":"$USER" /srv
-git clone <URL-репозитория> /srv/zaruba && cd /srv/zaruba
+git clone <URL-репозитория> /opt/zaruba && cd /opt/zaruba
 git log --oneline -1                      # что именно разворачиваем
 
 cp .env.example .env
 chmod 600 .env
-nano .env                                 # см. шаг 4 — обязательно prod и адрес сайта
+nano .env        # ZARUBA_ENV=prod, DOMAIN=<домен>, ZARUBA_PUBLIC_BASE_URL=https://<домен>
 
 docker compose up -d --build
-docker compose ps                         # STATUS должен стать (healthy) за ~15 с
+docker compose ps                         # web — (healthy), caddy — running
 ```
 
 Проверки этого шага:
 
 ```bash
-curl -fsS http://127.0.0.1:8000/healthz          # {"status":"ok",...}
 docker inspect --format '{{.State.Health.Status}}' "$(docker compose ps -q web)"
-ss -ltnp | grep 8000                              # 127.0.0.1:8000, не 0.0.0.0
-docker compose logs --tail=30 web
+docker compose logs --tail=30 web                 # контент разобран, ошибок нет
+curl -s -o /dev/null -w '%{http_code}\n' "https://${DOMAIN}/"   # 200, сертификат получен
+docker compose exec caddy caddy validate --config /etc/caddy/Caddyfile
 ```
 
-Почему `127.0.0.1:8000` — не небрежность: приложение не умеет TLS, и если оно
-смотрит в интернет напрямую, сертификат и HSTS бессмысленны, а `--proxy-headers`
-начинает доверять заголовкам любого клиента. Наружу — только nginx.
+Почему приложение не публикует порт вовсе: оно не умеет TLS, и если оно смотрит
+в интернет напрямую, сертификат и HSTS бесполезны, а `--proxy-headers` начинает
+доверять заголовкам любого клиента. Наружу смотрят только 80 и 443 Caddy, а
+`web` доступен лишь из сети compose. Практическое следствие: `curl
+127.0.0.1:8000/healthz` с хоста больше не работает — живость проверяет
+`HEALTHCHECK` контейнера (он ходит внутрь себя) и `docker compose ps`.
 
-Если nginx тоже будет в Docker, `127.0.0.1` из контейнера nginx — это он сам:
-тогда публикуйте порт в сеть compose и поставьте `FORWARDED_ALLOW_IPS` в адрес
-контейнера nginx, а не в `127.0.0.1`. Для одного сайта это лишний слой — nginx
-на хосте проще.
+Caddy сам получает и продлевает сертификат Let's Encrypt на `DOMAIN` из `.env`:
+certbot, cron и `deploy/nginx.conf.example` для этой связки не нужны. Порядок
+важен только один: A-запись домена должна указывать на сервер **до** первого
+`docker compose up`, иначе ACME-проверка не пройдёт и Caddy будет повторять
+попытку (лимиты Let's Encrypt считают неудачи).
 
 ## 4. `.env` на сервере
 
 | Переменная | Значение в prod | Почему |
 |---|---|---|
 | `ZARUBA_ENV` | `prod` | включает HSTS и прод-ветки поведения |
+| `DOMAIN` | `zaruba72.ru` | домен для Caddy: на него выпускается сертификат, из него compose собирает адрес |
 | `ZARUBA_PUBLIC_BASE_URL` | `https://zaruba72.ru` | canonical, robots, sitemap и проверка `Host`; без него чужая подмена `Host` уводит индексацию |
 | `ZARUBA_CACHE_TTL_PUBLIC` | `60` | кэш страниц; правка YAML видна максимум через минуту |
 | `ZARUBA_CACHE_TTL_SCHEDULE` | `15` | расписание меняется чаще |
 | `ZARUBA_RATINGS_ENABLED` | `false` | пока нет механики голосования; `true` открывает раздел для индексации |
 | `ZARUBA_FAN_VOTING_ENABLED` | `false` | механики нет (`docs/05`) |
-| `FORWARDED_ALLOW_IPS` | `127.0.0.1` | доверяем `X-Forwarded-Proto` только своему nginx |
+| `FORWARDED_ALLOW_IPS` | `*` (задан в compose) | `X-Forwarded-*` доверяем только сети compose: порт приложения наружу не опубликован |
+| `ZARUBA_PREVIEW_ENABLED` | `false` | презентационный overlay; `true` — только пока данные демонстрационные (`docs/07`) |
 
 `http://` в адресе вместо `https://` — самая дорогая опечатка: сайт сам объявит
 себя небезопасным, а `sitemap.xml` уведёт робота на редирект.
 
 ## 5. nginx и сертификат
+
+> Этот раздел — вариант без Caddy (nginx на хосте). Связка по умолчанию из
+> `docker-compose.yml` сертификат выпускает сама, и всё, что ниже, для неё не
+> нужно; пошаговая инструкция — `docs/08-deploy-and-sheets.md`.
 
 Порядок важен: сначала nginx отвечает на 80-м порту, потом Let's Encrypt, и
 только потом конфигурация с `ssl_certificate` — иначе nginx не стартует, потому
@@ -352,9 +361,11 @@ cookies и внешний скрипт, а CSP в `middleware.py` запреща
 
 ## 12. Чего в репозитории нет (осознанно)
 
-- **CD (автодеплой из CI).** Нужны секреты SSH и доверие к ветке `main`;
-  ручной `git pull && docker compose up -d --build` с `smoke.sh` для одного
-  хоста дешевле, чем поддерживать workflow с ключами.
+- **Staging-окружения.** Деплой один — на `main` после зелёных проверок
+  (`.github/workflows/deploy.yml`: тесты, линтеры, контент, затем `git reset
+  --hard` и `docker compose up -d --build` по SSH). Предпросмотр изменений —
+  локальный запуск и `preview`-режим (`ZARUBA_PREVIEW_ENABLED`), а не второй
+  сервер; подробности — `docs/08-deploy-and-sheets.md`.
 - **Реестра образов.** Образ собирается на сервере; если это станет медленно,
   следующий шаг — `docker/build-push-action` в GHCR и `image:` вместо `build:`
   в compose.
@@ -369,14 +380,14 @@ cookies и внешний скрипт, а CSP в `middleware.py` запреща
 
 ```text
 1. домен куплен, A-запись на IP сервера, dig подтверждает
-2. apt upgrade, ufw (22/80/443), fail2ban, unattended-upgrades, swap
-3. git clone в /srv/zaruba, .env (prod + https-адрес), chmod 600
-4. docker compose up -d --build → (healthy), curl 127.0.0.1:8000/healthz
-5. nginx: сначала 80 + заглушка → certbot на домен и www → боевой конфиг
-6. SITE_HOST=zaruba72.ru bash deploy/smoke.sh → все ok
+2. sudo bash deploy/setup_vps.sh: apt, ufw (22/80/443), Docker, /opt/zaruba
+3. git clone в /opt/zaruba, .env (prod, DOMAIN, https-адрес), chmod 600
+4. docker compose up -d --build → web (healthy), caddy на 80/443, сертификат
+5. SITE_HOST=<домен> bash deploy/smoke.sh → все ok
+6. секреты VPS_HOST/VPS_USER/VPS_SSH_KEY в GitHub — дальше деплой по пушу
 7. cron: бэкап в 03:20, /healthz каждые 5 минут, journald 200 МБ
 8. Вебмастер/GSC: подтвердить домен, отдать sitemap
-9. тег v0.1.0 в git; обновление — pull → build → smoke → откат по коммиту
+9. тег v0.1.0 в git; откат — `git reset --hard <коммит>` и повторный деплой
 ```
 
 Пункты 1–2 зависят от владельца домена и сервера, 3–9 выполняются на хосте за

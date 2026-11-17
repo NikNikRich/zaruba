@@ -1,20 +1,32 @@
+# Продакшн-связка: Caddy получает и продлевает сертификат Let's Encrypt, uvicorn
+# отдаёт страницы. Наружу смотрят только 80/443 Caddy; приложение порт не
+# публикует вовсе — до него можно дотянуться лишь из сети compose.
+#
+#   cp .env.example .env   # DOMAIN, ZARUBA_PUBLIC_BASE_URL, ZARUBA_ENV=prod
+#   docker compose up -d --build
+#
+# Первый запуск требует, чтобы A-запись домена уже указывала на этот сервер:
+# иначе ACME-проверка не пройдёт и Caddy будет повторять попытку.
 services:
   web:
     build: .
     image: zaruba:latest
-    # cp .env.example .env — иначе compose не запустится
     env_file:
       - .env
     environment:
-      # адрес прокси, которому доверяем X-Forwarded-Proto; для nginx в другом
-      # контейнере замените на адрес этого контейнера или подсеть compose
-      FORWARDED_ALLOW_IPS: 127.0.0.1
-    ports:
-      # наружу смотрит только прокси: uvicorn слушает loopback хоста
-      - "127.0.0.1:8000:8000"
+      # Caddy приходит из сети compose, и её адрес меняется при каждом
+      # пересоздании контейнера. Доверяем X-Forwarded-* всей сети: снаружи в неё
+      # попасть нельзя, порт приложения не опубликован.
+      FORWARDED_ALLOW_IPS: "*"
+    expose:
+      - "8000"
     volumes:
-      # контент — данные: правка YAML не требует пересборки образа
+      # Контент — данные, а не код: правка YAML не требует пересборки образа.
       - ./content:/app/content:ro
+      # Overlay выпуска и таблицы — отдельными томами: их обновляет синхронизация
+      # с Google Таблицами, данные должны пережить пересоздание контейнера.
+      - ./content/editions/2026.d:/app/content/editions/2026.d:ro
+      - ./docs/templates:/app/docs/templates:ro
     read_only: true
     tmpfs:
       - /tmp
@@ -28,3 +40,32 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - web
+    environment:
+      # Домен обязателен: без него Caddy выпустит сертификат на localhost, и
+      # сайт откроется по https только у самого сервера.
+      DOMAIN: ${DOMAIN:?задайте DOMAIN в .env — на него выпускается сертификат}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Сертификаты ACME: без этих томов после каждого пересоздания контейнера
+      # Caddy заново просил бы сертификат и упёрся бы в лимит Let's Encrypt.
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  caddy_data:
+  caddy_config:
