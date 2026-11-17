@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     history_file: Path = BASE_DIR / "content" / "history.yaml"
     # Фотоархив: карточки со ссылкой в первоисточник и (если есть) своим файлом.
     photos_file: Path = BASE_DIR / "content" / "photos.yaml"
+    # Рекламные офферы нативных слотов (§6.27). Файл уровня сайта, а не выпуска:
+    # overlay `editions/*.d` в prod выключен, и реклама из него исчезла бы.
+    offers_file: Path = BASE_DIR / "content" / "offers.yaml"
     # Разобранные судейские листы по выпускам: `content/results/2025.yaml`.
     # Пустая папка — законное состояние: страница объясняет, почему таблиц нет.
     results_dir: Path = BASE_DIR / "content" / "results"
@@ -46,9 +49,29 @@ class Settings(BaseSettings):
     ratings_enabled: bool = False
     fan_voting_enabled: bool = False
 
+    # Рекламные слоты (§6.27). Поле трёхзначное: `None` — «решает окружение»,
+    # True/False — явное указание. В dev по умолчанию включено, чтобы дизайнер
+    # видел заглушки; в prod — выключено: рамка «место под интеграцию» на
+    # публичном сайте выглядит как недоделка, а не как реклама.
+    service_tips_enabled: bool | None = None
+
     @property
     def is_prod(self) -> bool:
         return self.env == "prod"
+
+    @property
+    def service_tips_visible(self) -> bool:
+        """Показывать ли рекламные слоты (офферы или заглушки)."""
+
+        return (
+            self.service_tips_enabled if self.service_tips_enabled is not None else not self.is_prod
+        )
+
+    @property
+    def service_tips_placeholders(self) -> bool:
+        """Заглушки — только в dev: в prod пустая рамка не публикуется."""
+
+        return self.service_tips_visible and not self.is_prod
 
 
 @lru_cache

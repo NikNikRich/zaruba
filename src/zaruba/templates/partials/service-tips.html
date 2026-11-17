@@ -1,0 +1,69 @@
+{#- Рекламные слоты (§6.27): зарезервированные места под нативные интеграции.
+
+    Оффер приходит из `content/offers.yaml` и маркирован по 38-ФЗ. Без оффера
+    в dev рисуется заглушка того же размера: дизайнер видит реальную геометрию,
+    а не пустоту. В prod заглушки не рендерятся вовсе — решает `Settings`.
+-#}
+
+{% macro _icon(kind) -%}
+<svg class="service-tip__icon" viewBox="0 0 24 24" width="18" height="18" fill="none"
+     stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+     aria-hidden="true" focusable="false">
+  {%- if kind == "schedule" -%}
+  <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M12 14v3l2 1"/>
+  {%- elif kind == "checklist" -%}
+  <path d="M5 4h14v16H5z"/><path d="M8 9l2 2 3-3M8 15h6"/>
+  {%- else -%}
+  <path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 6h.01M7 12h.01M7 18h.01"/>
+  {%- endif -%}
+</svg>
+{%- endmacro %}
+
+{% macro _meta(tip, slot) -%}
+<p class="service-tip__meta">
+  {%- if tip -%}
+  {{ tip.advertiser }} · erid: <span class="mono">{{ tip.erid }}</span>
+  {%- else -%}
+  [Место под полезную интеграцию: слот {{ slot }}]
+  {%- endif -%}
+</p>
+{%- endmacro %}
+
+{% macro _tip(kind, slot, icon, tip, placeholder) -%}
+{% set classes = "service-tip service-tip--" + kind %}
+{% if tip %}
+<aside class="{{ classes }}" data-slot="{{ slot }}" aria-label="Реклама">
+  {%- if kind == "card" %}<div class="service-tip__head">{% endif %}
+  <span class="badge service-tip__mark">Реклама</span>
+  {{ _icon(icon) }}
+  {%- if kind == "card" %}</div>{% endif %}
+  <div class="service-tip__body">
+    <strong class="service-tip__title">{{ tip.title }}</strong>
+    <p class="service-tip__text">{{ tip.text }}</p>
+  </div>
+  <a class="btn service-tip__action" href="{{ tip.url }}" rel="sponsored noopener noreferrer">{{ tip.cta_label }}</a>
+  {{ _meta(tip, slot) }}
+</aside>
+{% elif placeholder %}
+<aside class="{{ classes }} service-tip--placeholder" data-slot="{{ slot }}"
+       data-placeholder="true" aria-label="Место под полезную интеграцию">
+  {%- if kind == "card" %}<div class="service-tip__head">{% endif %}
+  <span class="badge">заглушка</span>
+  {{ _icon(icon) }}
+  {%- if kind == "card" %}</div>{% endif %}
+  {{ _meta(none, slot) }}
+</aside>
+{% endif %}
+{%- endmacro %}
+
+{% macro service_tip_bar(tip, placeholder=false) -%}
+{{ _tip("bar", "schedule_top", "schedule", tip, placeholder) }}
+{%- endmacro %}
+
+{% macro service_tip_card(tip, placeholder=false) -%}
+{{ _tip("card", "checklist_card", "checklist", tip, placeholder) }}
+{%- endmacro %}
+
+{% macro service_tip_inline(tip, placeholder=false) -%}
+{{ _tip("inline", "protocols_inline", "protocols", tip, placeholder) }}
+{%- endmacro %}

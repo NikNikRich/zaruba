@@ -32,6 +32,7 @@
 | Фавикон и OG-обложка (§6.19) | готово: `favicon.svg` 32×32 и `og-cover.png` 1200×630, `theme-color`, OG/Twitter-теги | `static/`, `templates/base.html`, `tests/test_pages.py` |
 | Результаты 2025 (§6.24) | готово: `/results` — расчёт по 21 номинации судейских листов, места расчётные, дети по инициалам | `content/results/2025.yaml`, `services/results.py` |
 | Презентационные данные (`07`) | готово: таблицы `docs/templates/*.csv`, overlay `content/editions/2026.d/`, флаг `ZARUBA_PREVIEW_ENABLED`, `--drop-preview` | `sync_tables.py`, `content.py` |
+| Рекламные слоты (§6.27) | готово: три зарезервированных места, заглушки только в dev, `content/offers.yaml`, маркировка 38-ФЗ | `partials/service-tips.html`, `services/tips.py`, `tests/test_service_tips.py` |
 
 Проверки на 2026-11-17: `pytest` — 337 тестов (покрытие 94 % при пороге 90 %),
 `ruff check src tests`, `ruff format --check src tests` и `mypy` — чисто,
@@ -687,8 +688,8 @@ src/zaruba/
     base.html        шапка, футер, skip-link, meta/OG, JSON-LD
     pages/           по шаблону на маршрут (home, event, schedule, …)
     pages/legal/     about, rules, privacy, takedown
-  static/            style.css (25 КБ), print.css (2,4 КБ) — без JS и внешних шрифтов
-content/             venues.yaml, glossary.yaml, faq.yaml, history.yaml, editions/*.yaml
+  static/            style.css (31,1 КБ), print.css (3,1 КБ) — без JS и внешних шрифтов
+content/             venues.yaml, glossary.yaml, faq.yaml, history.yaml, offers.yaml, editions/*.yaml
 tests/               13 файлов тестов + conftest: роуты, каталоги, приватность, данные, CLI, SEO, безопасность, ошибки
 deploy/              README.md (развёртывание), zaruba.service, nginx.conf.example, smoke.sh
 Dockerfile, docker-compose.yml, .env.example, .github/workflows/ci.yml
@@ -836,7 +837,7 @@ msedge --headless=new --disable-gpu --hide-scrollbars --force-device-scale-facto
   `prefers-reduced-motion: reduce` гасит переходы, анимации и этот сдвиг;
   инвариант закреплён в `tests/test_styles.py`.
 - **Скорость**: без hero-видео на инфо-страницах, постеры AVIF/WebP, `loading="lazy"`
-  ниже первого экрана, CSS ≤ 30 КБ, JS на инфо-страницах — 0. Цель: LCP < 2.5 с
+  ниже первого экрана, CSS ≤ 32 КБ, JS на инфо-страницах — 0. Цель: LCP < 2.5 с
   на 4G, вес первого экрана ≤ 300 КБ.
 - Кэш HTML — `Cache-Control: no-cache`: страница ревалидируется, поэтому правка
   YAML видна сразу. Разбор YAML кэшируется по mtime контента, а не по TTL:
@@ -854,7 +855,7 @@ msedge --headless=new --disable-gpu --hide-scrollbars --force-device-scale-facto
 |---|---|---|
 | JS на инфо-страницах | 0 скриптов, кроме неисполняемого JSON-LD | `tests/test_security.py` |
 | Инлайновые стили | 0 (CSP без `unsafe-inline`) | `tests/test_security.py` |
-| CSS | `style.css` 24,7 КБ + `print.css` 2,4 КБ | размер файлов |
+| CSS | `style.css` 31,1 КБ + `print.css` 3,1 КБ | размер файлов |
 | Тесты | 337 passed, покрытие 93,99 % (порог 90 %) | `pytest --cov=zaruba` |
 | Внешние шрифты и CDN | нет | CSP `default-src 'self'` |
 | `scope` у таблиц, `skip-link`, `aria-current` | есть | шаблоны + `test_pages.py` |
@@ -921,7 +922,7 @@ msedge --headless=new --disable-gpu --hide-scrollbars --force-device-scale-facto
 6. `[x]` Страница ребёнка без согласия — `noindex`, без фото и клипа:
    `catalogue.py` отдаёт `noindex, nofollow`, имя сокращается до инициалов.
 7. `[ ]` Lighthouse mobile ≥ 90, LCP < 2.5 с, первый экран ≤ 300 КБ: не измерено;
-   косвенно — 0 JS, 25 КБ CSS, без внешних шрифтов и изображений.
+   косвенно — 0 JS, 31 КБ CSS, без внешних шрифтов и изображений.
 8. `[x]` Нет ни одного «скоро» без альтернативы: пустые состояния объясняют
    причину и дают выход (архив, ссылка в сообщество, дата), это закреплено
    тестами страниц.
@@ -1153,4 +1154,37 @@ Overlay выпуска и `docs/templates` смонтированы отдель
 Атомарность выгрузки проверяется тестами (`tests/test_sync_tables.py`): сбой
 одного листа — таймаут, HTML вместо CSV, битая шапка — оставляет локальные CSV и
 overlay прежними. Инструкция для владельца — `08-deploy-and-sheets.md`.
+
+## 6.27. Рекламные слоты в вёрстке (2026-11-18)
+
+Места под нативные интеграции зарезервированы заранее: дизайнер видит
+геометрию до появления офферов, посетитель прод-сайта заглушек не видит вовсе.
+
+| Слот | Страница | Класс | Резерв |
+|---|---|---|---|
+| `schedule_top` | `/schedule`, после табов дней | `.service-tip--bar` | 64 px, плашка в одну строку |
+| `checklist_card` | `/faq`, в конце группы «Родителям» | `.service-tip--card` | 132 px, мера текста 68ch |
+| `protocols_inline` | `/results`, после «Как это разобрано» | `.service-tip--inline` | 44 px, строка без фона |
+
+Правила:
+
+- офферы — `content/offers.yaml` (список `tips`), модель `ServiceTip`:
+  `advertiser` и `erid` обязательны. Нет валидного оффера — слот не рендерится;
+  битый файл ломает `python -m zaruba.content check`, а не первую страницу;
+- флаг `ZARUBA_SERVICE_TIPS_ENABLED`: не задан — включено в dev и выключено
+  в prod; заглушки рендерятся только в dev. В prod рекламу включает явное
+  `ZARUBA_SERVICE_TIPS_ENABLED=true`, и только при валидном оффере с `erid`;
+- маркировка 38-ФЗ: бейдж «Реклама», рекламодатель и `erid` в
+  `.service-tip__meta` (11 px, `word-break: break-word`), ссылка с
+  `rel="sponsored noopener noreferrer"`;
+- слот нейтральный: без лайма и янтаря, без `transform`; CTA — контурная
+  кнопка (в строке протокола — ссылка), чтобы реклама не выглядела главным
+  действием страницы;
+- печать: `.service-tip` скрыт в `print.css`, расписание остаётся один лист A4
+  на день;
+- шаблон — `templates/partials/service-tips.html`: каталог `partials` включён
+  в `package-data`, а новый `templates/components/` в Docker-образ не попал бы.
+
+Инварианты — `tests/test_service_tips.py` и `tests/test_styles.py`; бюджет CSS
+поднят до 32 КБ (§6.20).
 

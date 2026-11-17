@@ -969,6 +969,18 @@ class OfferStatus(StrEnum):
         ]
 
 
+class TipSlot(StrEnum):
+    """Слоты нативных интеграций (§6.27).
+
+    Значение совпадает с именем в `content/offers.yaml` и с `data-slot` в HTML:
+    одно слово вместо трёх независимых констант в модели, загрузчике и шаблоне.
+    """
+
+    SCHEDULE_TOP = "schedule_top"
+    CHECKLIST_CARD = "checklist_card"
+    PROTOCOLS_INLINE = "protocols_inline"
+
+
 # Токен маркировки рекламы по 38-ФЗ: латиница, цифры, `_` и `-`. Проверяем
 # форму, а не подлинность: токен выдаёт ОРД, и придуманный «пример» должен
 # ломать `content check`, а не попадать в плашку «Реклама».
@@ -1011,6 +1023,29 @@ class CommerceOffer(Strict):
         """Распроданный товар не подсвечивается лаймом: кнопка не обещает наличие."""
 
         return self.status is not OfferStatus.SOLD_OUT
+
+
+class ServiceTip(Strict):
+    """Оффер нативного блока (§6.27): реклама, а не «полезный совет сайта».
+
+    `advertiser` и `erid` обязательны. Это жёстче, чем у `CommerceOffer`:
+    нативная вставка не отличима от редакционного текста, поэтому отсутствие
+    маркировки — не «карточка без плашки», а нарушение 38-ФЗ. Нет валидного
+    оффера — слот не рендерится вовсе.
+    """
+
+    slug: Slug
+    slot: TipSlot
+    title: str = Field(min_length=3, max_length=80)
+    text: str = Field(min_length=10, max_length=200)
+    cta_label: str = Field(min_length=3, max_length=40)
+    url: HttpUrl
+    advertiser: str = Field(min_length=3, max_length=120)
+    erid: str = Field(pattern=ERID_RE, max_length=64)
+    # Меньше — важнее. Второе поле ключа (slug) делает выбор детерминированным:
+    # два оффера с одинаковым приоритетом не должны меняться от порядка строк.
+    priority: int = Field(default=100, ge=0, le=1000)
+    valid_until: date | None = None
 
 
 class MasterClass(Strict):

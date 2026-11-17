@@ -446,3 +446,61 @@ def test_print_keeps_media_and_offer_cards_legible() -> None:
     frame = _rule(css, ".media-card__frame")[0]
     assert "background: none" in frame, "тёмный градиент уходит на бумагу"
     assert "border: 1px solid #999" in frame, "рамка превью исчезает при печати"
+
+
+def test_service_tip_reserves_space_and_hides_in_print() -> None:
+    """Заглушка и оффер занимают одно место, а на бумагу реклама не идёт.
+
+    Резерв высоты — не косметика: без него подстановка реального оффера
+    сдвигает таблицы расписания (CLS), а печать рекламы ломает правило
+    «один день — один лист A4» (§6.22 п.2).
+    """
+
+    css = _css()
+
+    for selector, minimum in (
+        (".service-tip--bar", 64),
+        (".service-tip--card", 132),
+        (".service-tip--inline", 44),
+    ):
+        body = _rule(css, selector)[0]
+        assert re.search(rf"min-height:\s*{minimum}px", body), (
+            f"{selector} без резерва высоты {minimum} px"
+        )
+
+    assert re.search(r"\.service-tip\b[^{}]*\{[^}]*display:\s*none", _print_css()), (
+        "рекламный слот печатается вместе с расписанием"
+    )
+
+
+def test_service_tip_does_not_borrow_site_accent() -> None:
+    """Лайм — цвет действия сайта, янтарь — предупреждения. Реклама нейтральна."""
+
+    css = _css()
+
+    for selector in (".service-tip", ".service-tip--bar", ".service-tip--card"):
+        rules = _rule(css, selector)
+        assert rules, f"нет правила {selector}"
+        for body in rules:
+            assert "var(--lime)" not in body, f"{selector} спорит с главным действием"
+            assert "var(--amber)" not in body, f"{selector} выглядит предупреждением"
+            assert "transform" not in body, f"{selector} притворяется кликабельной карточкой"
+
+
+def test_service_tip_meta_is_eleven_pixels_and_wraps() -> None:
+    """Юридическая строка: 11 px, тише текста и переносится по любому месту."""
+
+    meta = next(body for body in _rule(_css(), ".service-tip__meta") if "font-size" in body)
+
+    assert "font-size: 11px" in meta
+    assert "var(--dim)" in meta
+    assert "overflow-wrap: anywhere" in meta
+    assert "word-break: break-word" in meta
+
+
+def test_style_css_fits_the_32_kb_budget() -> None:
+    """Бюджет поднят с 30 до 32 КБ ради трёх слотов — и держится тестом."""
+
+    assert STYLE_CSS.stat().st_size <= 32_000, (
+        f"style.css {STYLE_CSS.stat().st_size} байт — бюджет 32 000 превышен"
+    )

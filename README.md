@@ -150,6 +150,11 @@ python -m venv .venv
 без флага сайт показывает подтверждённые факты. Как заполнять таблицы и как
 убрать примеры одной командой — `docs/07-preview-data.md`.
 
+Рекламные слоты (`/schedule`, `/faq`, `/results`) зарезервированы под нативные
+интеграции: офферы — `content/offers.yaml` с обязательными `advertiser` и
+`erid`, флаг `ZARUBA_SERVICE_TIPS_ENABLED` (в dev включён, в prod выключен,
+заглушки только в dev) — `docs/06` §6.27.
+
 Страницы: `/` (главная), `/event` (о событии и хронология), `/history` (архив по годам),
 `/ratings` (рейтинги и методика v1 — за флагом `ZARUBA_RATINGS_ENABLED`), `/schedule`
 (расписание, `?day=1`), `/performances` (каталог с фильтрами `?day=&style=&age=&format=&studio=&video=1`),

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/service-tips.html" import service_tip_card %}
 
 {% block title %}Вопросы и ответы — {{ edition.title }}{% endblock %}
 {% block description %}Частые вопросы о «ЗАРУБЕ»: билеты, участие, дети, музыка и правила площадки.{% endblock %}
@@ -38,6 +39,9 @@
     </details>
     {% endfor %}
   </div>
+  {% if group.key == "parent" %}
+  {{ service_tip_card(tip=service_tip, placeholder=settings.service_tips_placeholders) }}
+  {% endif %}
 </section>
 {% endfor %}
 

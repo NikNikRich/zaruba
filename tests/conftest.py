@@ -23,6 +23,7 @@ def _settings_for(content: Path) -> Settings:
         faq_file=content / "faq.yaml",
         history_file=content / "history.yaml",
         photos_file=content / "photos.yaml",
+        offers_file=content / "offers.yaml",
         results_dir=content / "results",
     )
 

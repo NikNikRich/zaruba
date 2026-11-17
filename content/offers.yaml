@@ -1,0 +1,18 @@
+# Рекламные офферы нативных слотов (`docs/06` §6.27).
+#
+# Пустой список — законное состояние: слоты в dev показывают заглушки, в prod
+# не рендерятся вовсе. Оффер обязан иметь `advertiser` и `erid` (38-ФЗ):
+# без маркировки строка не пройдёт `python -m zaruba.content check`.
+#
+# tips:
+#   - slug: coffee-2026
+#     slot: schedule_top            # schedule_top | checklist_card | protocols_inline
+#     title: Кофе на площадке
+#     text: Кофейня в фойе КТЗ, скидка по бейджу участника.
+#     cta_label: Меню
+#     url: https://example.ru/menu
+#     advertiser: ИП Иванов И. И.
+#     erid: 2VtzqwXk9Ab
+#     priority: 10                  # меньше — важнее; по умолчанию 100
+#     valid_until: 2026-12-14       # необязательно
+tips: []

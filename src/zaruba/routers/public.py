@@ -7,8 +7,22 @@ from datetime import date
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from ..content import load_history, load_knowledge, load_latest, load_site
-from ..models import AgeGroup, DanceFormat, DanceStyle, FaqGroup, GlossaryKind, NominationLevel
+from ..content import (
+    load_history,
+    load_knowledge,
+    load_latest,
+    load_service_tips,
+    load_site,
+)
+from ..models import (
+    AgeGroup,
+    DanceFormat,
+    DanceStyle,
+    FaqGroup,
+    GlossaryKind,
+    NominationLevel,
+    TipSlot,
+)
 from ..services.edition import (
     catalogue_bundle,
     day_views,
@@ -25,6 +39,7 @@ from ..services.edition import (
 )
 from ..services.history import history_rows
 from ..services.seo import event_json_ld, faq_json_ld, glossary_json_ld
+from ..services.tips import tip_for_slot
 from ..templating import base_url, render
 
 router = APIRouter()
@@ -245,7 +260,8 @@ def faq_page(request: Request) -> HTMLResponse:
 
     bundle = load_latest(request.app.state.settings)
     edition = bundle.edition
-    knowledge = load_knowledge(request.app.state.settings)
+    settings = request.app.state.settings
+    knowledge = load_knowledge(settings)
     groups = [
         {
             "key": group.value,
@@ -265,6 +281,11 @@ def faq_page(request: Request) -> HTMLResponse:
         groups=groups,
         sources=edition.source_index,
         total=len(knowledge.faq),
+        service_tip=(
+            tip_for_slot(load_service_tips(settings), TipSlot.CHECKLIST_CARD)
+            if settings.service_tips_visible
+            else None
+        ),
         page_title="Вопросы и ответы",
         # §6.19: FAQPage — ровно те вопросы, что видит посетитель.
         json_ld=[faq_json_ld(base_url(request), knowledge.faq)],

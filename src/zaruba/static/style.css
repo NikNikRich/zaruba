@@ -1,4 +1,4 @@
-/* ЗАРУБА · фан-сайт: один CSS, без внешних шрифтов и фреймворков (<= 30 КБ) */
+/* ЗАРУБА · фан-сайт: один CSS, без внешних шрифтов и фреймворков (<= 32 КБ) */
 
 :root {
   --bg: #0b0b0f;
@@ -879,6 +879,51 @@ a.badge { min-height: 44px; }
 .partner-list li { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
 .partner-list a { display: inline-flex; align-items: center; min-height: 44px; }
 .partner-mark { color: var(--dim); }
+
+/* Рекламные слоты (§6.27): нейтральный блок, лайм и янтарь заняты. */
+.service-tip {
+  display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--bg2); overflow-wrap: anywhere;
+}
+/* Резерв высоты — контракт: заглушка и оффер занимают одно место (CLS). */
+.service-tip--bar {
+  display: grid; grid-template-columns: auto 18px 1fr auto;
+  align-items: center; gap: 10px 12px; min-height: 64px;
+}
+.service-tip--bar .service-tip__meta { grid-column: 1 / -1; }
+.service-tip--bar .service-tip__action { align-self: center; }
+.service-tip--card { min-height: 132px; max-width: 68ch; padding: 16px; }
+.service-tip--inline {
+  display: flex; flex-direction: row; flex-wrap: wrap; align-items: center;
+  gap: 8px 12px; min-height: 44px; padding: 10px 0; border: 0;
+  border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line2);
+  border-radius: 0; background: none;
+}
+.service-tip--inline .service-tip__body { flex: 1 1 240px; }
+.service-tip--inline .service-tip__meta { flex: 1 1 100%; }
+.service-tip--inline .service-tip__action {
+  min-height: 44px; padding: 0; border: 0; background: none; color: var(--lime);
+}
+/* Заглушка: тот же размер, но пунктир — «здесь пока ничего». */
+.service-tip--placeholder { border-style: dashed; background: none; }
+.service-tip__head { display: flex; align-items: center; gap: 10px; }
+.service-tip__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.service-tip__title { font-size: 15px; line-height: 1.25; }
+.service-tip__text { margin: 0; font-size: 14px; color: var(--muted); }
+.service-tip__action { align-self: flex-start; }
+.service-tip__icon { flex: none; color: var(--dim); }
+.service-tip__meta {
+  margin: 0; color: var(--dim); font-size: 11px; line-height: 1.4;
+  /* Длинный erid или название рекламодателя не распирают плашку. */
+  overflow-wrap: anywhere; word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .service-tip--bar { grid-template-columns: 18px 1fr; }
+  .service-tip--bar .service-tip__mark { grid-column: 1 / -1; justify-self: start; }
+  .service-tip--bar .service-tip__action { grid-column: 1 / -1; width: 100%; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

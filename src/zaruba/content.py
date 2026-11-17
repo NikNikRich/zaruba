@@ -26,6 +26,7 @@ from .models import (
     Photo,
     ResultNomination,
     Results,
+    ServiceTip,
     Venue,
 )
 
@@ -35,6 +36,7 @@ FAQ_ADAPTER = TypeAdapter(list[FaqItem])
 HISTORY_ADAPTER = TypeAdapter(list[HistoryEntry])
 PHOTOS_ADAPTER = TypeAdapter(list[Photo])
 RESULTS_ADAPTER = TypeAdapter(Results)
+SERVICE_TIPS_ADAPTER = TypeAdapter(list[ServiceTip])
 
 
 class ContentError(Exception):
@@ -248,6 +250,7 @@ def _content_fingerprint(settings: Settings) -> tuple[tuple[str, int, int], ...]
         settings.faq_file,
         settings.history_file,
         settings.photos_file,
+        settings.offers_file,
         *settings.content_dir.glob("*.yaml"),
         # Overlay — тоже контент: правка презентационного блока должна сбрасывать
         # кэш, иначе страница покажет старый тайминг до рестарта.
@@ -327,6 +330,46 @@ def load_faq(path: Path, source_ids: set[str] | None = None) -> list[FaqItem]:
                     f"{path}: faq.{item.slug}: неизвестный source_id «{item.source_id}»"
                 )
     return items
+
+
+def load_offers(path: Path) -> list[ServiceTip]:
+    """Рекламные офферы нативных слотов (§6.27).
+
+    Отсутствие файла — законное состояние «рекламы нет», а не авария: сайт
+    работает без него. А вот битая строка — ошибка с файлом и полем: реклама
+    без `erid` или с неизвестным слотом не должна доехать до страницы.
+    """
+
+    path = Path(path)
+    if not path.exists():
+        return []
+    raw = _read_yaml(path, "полем tips")
+    try:
+        tips = SERVICE_TIPS_ADAPTER.validate_python(raw.get("tips", []))
+    except ValidationError as exc:
+        raise _validation_error(path, exc) from exc
+
+    slugs = [tip.slug for tip in tips]
+    duplicates = sorted({slug for slug in slugs if slugs.count(slug) > 1})
+    if duplicates:
+        raise ContentError(f"{path}: офферы повторяются — {duplicates}")
+    return tips
+
+
+@lru_cache(maxsize=8)
+def _offers_cached(path: str, fingerprint: tuple[int, int, int]) -> tuple[ServiceTip, ...]:
+    return tuple(load_offers(Path(path)))
+
+
+def load_service_tips(settings: Settings | None = None) -> list[ServiceTip]:
+    """Офферы с кэшем по mtime и размеру файла — как у результатов."""
+
+    settings = settings or get_settings()
+    path = settings.offers_file
+    if not path.exists():
+        return []
+    stat = path.stat()
+    return list(_offers_cached(str(path), (stat.st_mtime_ns, stat.st_size, len(str(path)))))
 
 
 @dataclass(frozen=True)
@@ -618,9 +661,13 @@ def main(argv: list[str] | None = None) -> int:
                 photos = load_photos(settings.photos_file)
                 results = load_all_results(settings)
                 knowledge = load_knowledge(settings)
+                # Офферы проверяются тем же прогоном: битый `offers.yaml` должен
+                # ломать pre-commit, а не первую же страницу в проде.
+                tips = load_service_tips(settings)
                 print(f"OK  история: {len(archive)} записей до 2025 года")
                 print(f"OK  глоссарий: {len(knowledge.glossary)} статей")
                 print(f"OK  FAQ: {len(knowledge.faq)} вопросов")
+                print(f"OK  рекламные слоты: {len(tips)} офферов")
                 own = sum(1 for photo in photos if photo.file)
                 cited = sum(1 for photo in photos if photo.is_citation)
                 print(

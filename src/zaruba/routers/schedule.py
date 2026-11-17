@@ -7,7 +7,8 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import HTMLResponse
 
-from ..content import load_latest
+from ..content import load_latest, load_service_tips
+from ..models import TipSlot
 from ..services.edition import (
     day_views,
     edition_notice,
@@ -16,6 +17,7 @@ from ..services.edition import (
     master_class_slot,
     nominations_by_day,
 )
+from ..services.tips import tip_for_slot
 from ..templating import render
 
 router = APIRouter()
@@ -36,6 +38,13 @@ def schedule(
     if day is not None:
         nominations_days = [item for item in nominations_days if item.day == day]
 
+    settings = request.app.state.settings
+    service_tip = (
+        tip_for_slot(load_service_tips(settings), TipSlot.SCHEDULE_TOP)
+        if settings.service_tips_visible
+        else None
+    )
+
     return render(
         request,
         "pages/schedule.html",
@@ -50,5 +59,6 @@ def schedule(
         master_class_day=master_class_date(bundle.edition),
         master_class_slot=master_class_slot(bundle.edition),
         active_day=day,
+        service_tip=service_tip,
         page_title="Расписание",
     )

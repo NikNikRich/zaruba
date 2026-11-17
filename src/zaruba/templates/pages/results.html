@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/service-tips.html" import service_tip_inline %}
 
 {% block title %}Результаты «ЗАРУБА»{% if view %} {{ view.year }}{% endif %} — расчёт по судейским листам{% endblock %}
 {% block description %}{% if view %}Результаты «ЗАРУБА» {{ view.year }}: места и баллы по {{ view.nominations }}
@@ -123,6 +124,8 @@
   <p class="muted small">Данные обновлены {{ view.updated_at|fmt_dt }}. Названия команд
   оставлены как в листах: это коллективы, а не фамилии.</p>
 </section>
+
+{{ service_tip_inline(tip=service_tip, placeholder=settings.service_tips_placeholders) }}
 
 <section class="sources">
   <h2>Источник</h2>

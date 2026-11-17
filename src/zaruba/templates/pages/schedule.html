@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/service-tips.html" import service_tip_bar %}
 
 {% block title %}Расписание — {{ edition.title }}{% endblock %}
 {% block description %}Расписание «ЗАРУБА» {{ edition.edition }}: блоки по дням, номинации, сцена
@@ -18,6 +19,8 @@
   <a href="/schedule?day={{ item.day }}"{% if active_day == item.day %} aria-current="page"{% endif %}>День {{ item.day }}</a>
   {% endfor %}
 </nav>
+
+{{ service_tip_bar(tip=service_tip, placeholder=settings.service_tips_placeholders) }}
 
 {% for day in days %}
 <section class="day" id="day-{{ day.day }}">
