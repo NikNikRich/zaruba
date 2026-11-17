@@ -21,7 +21,7 @@
 | Результаты 2025 | готово: 21 номинация, 207 строк-участников, места расчётные (§6.24) | `/results`, `content/results/2025.yaml` |
 | Служебные P0 (§6.2 п.18) | готово: `/about`, `/rules`, `/privacy`, `/takedown` | `routers/legal.py` |
 | Ссылки-источники | готово: каждый источник — конкретный пост, документ или страница события; корень ленты отклоняет загрузчик (§6.17) | `content.py`, `tests/test_content.py` |
-| Публикация | готово: Dockerfile, compose, systemd, nginx, CI, заголовки безопасности, ранбук `deploy/README.md`, `smoke.sh` | `deploy/`, `middleware.py` |
+| Публикация | готово: Dockerfile, compose (web + Caddy), автодеплой по SSH, CI, заголовки безопасности, ранбук `deploy/README.md`, `smoke.sh` (§6.26) | `deploy/`, `.github/workflows/`, `middleware.py` |
 | Инструменты (P3) | готово: mypy, покрытие ≥ 90 %, `pip-audit`, лок зависимостей, pre-commit, `X-Request-ID`, `--limit-concurrency` | `pyproject.toml`, `requirements*.lock`, `.pre-commit-config.yaml` |
 | Аудит уязвимостей (§6.23) | готово: `pip-audit` по обоим локам, хеши в локе и `--require-hashes`, проверка `Host`, COOP/CORP, базовый образ на 3.12.15 | `requirements*.lock`, `Dockerfile`, `main.py`, `middleware.py` |
 | `/organizers` | **не сделано**: публичных данных о команде и партнёрах нет | — |
@@ -1130,4 +1130,27 @@ python -m uv pip compile --universal --generate-hashes -o requirements.lock pypr
 к номинации на `/results`; `tests/test_sync_tables.py` — импорт
 `media.csv` / `commerce.csv`; `tests/test_styles.py` — 16/9, 44 px, `--ease`,
 печать.
+
+
+## 6.26. Автосинхронизация таблиц и деплой (2026-11-18)
+
+Контент приходит из Google Таблиц, выкладка идёт по пушу в `main`: руками
+владелец правит только таблицу.
+
+| Что | Где | Правило |
+|---|---|---|
+| Выгрузка листов | `sync_tables.py --from-sheets` | адреса из `ZARUBA_SHEET_ID` и `ZARUBA_SHEETS_MAP`; все листы или ничего |
+| Расписание | `.github/workflows/sync-sheets.yml` | каждые 30 минут; коммит в `main` только после `content check` и `pytest` |
+| Деплой | `.github/workflows/deploy.yml` | пуш в `main` или вручную: проверки → SSH → `docker compose up -d --build` → `smoke.sh` |
+| HTTPS | `Caddyfile` | сертификат Let's Encrypt на `DOMAIN`, `X-Forwarded-Proto` и `X-Forwarded-For` для canonical и `og:image` |
+| Подготовка VPS | `deploy/setup_vps.sh` | Docker, compose, ufw (22/80/443), каталог `/opt/zaruba` |
+
+Связка: `web` не публикует порт вовсе, наружу смотрят только 80 и 443 Caddy;
+`/healthz` снаружи отвечает 403, живость проверяет `HEALTHCHECK` контейнера.
+Overlay выпуска и `docs/templates` смонтированы отдельными томами, сертификаты
+лежат в named volume — пересоздание контейнера ничего не теряет.
+
+Атомарность выгрузки проверяется тестами (`tests/test_sync_tables.py`): сбой
+одного листа — таймаут, HTML вместо CSV, битая шапка — оставляет локальные CSV и
+overlay прежними. Инструкция для владельца — `08-deploy-and-sheets.md`.
 

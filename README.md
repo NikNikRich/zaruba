@@ -11,7 +11,7 @@
 **M0** (каркас приложения), **M1** (данные в YAML), **M2** (семь P0-страниц из
 §6.22), **M3** (каталоги этапа 2), **M4** (выпуск 2026 из «Положения»),
 **M5** (архив `/history`) и **M6** (рейтинги за флагом, служебные страницы,
-публикация). Этапы 0–3 закрыты: 317 тестов зелёные, покрытие 94 %, `ruff` и
+публикация). Этапы 0–3 закрыты: 416 тестов зелёные, покрытие 94 %, `ruff` и
 `mypy` чисты, зависимости зафиксированы локом.
 
 | Слой | Состояние |
@@ -27,7 +27,7 @@
 | Рейтинги (M6) | готово: методика `v1`; таблиц нет, при выключенном `ZARUBA_RATINGS_ENABLED` — `noindex` и вне sitemap |
 | Результаты 2025 (M6) | готово: `/results` — расчёт по 21 номинации судейских листов, места расчётные, дети по инициалам |
 | Служебные страницы (M6) | готово: `/about`, `/rules`, `/privacy`, `/takedown` + ряд футера |
-| Публикация (M6) | готово: Dockerfile, compose, systemd, nginx-пример, CI, CSP/HSTS в `middleware.py`, ранбук `deploy/README.md`, `deploy/smoke.sh` |
+| Публикация (M6) | готово: Dockerfile, compose (web + Caddy с сертификатом Let's Encrypt), автодеплой по SSH, синхронизация таблиц из Google Sheets, CI, CSP/HSTS в `middleware.py`, ранбук `deploy/README.md`, `deploy/smoke.sh` |
 
 ### Документы проекта
 
@@ -41,6 +41,7 @@
 | `docs/05-fan-interactive.md` | Фанатский интерактив: «баттл-сетка», дуэли, прогнозы |
 | `docs/06-info-section.md` | **Реализованная часть:** информационный блок — 18 страниц, §6.0 — статус, §6.22 — приёмка |
 | `docs/07-preview-data.md` | Презентационные таблицы, overlay `content/editions/*.d`, `data_tag` и `--drop-preview` |
+| `docs/08-deploy-and-sheets.md` | Google Таблицы и секреты GitHub, автодеплой на VPS, режим показа `preview` |
 
 ## Решения, которые уже зафиксированы
 
@@ -291,16 +292,22 @@ python -m venv .venv
 
 ## Публикация
 
-Прод — тот же uvicorn за обратным прокси: приложение не умеет TLS и не должно.
-Пошагово (домен, firewall, сертификат, `.env`, бэкап, обновление и откат) —
-[`deploy/README.md`](deploy/README.md); проверка живого домена после выкладки —
-`SITE_HOST=zaruba72.ru bash deploy/smoke.sh`.
+Прод — uvicorn за Caddy: приложение не умеет TLS и не должно. Caddy сам получает
+и продлевает сертификат Let's Encrypt на домен из `.env`, наружу смотрят только
+80 и 443. Пошагово (VPS, домен, `.env`, секреты GitHub, бэкап, откат) —
+[`docs/08-deploy-and-sheets.md`](docs/08-deploy-and-sheets.md), ручной вариант с
+nginx — [`deploy/README.md`](deploy/README.md); проверка живого домена после
+выкладки — `SITE_HOST=zaruba72.ru bash deploy/smoke.sh`.
 
 ```powershell
-Copy-Item .env.example .env          # ZARUBA_ENV=prod, флаги, FORWARDED_ALLOW_IPS
+Copy-Item .env.example .env          # ZARUBA_ENV=prod, DOMAIN, ZARUBA_PUBLIC_BASE_URL
 docker compose up -d --build
-curl http://127.0.0.1:8000/healthz
+docker compose ps                    # web — healthy, caddy — running
 ```
+
+Дальше деплой идёт сам: пуш в `main` прогоняет проверки и пересобирает контейнер
+по SSH (`.github/workflows/deploy.yml`), а Google Таблицы раз в 30 минут
+обновляют данные (`sync-sheets.yml`).
 
 Что важно именно для этого проекта:
 

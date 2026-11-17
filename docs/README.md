@@ -16,6 +16,7 @@
 | `05-fan-interactive.md` | **Актуальная цель:** фанатский сайт для зрителей — «баттл-сетка», дуэли, прогнозы, рост охвата |
 | `06-info-section.md` | **Реализованная часть:** информационный блок — 18 страниц, §6.0 — статус, §6.22 — этапы и приёмка |
 | `07-preview-data.md` | Презентационные таблицы, overlay `content/editions/*.d`, `data_tag`, `--drop-preview` |
+| `08-deploy-and-sheets.md` | Google Таблицы и `ZARUBA_SHEETS_MAP`, секреты GitHub, автодеплой на VPS, режим `preview` |
 
 Дата сбора данных: **2026-10-23**. Все внешние факты — со ссылками на источники;
 оценки и прогнозы помечены как `ГИПОТЕЗА`.
@@ -33,7 +34,7 @@
 | `/ratings` | методика `v1` и честное пустое состояние; таблиц нет, раздел за флагом |
 | Служебные `/about`, `/rules`, `/privacy`, `/takedown` | готово |
 | SEO: JSON-LD, `sitemap.xml`, `robots.txt`, canonical | готово |
-| Публикация: Docker, compose, systemd, nginx, CI | готово, образ локально не собирался |
+| Публикация: Docker + Caddy, автодеплой, синхронизация таблиц | готово: `docker-compose.yml`, `Caddyfile`, `deploy/setup_vps.sh`, `deploy.yml`, `sync-sheets.yml`; образ собирает CI |
 | Презентационные данные (`docs/07`) | таблицы `docs/templates/*.csv`, overlay `content/editions/2026.d/`, флаг `ZARUBA_PREVIEW_ENABLED` |
 | `/organizers` | не сделано: публичных данных нет |
 | Тайминг блоков 2026, `.ics` | ждём данные организаторов |
