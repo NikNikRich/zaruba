@@ -193,3 +193,74 @@ def test_wide_tables_scroll_inside_their_wrapper() -> None:
     # Карточный режим не перехватывает широкие таблицы: пятая ячейка падала
     # в авто-строку сетки, рассчитанной на четыре колонки.
     assert not re.search(r"\.table:not\(\.table--results\)(?!:not\(\.table--wide\))", css)
+
+
+MOTION_PROPERTIES = {"color", "background-color", "border-color", "transform"}
+
+
+def _transitions(css: str) -> list[str]:
+    """Значения всех `transition:`-деклараций: токен `--ease` переходом не является."""
+
+    return re.findall(r"(?<![\w-])transition:\s*([^;}]+)", css)
+
+
+def test_motion_token_is_one_short_curve() -> None:
+    """Одна кривая и одна длительность: 150–180 мс, иначе отклик догоняет курсор."""
+
+    css = _css()
+    token = re.search(r"--ease:\s*([0-9.]+)s\s+cubic-bezier\([^)]+\)", css)
+    assert token, "нет токена --ease"
+    assert 0.15 <= float(token.group(1)) <= 0.18, f"--ease = {token.group(1)}s вне 0.15–0.18"
+
+    values = _transitions(css)
+    assert values, "ни одного transition в CSS"
+    for value in values:
+        if value.startswith("none"):
+            # `transition: none` в reduced-motion — не переход, а его отключение.
+            continue
+        assert "var(--ease)" in value, f"{value.strip()} — своя скорость вместо токена"
+
+
+def test_transitions_touch_only_cheap_properties() -> None:
+    """`transition: all` тянет раскладку и тень: анимируются цвет и transform."""
+
+    css = _css()
+    assert not re.search(r"transition(-property)?:\s*all\b", css), "transition: all"
+
+    for value in _transitions(css):
+        for part in value.split(","):
+            prop = part.strip().split()[0]
+            if prop == "none":
+                continue
+            assert prop in MOTION_PROPERTIES, f"{part.strip()} — свойство вне белого списка"
+
+
+def test_interactive_elements_animate_with_the_token() -> None:
+    """Ссылки, табы, CTA и карточки отвечают на наведение плавно, а не рывком."""
+
+    css = _css()
+
+    for selector in (
+        ".nav a",
+        ".day-tabs a",
+        ".btn",
+        ".block-card",
+        ".person-card",
+        ".shot__frame",
+        ".perf-card",
+    ):
+        rules = _rule(css, selector)
+        assert rules, f"правило {selector} не найдено"
+        assert any("transition:" in body for body in rules), f"{selector} без transition"
+
+
+def test_reduced_motion_turns_off_transitions() -> None:
+    """`prefers-reduced-motion` гасит переходы, анимации и подъём кнопки."""
+
+    reduced = _media_block(_css(), "prefers-reduced-motion: reduce")
+
+    assert re.search(r"transition:\s*none|transition-duration:\s*0\.01ms", reduced), (
+        "переходы не отключаются для reduced-motion"
+    )
+    assert re.search(r"animation:\s*none", reduced), "анимации не отключаются для reduced-motion"
+    assert re.search(r"transform:\s*none", reduced), "нажатие кнопки всё ещё двигает элемент"
