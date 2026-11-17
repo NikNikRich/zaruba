@@ -14,6 +14,9 @@
   --line2: rgba(244, 241, 234, 0.07);
   --r: 14px;
   --wrap: 1080px;
+  /* Высота липкой шапки: одна точка правды для табов дней и (в §6.20) отступов
+     якорей. Шапка обязана быть ровно такой — см. `.site-header`. */
+  --header-h: 60px;
   --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
   --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
@@ -81,14 +84,18 @@ ul { margin: 0 0 12px; padding-left: 20px; }
   z-index: 5;
   background: rgba(11, 11, 15, 0.92);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--line2);
+  /* Линия — тенью, а не border: рамка добавила бы 1 px к высоте, и смещения
+     липких элементов (`top: var(--header-h)`) перестали бы совпадать с шапкой. */
+  box-shadow: inset 0 -1px 0 var(--line2);
 }
 .header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 60px;
+  min-height: var(--header-h);
+  /* Меню сжимается и прокручивается, а не выталкивает бренд за экран. */
+  min-width: 0;
 }
 .brand {
   font-weight: 800;
@@ -97,10 +104,21 @@ ul { margin: 0 0 12px; padding-left: 20px; }
   text-transform: uppercase;
   color: var(--ink);
   white-space: nowrap;
+  flex: 0 0 auto;
 }
 .brand span { color: var(--lime); }
-.nav { display: flex; gap: 18px; flex-wrap: wrap; }
+/* Девять пунктов всегда в одну строку: перенос растил шапку до ~170 px и
+   накрывал липкие табы дней. На узких экранах — горизонтальная прокрутка (§6.3). */
+.nav {
+  display: flex;
+  gap: 18px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  min-width: 0;
+  scrollbar-width: thin;
+}
 .nav a {
+  flex: 0 0 auto;
   color: var(--muted);
   font-size: 14px;
   padding: 8px 0;
@@ -336,7 +354,7 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
   overflow-x: auto;
   padding: 14px 0;
   position: sticky;
-  top: 60px;
+  top: var(--header-h);
   background: var(--bg);
   z-index: 4;
   border-bottom: 1px solid var(--line2);
@@ -534,10 +552,10 @@ a.shot__frame:hover, a.shot__frame:focus-visible { border-color: rgba(232, 255, 
 .footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
 
 @media (max-width: 720px) {
-  .header-inner { flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
-  .nav { gap: 14px; overflow-x: auto; width: 100%; }
+  /* Шапка остаётся одной строкой: перенос растил её до ~170 px и накрывал
+     липкие табы дней. Девять пунктов прокручиваются — как обещает §6.3. */
+  .nav { gap: 14px; }
   .nav a { font-size: 13px; }
-  .day-tabs { top: 104px; }
   main { padding-top: 24px; }
 }
 
