@@ -282,6 +282,7 @@ def test_home_renders_media_cards_and_offers(tmp_path: Path) -> None:
     assert html.count('class="media-card"') == 3
     assert "VK Видео" in html and "Яндекс Диск" in html
     assert "media-card__badge" in html and ">Play<" in html
+    assert "media-card__placeholder" in html, "нет типографской заглушки превью"
     assert html.count('class="offer-card"') == 2
     assert "4\u00a0900 ₽" in html
     assert "Мерч и фотопакеты" in html
@@ -338,6 +339,7 @@ media:
     kind: photo
     platform: Яндекс Диск
     url: https://disk.yandex.ru/d/zaruba-2025-final
+    preview_image: img/media/photo-2025-final.webp
     nomination_slug: {nomination}
 """,
         encoding="utf-8",
@@ -347,6 +349,10 @@ media:
 
     assert "Фотоотчёт номинации — Яндекс Диск" in html
     assert html.count('class="media-card"') == 1
+    assert (
+        'class="media-card__image" src="http://testserver/static/img/media/photo-2025-final.webp"'
+        in html
+    ), "свой постер не попал в карточку"
 
 
 def test_without_media_and_commerce_no_empty_sections(client: TestClient) -> None:
