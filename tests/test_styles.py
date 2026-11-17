@@ -184,9 +184,19 @@ GRID_SELECTORS = (
     ".perf-grid > *",
     ".block-grid > *",
     ".glossary > *",
+    ".media-grid > *",
+    ".offer-grid > *",
 )
 
-CARD_SELECTORS = (".info-card", ".person-card", ".perf-card", ".block-card", ".term-card")
+CARD_SELECTORS = (
+    ".info-card",
+    ".person-card",
+    ".perf-card",
+    ".block-card",
+    ".term-card",
+    ".media-card",
+    ".offer-card",
+)
 
 
 def test_long_words_do_not_stretch_layout() -> None:
@@ -374,3 +384,65 @@ def test_prose_links_are_underlined_not_only_colored() -> None:
     assert re.search(r"text-underline-offset:\s*[\d.]+em", body.group(1)), (
         "подчёркивание липнет к буквам: нужен аккуратный text-underline-offset"
     )
+
+
+def test_media_card_keeps_poster_and_lime_badge() -> None:
+    """Превью 16:9, крупный лаймовый Play/Альбом и мета читаются без скриптов.
+
+    Карточка — ссылка на внешний хостинг, поэтому «плеером» работает только
+    рамка: соотношение сторон держит сетку ровной, бейдж говорит, что откроется,
+    а платформа и мета снимают вопрос «куда я попаду».
+    """
+
+    css = _css()
+
+    frame = _rule(css, ".media-card__frame")[0]
+    assert re.search(r"aspect-ratio:\s*16\s*/\s*9", frame), "превью не 16:9"
+
+    badge = _rule(css, ".media-card__badge")[0]
+    assert "background: var(--lime)" in badge, "бейдж Play/Альбом не лаймовый"
+    assert re.search(r"min-height:\s*44px", badge), "бейдж ниже 44 px"
+
+    platform = _rule(css, ".media-card__platform")[0]
+    assert "text-transform: uppercase" in platform, "платформа не подписана как ярлык"
+    assert "var(--dim)" in platform, "платформа не вторична по цвету"
+
+    meta = _rule(css, ".media-card__meta")[0]
+    assert "var(--mono)" in meta, "таймкод не в монотипе"
+
+
+def test_offer_card_shows_price_cta_and_erid() -> None:
+    """Цена — `--mono`, действие ≥ 44 px, маркировка рекламы — тише текста."""
+
+    css = _css()
+
+    price = _rule(css, ".offer-card__price")[0]
+    assert "font-family: var(--mono)" in price
+    assert "var(--lime)" in price, "цена не акцент"
+
+    cta = _rule(css, ".offer-card__cta")[0]
+    assert re.search(r"min-height:\s*44px", cta), "кнопка предложения ниже 44 px"
+
+    erid = _rule(css, ".offer-card__erid")[0]
+    assert "var(--dim)" in erid, "строка erid спорит с ценой"
+
+    status = _rule(css, ".offer-card__status--sold_out")
+    assert status, "у статуса «распродано» нет своего оформления"
+
+
+def test_print_keeps_media_and_offer_cards_legible() -> None:
+    """Градиент и лаймовая заливка на бумаге не печатаются — рамка остаётся."""
+
+    css = _print_css()
+
+    for selector in (".media-card", ".offer-card"):
+        rules = _rule(css, selector)
+        assert rules, f"в print.css нет правила {selector}"
+        body = rules[0]
+        assert "color: #111" in body and "background: #fff" in body, (
+            f"{selector} печатается цветом экрана"
+        )
+
+    frame = _rule(css, ".media-card__frame")[0]
+    assert "background: none" in frame, "тёмный градиент уходит на бумагу"
+    assert "border: 1px solid #999" in frame, "рамка превью исчезает при печати"

@@ -65,4 +65,20 @@ h3 { font-size: 11pt; }
   break-inside: avoid;
 }
 
+/* Медиа и коммерция: градиент и лаймовая заливка на бумаге не печатаются.
+   Карточка остаётся рамкой с чёрным текстом, бейдж — контурным. */
+.media-card { color: #111; background: #fff; }
+.offer-card { color: #111; background: #fff; }
+.media-card__frame { background: none; border: 1px solid #999; }
+.media-card__placeholder { display: none; }
+.media-card__badge { background: #fff; color: #111; border: 1px solid #999; }
+.media-card__meta { background: #fff; color: #111; }
+.media-card__platform { color: #333; }
+.offer-card__price { color: #111; }
+.offer-card__erid { color: #333; }
+.partner-mark { color: #333; }
+.media-grid,
+.offer-grid { break-inside: avoid; }
+
 a { color: #111; text-decoration: none; }
+
