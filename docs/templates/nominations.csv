@@ -1,0 +1,16 @@
+﻿slug;name;style;format;age_group;levels;min_participants;max_participants;day;starts_at;ends_at;stage;status;note;source_id;demo;data_tag
+best-baby;БЕСТ ЗАРУБА БЕЙБИ;;team;3-6;;6;;2;;;;;;polozhenie-2026;;real
+best-kids;БЕСТ ЗАРУБА КИДС;;team;7-11;beg|pro;6;;2;;;;;;polozhenie-2026;;real
+best-juniors;БЕСТ ЗАРУБА ДЖУНИОРС;;team;12-14;beg|pro;6;;2;;;;;;polozhenie-2026;;real
+best-varsity;БЕСТ ЗАРУБА ВАРСИТИ;;team;15-17;beg|pro;6;;2;;;;;;polozhenie-2026;;real
+best-adults;БЕСТ ЗАРУБА АДЛТС;;team;18+;beg|pro;6;;2;;;;;;polozhenie-2026;;real
+best-heels;БЕСТ ЗАРУБА ХИЛС;heels-girly;team;16+;beg;6;;2;;;;;Каблук не ниже 7 см, без железных набоек.;polozhenie-2026;;real
+best-strip;БЕСТ ЗАРУБА СТРИП;heels-girly;team;16+;beg;6;;2;;;;;Frame up strip, каблук не ниже 7 см.;polozhenie-2026;;real
+best-strip-heels;БЕСТ ЗАРУБА СТРИП/ХИЛС;heels-girly;team;16+;pro;6;;2;;;;;Frame up strip или heels, каблук.;polozhenie-2026;;real
+best-experimental;БЕСТ ЗАРУБА ЭКС;experimental;team;any;;6;;2;;;;;Экспериментальное решение в хореографии.;polozhenie-2026;;real
+best-solo-kids;БЕСТ ЗАРУБА СОЛО ДЕТИ;;solo;10-15;pro;;;1;;;;;;polozhenie-2026;;real
+best-duets-kids;БЕСТ ЗАРУБА ДУЭТЫ ДЕТИ;;duet;14-17;;;;1;;;;;;polozhenie-2026;;real
+best-solo-adults-sneakers;БЕСТ ЗАРУБА СОЛО АДЛТС КРОССОВКИ;;solo;16+;pro;;;1;;;;;Кроссовки или без обуви.;polozhenie-2026;;real
+best-solo-adults-heels;БЕСТ ЗАРУБА СОЛО АДЛТС КАБЛУКИ;heels-girly;solo;16+;pro;;;1;;;;;Только каблук не ниже 7 см.;polozhenie-2026;;real
+best-duets-adults;БЕСТ ЗАРУБА ДУЭТЫ АДЛТС;;duet;18+;;;;1;;;;;;polozhenie-2026;;real
+best-mini-groups;БЕСТ ЗАРУБА МИНИ ГРУППЫ;;small-group;15+;beg|pro;3;5;1;;;;;Ограничений по стилю нет.;polozhenie-2026;;real

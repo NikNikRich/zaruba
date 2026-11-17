@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -60,6 +61,91 @@ def _validation_error(path: Path, exc: ValidationError) -> ContentError:
     return ContentError(f"{path}: данные не прошли проверку\n" + "\n".join(lines))
 
 
+# Overlay `content/editions/<год>.d/*.yaml` — презентационный слой, а не второй
+# выпуск: строки дополняют опубликованный YAML и патчатся по slug. Так выдуманные
+# блоки и участники не попадают в базовый файл, который проверяют тесты и релиз.
+OVERLAY_SECTIONS = frozenset(
+    {
+        "sources",
+        "studios",
+        "nominations",
+        "blocks",
+        "participants",
+        "performances",
+        "judges",
+        "fees",
+        "tickets",
+        "master_classes",
+    }
+)
+OVERLAY_KEY = {"sources": "id"}
+DEFAULT_OVERLAY_KEY = "slug"
+
+
+def overlay_dir(path: Path) -> Path:
+    """`2026.yaml` → `2026.d`: соседняя папка с презентационными списками."""
+
+    return Path(path).with_suffix(".d")
+
+
+def merge_overlay(
+    raw: dict[str, object],
+    overlays: Iterable[tuple[Path, Mapping[str, object]]],
+) -> dict[str, object]:
+    """Дополняет выпуск overlay-строками; совпадение по slug — точечный патч.
+
+    Патч нужен таймингу номинаций: в «Положении» времени нет, а расписание
+    предпросмотра строится из выступлений. Патч меняет только переданные поля,
+    поэтому реальные название, возраст и источник остаются из базового YAML.
+    """
+
+    merged = dict(raw)
+    for path, data in overlays:
+        for section, rows in data.items():
+            if section not in OVERLAY_SECTIONS:
+                raise ContentError(f"{path}: раздел «{section}» нельзя добавить из overlay")
+            if not isinstance(rows, list):
+                raise ContentError(f"{path}: раздел «{section}» должен быть списком")
+            base = merged.get(section, [])
+            if not isinstance(base, list):
+                raise ContentError(f"{path}: в выпуске раздел «{section}» — не список")
+            # Копия: overlay не должен менять базовый словарь, который вызывающий
+            # ещё использует (например, сверяет real-строки с публикацией).
+            base = list(base)
+            merged[section] = base
+
+            key = OVERLAY_KEY.get(section, DEFAULT_OVERLAY_KEY)
+            index: dict[str, int] = {}
+            for position, item in enumerate(base):
+                if isinstance(item, dict) and isinstance(item.get(key), str):
+                    index[item[key]] = position
+
+            seen: set[str] = set()
+            for item in rows:
+                if not isinstance(item, dict) or not isinstance(item.get(key), str):
+                    raise ContentError(f"{path}: {section}: у каждой строки нужен {key}")
+                value = item[key]
+                if value in seen:
+                    raise ContentError(f"{path}: {section}.{value}: строка повторяется")
+                seen.add(value)
+                if value not in index:
+                    base.append(item)
+                    continue
+                current = base[index[value]]
+                if not isinstance(current, dict):
+                    raise ContentError(f"{path}: {section}.{value}: в выпуске не объект")
+                base[index[value]] = {**current, **item}
+    return merged
+
+
+def _read_overlay(directory: Path) -> list[tuple[Path, dict[str, object]]]:
+    if not directory.is_dir():
+        return []
+    return [
+        (file, _read_yaml(file, "списками выпуска")) for file in sorted(directory.glob("*.yaml"))
+    ]
+
+
 # Корень сообщества и витрины билетов — это лента, а не публикация: клик по
 # такому источнику не показывает факт, ради которого он поставлен. Правило
 # `docs/06` §6.17: источник — конкретный пост, документ или страница события.
@@ -96,9 +182,13 @@ def load_venues(path: Path) -> dict[str, Venue]:
     return index
 
 
-def load_edition(path: Path, venues: dict[str, Venue] | None = None) -> EditionBundle:
+def load_edition(
+    path: Path, venues: dict[str, Venue] | None = None, *, preview: bool = False
+) -> EditionBundle:
     path = Path(path)
     raw = _read_yaml(path)
+    if preview:
+        raw = merge_overlay(raw, _read_overlay(overlay_dir(path)))
     try:
         edition = Edition.model_validate(raw)
     except ValidationError as exc:
@@ -117,7 +207,9 @@ def load_edition(path: Path, venues: dict[str, Venue] | None = None) -> EditionB
     return EditionBundle(edition=edition, venue=venue)
 
 
-def load_editions(content_dir: Path, venues_file: Path | None = None) -> list[EditionBundle]:
+def load_editions(
+    content_dir: Path, venues_file: Path | None = None, *, preview: bool = False
+) -> list[EditionBundle]:
     content_dir = Path(content_dir)
     if not content_dir.is_dir():
         raise ContentError(f"{content_dir}: папка с выпусками не найдена")
@@ -127,7 +219,7 @@ def load_editions(content_dir: Path, venues_file: Path | None = None) -> list[Ed
         raise ContentError(f"{content_dir}: нет ни одного файла выпуска")
 
     venues = load_venues(Path(venues_file) if venues_file else content_dir.parent / "venues.yaml")
-    bundles = [load_edition(path, venues) for path in files]
+    bundles = [load_edition(path, venues, preview=preview) for path in files]
 
     years = [bundle.year for bundle in bundles]
     duplicates = sorted({year for year in years if years.count(year) > 1})
@@ -153,6 +245,9 @@ def _content_fingerprint(settings: Settings) -> tuple[tuple[str, int, int], ...]
         settings.history_file,
         settings.photos_file,
         *settings.content_dir.glob("*.yaml"),
+        # Overlay — тоже контент: правка презентационного блока должна сбрасывать
+        # кэш, иначе страница покажет старый тайминг до рестарта.
+        *settings.content_dir.glob("*.d/*.yaml"),
     ]
     items = []
     for path in paths:
@@ -164,9 +259,12 @@ def _content_fingerprint(settings: Settings) -> tuple[tuple[str, int, int], ...]
 
 @lru_cache(maxsize=8)
 def _site_cached(
-    content_dir: str, venues_file: str, fingerprint: tuple[tuple[str, int, int], ...]
+    content_dir: str,
+    venues_file: str,
+    preview: bool,
+    fingerprint: tuple[tuple[str, int, int], ...],
 ) -> tuple[EditionBundle, ...]:
-    return tuple(load_editions(Path(content_dir), Path(venues_file)))
+    return tuple(load_editions(Path(content_dir), Path(venues_file), preview=preview))
 
 
 def load_site(settings: Settings | None = None) -> list[EditionBundle]:
@@ -177,6 +275,7 @@ def load_site(settings: Settings | None = None) -> list[EditionBundle]:
         _site_cached(
             str(settings.content_dir),
             str(settings.venues_file),
+            settings.preview_enabled,
             _content_fingerprint(settings),
         )
     )

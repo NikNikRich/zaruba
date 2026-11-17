@@ -1,0 +1,49 @@
+studios:
+- slug: pechat-tantsa
+  name: «Печать танца»
+  city: Тюмень
+  demo: true
+- slug: silva
+  name: SILVA
+  city: Тюмень
+  demo: true
+- slug: nako
+  name: NAKO
+  city: Омск
+  demo: true
+- slug: faraon
+  name: FARAON
+  city: Москва
+  demo: true
+- slug: aurora
+  name: Aurora Dance Studio
+  city: Тюмень
+  demo: true
+- slug: impuls
+  name: «Импульс»
+  city: Тюмень
+  demo: true
+- slug: gravity
+  name: GRAVITY
+  city: Тюмень
+  demo: true
+- slug: street-72
+  name: STREET 72
+  city: Тюмень
+  demo: true
+- slug: ural-drive
+  name: «Уральский драйв»
+  city: Екатеринбург
+  demo: true
+- slug: kamensk-style
+  name: «Каменский стиль»
+  city: Каменск-Уральский
+  demo: true
+- slug: kurgan-vibe
+  name: «Курган Vibe»
+  city: Курган
+  demo: true
+- slug: dance-zone
+  name: DANCE ZONE
+  city: Челябинск
+  demo: true

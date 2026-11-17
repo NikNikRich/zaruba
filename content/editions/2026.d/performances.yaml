@@ -1,0 +1,397 @@
+performances:
+- slug: perf-day1-solo-01
+  title: Тихий свет
+  nomination: best-solo-kids
+  participants:
+  - a-k
+  scheduled_at: '2026-12-12T10:00:00+05:00'
+  order_no: 1
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-solo-02
+  title: Коробка спичек
+  nomination: best-solo-kids
+  participants:
+  - b-s
+  scheduled_at: '2026-12-12T10:20:00+05:00'
+  order_no: 2
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-solo-03
+  title: Внутри
+  nomination: best-solo-kids
+  participants:
+  - i-v
+  scheduled_at: '2026-12-12T10:40:00+05:00'
+  order_no: 3
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-solo-04
+  title: Оранжевый сквер
+  nomination: best-solo-kids
+  participants:
+  - k-l
+  scheduled_at: '2026-12-12T11:00:00+05:00'
+  order_no: 4
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-duet-01
+  title: На семи ветрах
+  nomination: best-duets-kids
+  participants:
+  - g-a
+  - d-b
+  scheduled_at: '2026-12-12T11:20:00+05:00'
+  order_no: 5
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-duet-02
+  title: Стеклянные сны
+  nomination: best-duets-kids
+  participants:
+  - a-s
+  - b-t
+  scheduled_at: '2026-12-12T11:50:00+05:00'
+  order_no: 6
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-solo-05
+  title: Пыль дорог
+  nomination: best-solo-adults-sneakers
+  participants:
+  - timur-aslanov
+  scheduled_at: '2026-12-12T12:20:00+05:00'
+  order_no: 7
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-solo-06
+  title: Ритм-72
+  nomination: best-solo-adults-sneakers
+  participants:
+  - roman-kim
+  scheduled_at: '2026-12-12T12:45:00+05:00'
+  order_no: 8
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-solo-07
+  title: Не по правилам
+  nomination: best-solo-adults-sneakers
+  participants:
+  - artyom-valeev
+  scheduled_at: '2026-12-12T13:10:00+05:00'
+  order_no: 9
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-solo-08
+  title: Высокая частота
+  nomination: best-solo-adults-heels
+  participants:
+  - viktoriya-lebedeva
+  scheduled_at: '2026-12-12T13:40:00+05:00'
+  order_no: 10
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-solo-09
+  title: Полночь
+  nomination: best-solo-adults-heels
+  participants:
+  - alisa-nikitina
+  scheduled_at: '2026-12-12T14:00:00+05:00'
+  order_no: 11
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-solo-10
+  title: Красный каблук
+  nomination: best-solo-adults-heels
+  participants:
+  - diana-volkova
+  scheduled_at: '2026-12-12T14:20:00+05:00'
+  order_no: 12
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-duet-03
+  title: Двое на проводе
+  nomination: best-duets-adults
+  participants:
+  - anna-vetrova
+  - mariya-sokolova
+  scheduled_at: '2026-12-12T14:40:00+05:00'
+  order_no: 13
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-duet-04
+  title: Поздний звонок
+  nomination: best-duets-adults
+  participants:
+  - alina-tihonova
+  - veronika-smirnova
+  scheduled_at: '2026-12-12T15:00:00+05:00'
+  order_no: 14
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-mini-01
+  title: Дом у реки
+  nomination: best-mini-groups
+  participants:
+  - p-a
+  - r-b
+  - s-v
+  - t-g
+  - u-d
+  scheduled_at: '2026-12-12T16:00:00+05:00'
+  order_no: 15
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day1-mini-02
+  title: Кто если не мы
+  nomination: best-mini-groups
+  participants:
+  - anna-vetrova
+  - mariya-sokolova
+  - polina-krylova
+  - ekaterina-lavrova
+  scheduled_at: '2026-12-12T16:30:00+05:00'
+  order_no: 16
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-baby-01
+  title: Первые шаги
+  nomination: best-baby
+  participants:
+  - miya
+  - tyoma
+  - sonya
+  - lev
+  - anya
+  - yarik
+  scheduled_at: '2026-12-13T11:00:00+05:00'
+  order_no: 1
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-kids-01
+  title: Пластилин
+  nomination: best-kids
+  participants:
+  - lisa
+  - mila
+  - tosha
+  - asya
+  - mark
+  - nika
+  scheduled_at: '2026-12-13T11:30:00+05:00'
+  order_no: 2
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-kids-02
+  title: Лунная смена
+  nomination: best-kids
+  participants:
+  - solnyshko
+  - luna
+  - klepa
+  - tisha
+  - eva
+  - roma
+  scheduled_at: '2026-12-13T12:00:00+05:00'
+  order_no: 3
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-kids-03
+  title: Каменный цветок
+  nomination: best-kids
+  participants:
+  - knopka
+  - pchela
+  - yozh
+  - sova
+  - lis
+  - volk
+  scheduled_at: '2026-12-13T12:30:00+05:00'
+  order_no: 4
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-juniors-01
+  title: Пятый этаж
+  nomination: best-juniors
+  participants:
+  - a-k
+  - b-s
+  - v-g
+  - d-r
+  - e-t
+  - zh-n
+  scheduled_at: '2026-12-13T13:00:00+05:00'
+  order_no: 5
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-juniors-02
+  title: Точка кипения
+  nomination: best-juniors
+  participants:
+  - i-v
+  - k-l
+  - l-m
+  - m-n
+  - n-o
+  - o-p
+  scheduled_at: '2026-12-13T13:30:00+05:00'
+  order_no: 6
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-varsity-01
+  title: Гравитация
+  nomination: best-varsity
+  participants:
+  - g-a
+  - d-b
+  - e-v
+  - zh-g
+  - z-d
+  - i-e
+  scheduled_at: '2026-12-13T14:00:00+05:00'
+  order_no: 7
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-varsity-02
+  title: Дорога на восток
+  nomination: best-varsity
+  participants:
+  - a-s
+  - b-t
+  - v-u
+  - g-f
+  - d-h
+  - e-c
+  scheduled_at: '2026-12-13T14:15:00+05:00'
+  order_no: 8
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-adults-01
+  title: Соль и мёд
+  nomination: best-adults
+  participants:
+  - anna-vetrova
+  - mariya-sokolova
+  - polina-krylova
+  - ekaterina-lavrova
+  - darya-melnik
+  - sofya-rodina
+  scheduled_at: '2026-12-13T15:00:00+05:00'
+  order_no: 9
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-adults-02
+  title: Северный ветер
+  nomination: best-adults
+  participants:
+  - alina-tihonova
+  - veronika-smirnova
+  - kseniya-orlova
+  - yuliya-belova
+  - marina-guseva
+  - olga-fomina
+  scheduled_at: '2026-12-13T15:30:00+05:00'
+  order_no: 10
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-adults-03
+  title: Электричка
+  nomination: best-adults
+  participants:
+  - aleksey-panteleev
+  - viktor-solovyov
+  - ilya-romanov
+  - maksim-zaharov
+  - pavel-kuznetsov
+  - sergey-dyomin
+  scheduled_at: '2026-12-13T16:00:00+05:00'
+  order_no: 11
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-heels-01
+  title: Золото на коже
+  nomination: best-heels
+  participants:
+  - amina
+  - kamila
+  - sabina
+  - leyla
+  - aida
+  - dina
+  scheduled_at: '2026-12-13T16:40:00+05:00'
+  order_no: 12
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-strip-01
+  title: Бархатный вечер
+  nomination: best-strip
+  participants:
+  - viktoriya-lebedeva
+  - alisa-nikitina
+  - diana-volkova
+  - karina-zaytseva
+  - liliya-egorova
+  - nelli-morozova
+  scheduled_at: '2026-12-13T17:10:00+05:00'
+  order_no: 13
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-strip-02
+  title: Красная нить
+  nomination: best-strip-heels
+  participants:
+  - viktoriya-lebedeva
+  - alisa-nikitina
+  - diana-volkova
+  - karina-zaytseva
+  - liliya-egorova
+  - nelli-morozova
+  scheduled_at: '2026-12-13T17:40:00+05:00'
+  order_no: 14
+  stage: Сцена
+  status: scheduled
+  demo: true
+- slug: perf-day2-exp-01
+  title: Белый шум
+  nomination: best-experimental
+  participants:
+  - timur-aslanov
+  - roman-kim
+  - artyom-valeev
+  - nikita-zhukov
+  - danil-hasanov
+  - egor-sychev
+  scheduled_at: '2026-12-13T18:10:00+05:00'
+  order_no: 15
+  stage: Сцена
+  status: scheduled
+  demo: true

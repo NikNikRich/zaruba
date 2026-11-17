@@ -7,16 +7,16 @@
 
 ## Что уже сделано
 
-Проектирование закрыто: 6 документов (~130 КБ) + презентация. Реализация:
+Проектирование закрыто: 7 документов (~130 КБ) + презентация. Реализация:
 **M0** (каркас приложения), **M1** (данные в YAML), **M2** (семь P0-страниц из
 §6.22), **M3** (каталоги этапа 2), **M4** (выпуск 2026 из «Положения»),
 **M5** (архив `/history`) и **M6** (рейтинги за флагом, служебные страницы,
-публикация). Этапы 0–3 закрыты: 293 теста зелёные, покрытие 93 %, `ruff` и
+публикация). Этапы 0–3 закрыты: 317 тестов зелёные, покрытие 94 %, `ruff` и
 `mypy` чисты, зависимости зафиксированы локом.
 
 | Слой | Состояние |
 |---|---|
-| Исследование и спецификации | готово: `docs/01`–`06` + индекс, статус реализации — `docs/06` §6.0 |
+| Исследование и спецификации | готово: `docs/01`–`07` + индекс, статус реализации — `docs/06` §6.0 |
 | Презентация концепта | готово: 15 слайдов, `presentation/index.html` |
 | Каркас приложения (M0) | готово: `src/zaruba/`, `/healthz`, статика, шаблоны |
 | Данные (M1) | готово: выпуск 2026 (15 номинаций, взносы, билеты, критерии) + архив 2025 (21 номинация и жюри), валидация; демо-каркас — только в тестовых фикстурах |
@@ -40,6 +40,7 @@
 | `docs/04-site-concept.md` | Сценарий «если организатор подключится»: заявки, оплата, KPI |
 | `docs/05-fan-interactive.md` | Фанатский интерактив: «баттл-сетка», дуэли, прогнозы |
 | `docs/06-info-section.md` | **Реализованная часть:** информационный блок — 18 страниц, §6.0 — статус, §6.22 — приёмка |
+| `docs/07-preview-data.md` | Презентационные таблицы, overlay `content/editions/*.d`, `data_tag` и `--drop-preview` |
 
 ## Решения, которые уже зафиксированы
 
@@ -71,12 +72,13 @@ Zaruba/
   requirements.lock      рантайм-зависимости, зафиксированные (`uv --universal`)
   requirements-dev.lock  то же + pytest, ruff, mypy, pip-audit, pre-commit
   .pre-commit-config.yaml  хуки перед коммитом: ruff, контент, документы (без сети)
-  docs/                  исследование и спецификации (01–06 + индекс)
+  docs/                  исследование и спецификации (01–07 + индекс)
   presentation/
     index.html           презентация: 15 слайдов с макетами страниц (открыть в браузере)
   content/
     venues.yaml          справочник площадок — только подтверждённые факты
     editions/2026.yaml   текущий выпуск: 15 номинаций, взносы, билеты, мастер-классы, жюри
+    editions/2026.d/     презентационный overlay: только для ZARUBA_PREVIEW_ENABLED (docs/07)
     editions/2025.yaml   архив: 21 номинация и жюри; демо-каркас — в tests/fixtures
     glossary.yaml        глоссарий: 9 направлений и 8 терминов чемпионата
     faq.yaml             12 вопросов в четырёх группах, у каждого — статус ответа
@@ -88,7 +90,8 @@ Zaruba/
     config.py            pydantic-settings, префикс ZARUBA_, фичефлаги
     middleware.py        заголовки безопасности (CSP, HSTS в prod), кэш /static
     models.py            модели по 06.17 + проверки целостности и приватности
-    content.py           загрузка YAML + CLI (python -m zaruba.content)
+    content.py           загрузка YAML + overlay выпуска + CLI (python -m zaruba.content)
+    sync_tables.py       CSV-таблицы предпросмотра → overlay (python -m zaruba.sync_tables)
     errors.py            перевод ошибок pydantic в «параметр — что не так» для 422
     templating.py        Jinja2, фильтры дат, чисел и цены (`money`), навигация, canonical, render()
     routers/             public.py (главная, событие, площадка, жюри, билеты, глоссарий, FAQ),
@@ -110,7 +113,7 @@ Zaruba/
                          legal/: about, rules, privacy, takedown
     static/              style.css, print.css, img/ (превью 4:3 и 3:4) — без JS и внешних шрифтов
   tests/                 pytest: роуты, каталоги, приватность, данные, CLI, SEO,
-                         безопасность, тексты ошибок
+                         безопасность, тексты ошибок, overlay предпросмотра
   deploy/
     README.md            развёртывание на сервере: домен, firewall, TLS, бэкап, проверки
     zaruba.service       systemd: uvicorn за прокси, минимум прав
@@ -141,8 +144,10 @@ python -m venv .venv
 Настройки читаются из окружения с префиксом `ZARUBA_` (см. `.env.example`). Раздел
 `/ratings` по умолчанию закрыт: пока нет протоколов и голосования, он объясняет методику
 и отдаёт `noindex`; включить публичный режим — `ZARUBA_RATINGS_ENABLED=true`.
-
-
+Презентационные данные (студии, участники, блоки и тайминг) лежат в
+`content/editions/2026.d/` и видны только при `ZARUBA_PREVIEW_ENABLED=true`;
+без флага сайт показывает подтверждённые факты. Как заполнять таблицы и как
+убрать примеры одной командой — `docs/07-preview-data.md`.
 
 Страницы: `/` (главная), `/event` (о событии и хронология), `/history` (архив по годам),
 `/ratings` (рейтинги и методика v1 — за флагом `ZARUBA_RATINGS_ENABLED`), `/schedule`
@@ -169,6 +174,8 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m ruff check src tests   # линт
 .\.venv\Scripts\python.exe -m mypy                   # типы
 .\.venv\Scripts\python.exe -m zaruba.content check   # YAML выпусков, глоссарий, FAQ, результаты
+.\\.venv\\Scripts\\python.exe -m zaruba.sync_tables --check     # таблицы предпросмотра и overlay
+.\\.venv\\Scripts\\python.exe -m zaruba.sync_tables --drop-preview  # убрать примеры
 .\.venv\Scripts\python.exe -m zaruba.content import content\editions\2025.yaml
 ```
 

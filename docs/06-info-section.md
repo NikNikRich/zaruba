@@ -31,8 +31,9 @@
 | Кэш HTML и статики (§6.20) | готово: HTML — `no-cache` (ревалидация), статика — час + `?v=хеш`, разбор YAML — по mtime контента | `middleware.py`, `content.py` |
 | Фавикон и OG-обложка (§6.19) | готово: `favicon.svg` 32×32 и `og-cover.png` 1200×630, `theme-color`, OG/Twitter-теги | `static/`, `templates/base.html`, `tests/test_pages.py` |
 | Результаты 2025 (§6.24) | готово: `/results` — расчёт по 21 номинации судейских листов, места расчётные, дети по инициалам | `content/results/2025.yaml`, `services/results.py` |
+| Презентационные данные (`07`) | готово: таблицы `docs/templates/*.csv`, overlay `content/editions/2026.d/`, флаг `ZARUBA_PREVIEW_ENABLED`, `--drop-preview` | `sync_tables.py`, `content.py` |
 
-Проверки на эту дату: `pytest` — 293 теста (покрытие 93 % при пороге 90 %),
+Проверки на эту дату: `pytest` — 317 тестов (покрытие 94 % при пороге 90 %),
 `ruff check src tests`, `ruff format --check src tests` и `mypy` — чисто,
 `python -m zaruba.content check` — ОК, проверки документов и презентации — ОК.
 Версии зависимостей зафиксированы локом с хешами (`requirements.lock`,

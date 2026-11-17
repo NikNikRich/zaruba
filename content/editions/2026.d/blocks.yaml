@@ -1,0 +1,48 @@
+blocks:
+- slug: day1-solo-duet
+  day: 1
+  title: Соло и дуэты
+  starts_at: '10:00:00'
+  ends_at: '15:30:00'
+  stage: Сцена
+  nominations:
+  - best-solo-kids
+  - best-duets-kids
+  - best-solo-adults-sneakers
+  - best-solo-adults-heels
+  - best-duets-adults
+  note: Демонстрационный тайминг для предпросмотра.
+- slug: day1-mini
+  day: 1
+  title: Мини-группы
+  starts_at: '16:00:00'
+  ends_at: '17:00:00'
+  stage: Сцена
+  nominations:
+  - best-mini-groups
+  note: Демонстрационный тайминг для предпросмотра.
+- slug: day2-kids-teams
+  day: 2
+  title: Детские и юношеские команды
+  starts_at: '11:00:00'
+  ends_at: '14:30:00'
+  stage: Сцена
+  nominations:
+  - best-baby
+  - best-kids
+  - best-juniors
+  - best-varsity
+  note: Демонстрационный тайминг для предпросмотра.
+- slug: day2-adults-teams
+  day: 2
+  title: Взрослые команды
+  starts_at: '15:00:00'
+  ends_at: '19:00:00'
+  stage: Сцена
+  nominations:
+  - best-adults
+  - best-heels
+  - best-strip
+  - best-strip-heels
+  - best-experimental
+  note: Демонстрационный тайминг для предпросмотра.

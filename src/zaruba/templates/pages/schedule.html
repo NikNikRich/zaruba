@@ -27,6 +27,7 @@
       <span class="block-time">{{ block.block.starts_at|fmt_time }}–{{ block.block.ends_at|fmt_time }}</span>
       <h3>{{ block.block.title }}</h3>
       <span class="badge">{{ block.block.stage }}</span>
+      {% if settings.preview_enabled %}<span class="badge">пример</span>{% endif %}
     </header>
 
     <table class="table">
@@ -56,7 +57,7 @@
   {% endfor %}
 
   {% set nom_day = (nominations_days | selectattr("day", "equalto", day.day) | list | first) %}
-  {% if nom_day and nom_day.nominations %}
+  {% if not day.blocks and nom_day and nom_day.nominations %}
   <article class="block">
     <header class="block-head">
       <span class="block-time">тайминг уточняется</span>
@@ -136,8 +137,10 @@
     </li>
     {% endfor %}
   </ul>
-  <p class="muted small">Тайминг блоков и порядок выступлений появятся из официального
+  <p class="muted small">{% if edition.blocks %}Тайминг блоков показан для предпросмотра:
+  он собран из демонстрационных выступлений и не является официальным расписанием.
+  {% else %}Тайминг блоков и порядок выступлений появятся из официального
   расписания организаторов. До этого на странице только то, что подтверждено: дни, номинации
-  по дням и время мастер-классов.</p>
+  по дням и время мастер-классов.{% endif %}</p>
 </section>
 {% endblock %}

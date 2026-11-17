@@ -270,6 +270,11 @@ def render(
         "robots": None,
     }
     payload.update(context)
+    # Preview-сборка не должна попасть в индекс: `noindex, nofollow` ставится
+    # поверх любого значения роутера, потому что выдуманные карточки — не факты
+    # выпуска, а ссылки с них ведут на такие же демонстрационные страницы.
+    if request.app.state.settings.preview_enabled:
+        payload["robots"] = "noindex, nofollow"
     # json_ld ставим после update: роутер передаёт словари, шаблон ждёт строки.
     payload["json_ld"] = _json_ld_blocks(request, context, status_code)
     return templates.TemplateResponse(request, template_name, payload, status_code=status_code)

@@ -1,0 +1,624 @@
+participants:
+- slug: lisa
+  display_name: Л. В.
+  age_group: 7-11
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: mila
+  display_name: М. А.
+  age_group: 7-11
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: tosha
+  display_name: Т. С.
+  age_group: 7-11
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: asya
+  display_name: А. К.
+  age_group: 7-11
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: mark
+  display_name: М. Р.
+  age_group: 7-11
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: nika
+  display_name: Н. П.
+  age_group: 7-11
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: a-k
+  display_name: А. К.
+  age_group: 12-14
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: b-s
+  display_name: Б. С.
+  age_group: 12-14
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: v-g
+  display_name: В. Г.
+  age_group: 12-14
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: d-r
+  display_name: Д. Р.
+  age_group: 12-14
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: e-t
+  display_name: Е. Т.
+  age_group: 12-14
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: zh-n
+  display_name: Ж. Н.
+  age_group: 12-14
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: p-a
+  display_name: П. А.
+  age_group: 15+
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: r-b
+  display_name: Р. Б.
+  age_group: 15+
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: s-v
+  display_name: С. В.
+  age_group: 15+
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: t-g
+  display_name: Т. Г.
+  age_group: 15+
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: u-d
+  display_name: У. Д.
+  age_group: 15+
+  studio: pechat-tantsa
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: anna-vetrova
+  display_name: Анна Ветрова
+  age_group: 18+
+  studio: silva
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: mariya-sokolova
+  display_name: Мария Соколова
+  age_group: 18+
+  studio: silva
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: polina-krylova
+  display_name: Полина Крылова
+  age_group: 18+
+  studio: silva
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: ekaterina-lavrova
+  display_name: Екатерина Лаврова
+  age_group: 18+
+  studio: silva
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: darya-melnik
+  display_name: Дарья Мельник
+  age_group: 18+
+  studio: silva
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: sofya-rodina
+  display_name: Софья Родина
+  age_group: 18+
+  studio: silva
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: alina-tihonova
+  display_name: Алина Тихонова
+  age_group: 18+
+  studio: nako
+  city: Омск
+  consent_status: not_requested
+  demo: true
+- slug: veronika-smirnova
+  display_name: Вероника Смирнова
+  age_group: 18+
+  studio: nako
+  city: Омск
+  consent_status: not_requested
+  demo: true
+- slug: kseniya-orlova
+  display_name: Ксения Орлова
+  age_group: 18+
+  studio: nako
+  city: Омск
+  consent_status: not_requested
+  demo: true
+- slug: yuliya-belova
+  display_name: Юлия Белова
+  age_group: 18+
+  studio: nako
+  city: Омск
+  consent_status: not_requested
+  demo: true
+- slug: marina-guseva
+  display_name: Марина Гусева
+  age_group: 18+
+  studio: nako
+  city: Омск
+  consent_status: not_requested
+  demo: true
+- slug: olga-fomina
+  display_name: Ольга Фомина
+  age_group: 18+
+  studio: nako
+  city: Омск
+  consent_status: not_requested
+  demo: true
+- slug: amina
+  display_name: Амина
+  age_group: 18+
+  studio: faraon
+  city: Москва
+  consent_status: not_requested
+  demo: true
+- slug: kamila
+  display_name: Камила
+  age_group: 18+
+  studio: faraon
+  city: Москва
+  consent_status: not_requested
+  demo: true
+- slug: sabina
+  display_name: Сабина
+  age_group: 18+
+  studio: faraon
+  city: Москва
+  consent_status: not_requested
+  demo: true
+- slug: leyla
+  display_name: Лейла
+  age_group: 18+
+  studio: faraon
+  city: Москва
+  consent_status: not_requested
+  demo: true
+- slug: aida
+  display_name: Аида
+  age_group: 18+
+  studio: faraon
+  city: Москва
+  consent_status: not_requested
+  demo: true
+- slug: dina
+  display_name: Дина
+  age_group: 18+
+  studio: faraon
+  city: Москва
+  consent_status: not_requested
+  demo: true
+- slug: solnyshko
+  display_name: С. Л.
+  age_group: 7-11
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: luna
+  display_name: Л. М.
+  age_group: 7-11
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: klepa
+  display_name: К. Т.
+  age_group: 7-11
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: tisha
+  display_name: Т. И.
+  age_group: 7-11
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: eva
+  display_name: Е. С.
+  age_group: 7-11
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: roma
+  display_name: Р. А.
+  age_group: 7-11
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: miya
+  display_name: М. Ю.
+  age_group: 3-6
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: tyoma
+  display_name: Т. А.
+  age_group: 3-6
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: sonya
+  display_name: С. О.
+  age_group: 3-6
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: lev
+  display_name: Л. Д.
+  age_group: 3-6
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: anya
+  display_name: А. Я.
+  age_group: 3-6
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: yarik
+  display_name: Я. С.
+  age_group: 3-6
+  studio: aurora
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: i-v
+  display_name: И. В.
+  age_group: 12-14
+  studio: impuls
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: k-l
+  display_name: К. Л.
+  age_group: 12-14
+  studio: impuls
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: l-m
+  display_name: Л. М.
+  age_group: 12-14
+  studio: impuls
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: m-n
+  display_name: М. Н.
+  age_group: 12-14
+  studio: impuls
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: n-o
+  display_name: Н. О.
+  age_group: 12-14
+  studio: impuls
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: o-p
+  display_name: О. П.
+  age_group: 12-14
+  studio: impuls
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: g-a
+  display_name: Г. А.
+  age_group: 15-17
+  studio: gravity
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: d-b
+  display_name: Д. Б.
+  age_group: 15-17
+  studio: gravity
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: e-v
+  display_name: Е. В.
+  age_group: 15-17
+  studio: gravity
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: zh-g
+  display_name: Ж. Г.
+  age_group: 15-17
+  studio: gravity
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: z-d
+  display_name: З. Д.
+  age_group: 15-17
+  studio: gravity
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: i-e
+  display_name: И. Е.
+  age_group: 15-17
+  studio: gravity
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: timur-aslanov
+  display_name: Тимур Асланов
+  age_group: 18+
+  studio: street-72
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: roman-kim
+  display_name: Роман Ким
+  age_group: 18+
+  studio: street-72
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: artyom-valeev
+  display_name: Артём Валеев
+  age_group: 18+
+  studio: street-72
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: nikita-zhukov
+  display_name: Никита Жуков
+  age_group: 18+
+  studio: street-72
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: danil-hasanov
+  display_name: Данил Хасанов
+  age_group: 18+
+  studio: street-72
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: egor-sychev
+  display_name: Егор Сычёв
+  age_group: 18+
+  studio: street-72
+  city: Тюмень
+  consent_status: not_requested
+  demo: true
+- slug: aleksey-panteleev
+  display_name: Алексей Пантелеев
+  age_group: 18+
+  studio: ural-drive
+  city: Екатеринбург
+  consent_status: not_requested
+  demo: true
+- slug: viktor-solovyov
+  display_name: Виктор Соловьёв
+  age_group: 18+
+  studio: ural-drive
+  city: Екатеринбург
+  consent_status: not_requested
+  demo: true
+- slug: ilya-romanov
+  display_name: Илья Романов
+  age_group: 18+
+  studio: ural-drive
+  city: Екатеринбург
+  consent_status: not_requested
+  demo: true
+- slug: maksim-zaharov
+  display_name: Максим Захаров
+  age_group: 18+
+  studio: ural-drive
+  city: Екатеринбург
+  consent_status: not_requested
+  demo: true
+- slug: pavel-kuznetsov
+  display_name: Павел Кузнецов
+  age_group: 18+
+  studio: ural-drive
+  city: Екатеринбург
+  consent_status: not_requested
+  demo: true
+- slug: sergey-dyomin
+  display_name: Сергей Дёмин
+  age_group: 18+
+  studio: ural-drive
+  city: Екатеринбург
+  consent_status: not_requested
+  demo: true
+- slug: knopka
+  display_name: К. Н.
+  age_group: 7-11
+  studio: kamensk-style
+  city: Каменск-Уральский
+  consent_status: not_requested
+  demo: true
+- slug: pchela
+  display_name: П. Ч.
+  age_group: 7-11
+  studio: kamensk-style
+  city: Каменск-Уральский
+  consent_status: not_requested
+  demo: true
+- slug: yozh
+  display_name: Е. Ж.
+  age_group: 7-11
+  studio: kamensk-style
+  city: Каменск-Уральский
+  consent_status: not_requested
+  demo: true
+- slug: sova
+  display_name: С. В.
+  age_group: 7-11
+  studio: kamensk-style
+  city: Каменск-Уральский
+  consent_status: not_requested
+  demo: true
+- slug: lis
+  display_name: Л. И.
+  age_group: 7-11
+  studio: kamensk-style
+  city: Каменск-Уральский
+  consent_status: not_requested
+  demo: true
+- slug: volk
+  display_name: В. К.
+  age_group: 7-11
+  studio: kamensk-style
+  city: Каменск-Уральский
+  consent_status: not_requested
+  demo: true
+- slug: a-s
+  display_name: А. С.
+  age_group: 15-17
+  studio: kurgan-vibe
+  city: Курган
+  consent_status: not_requested
+  demo: true
+- slug: b-t
+  display_name: Б. Т.
+  age_group: 15-17
+  studio: kurgan-vibe
+  city: Курган
+  consent_status: not_requested
+  demo: true
+- slug: v-u
+  display_name: В. У.
+  age_group: 15-17
+  studio: kurgan-vibe
+  city: Курган
+  consent_status: not_requested
+  demo: true
+- slug: g-f
+  display_name: Г. Ф.
+  age_group: 15-17
+  studio: kurgan-vibe
+  city: Курган
+  consent_status: not_requested
+  demo: true
+- slug: d-h
+  display_name: Д. Х.
+  age_group: 15-17
+  studio: kurgan-vibe
+  city: Курган
+  consent_status: not_requested
+  demo: true
+- slug: e-c
+  display_name: Е. Ц.
+  age_group: 15-17
+  studio: kurgan-vibe
+  city: Курган
+  consent_status: not_requested
+  demo: true
+- slug: viktoriya-lebedeva
+  display_name: Виктория Лебедева
+  age_group: 18+
+  studio: dance-zone
+  city: Челябинск
+  consent_status: not_requested
+  demo: true
+- slug: alisa-nikitina
+  display_name: Алиса Никитина
+  age_group: 18+
+  studio: dance-zone
+  city: Челябинск
+  consent_status: not_requested
+  demo: true
+- slug: diana-volkova
+  display_name: Диана Волкова
+  age_group: 18+
+  studio: dance-zone
+  city: Челябинск
+  consent_status: not_requested
+  demo: true
+- slug: karina-zaytseva
+  display_name: Карина Зайцева
+  age_group: 18+
+  studio: dance-zone
+  city: Челябинск
+  consent_status: not_requested
+  demo: true
+- slug: liliya-egorova
+  display_name: Лилия Егорова
+  age_group: 18+
+  studio: dance-zone
+  city: Челябинск
+  consent_status: not_requested
+  demo: true
+- slug: nelli-morozova
+  display_name: Нелли Морозова
+  age_group: 18+
+  studio: dance-zone
+  city: Челябинск
+  consent_status: not_requested
+  demo: true

@@ -1,0 +1,32 @@
+﻿slug;title;nomination;participants;scheduled_at;order_no;stage;status;video_url;source_id;demo;data_tag
+perf-day1-solo-01;Тихий свет;best-solo-kids;a-k;2026-12-12T10:00:00+05:00;1;Сцена;;;;;preview
+perf-day1-solo-02;Коробка спичек;best-solo-kids;b-s;2026-12-12T10:20:00+05:00;2;Сцена;;;;;preview
+perf-day1-solo-03;Внутри;best-solo-kids;i-v;2026-12-12T10:40:00+05:00;3;Сцена;;;;;preview
+perf-day1-solo-04;Оранжевый сквер;best-solo-kids;k-l;2026-12-12T11:00:00+05:00;4;Сцена;;;;;preview
+perf-day1-duet-01;На семи ветрах;best-duets-kids;g-a|d-b;2026-12-12T11:20:00+05:00;5;Сцена;;;;;preview
+perf-day1-duet-02;Стеклянные сны;best-duets-kids;a-s|b-t;2026-12-12T11:50:00+05:00;6;Сцена;;;;;preview
+perf-day1-solo-05;Пыль дорог;best-solo-adults-sneakers;timur-aslanov;2026-12-12T12:20:00+05:00;7;Сцена;;;;;preview
+perf-day1-solo-06;Ритм-72;best-solo-adults-sneakers;roman-kim;2026-12-12T12:45:00+05:00;8;Сцена;;;;;preview
+perf-day1-solo-07;Не по правилам;best-solo-adults-sneakers;artyom-valeev;2026-12-12T13:10:00+05:00;9;Сцена;;;;;preview
+perf-day1-solo-08;Высокая частота;best-solo-adults-heels;viktoriya-lebedeva;2026-12-12T13:40:00+05:00;10;Сцена;;;;;preview
+perf-day1-solo-09;Полночь;best-solo-adults-heels;alisa-nikitina;2026-12-12T14:00:00+05:00;11;Сцена;;;;;preview
+perf-day1-solo-10;Красный каблук;best-solo-adults-heels;diana-volkova;2026-12-12T14:20:00+05:00;12;Сцена;;;;;preview
+perf-day1-duet-03;Двое на проводе;best-duets-adults;anna-vetrova|mariya-sokolova;2026-12-12T14:40:00+05:00;13;Сцена;;;;;preview
+perf-day1-duet-04;Поздний звонок;best-duets-adults;alina-tihonova|veronika-smirnova;2026-12-12T15:00:00+05:00;14;Сцена;;;;;preview
+perf-day1-mini-01;Дом у реки;best-mini-groups;p-a|r-b|s-v|t-g|u-d;2026-12-12T16:00:00+05:00;15;Сцена;;;;;preview
+perf-day1-mini-02;Кто если не мы;best-mini-groups;anna-vetrova|mariya-sokolova|polina-krylova|ekaterina-lavrova;2026-12-12T16:30:00+05:00;16;Сцена;;;;;preview
+perf-day2-baby-01;Первые шаги;best-baby;miya|tyoma|sonya|lev|anya|yarik;2026-12-13T11:00:00+05:00;1;Сцена;;;;;preview
+perf-day2-kids-01;Пластилин;best-kids;lisa|mila|tosha|asya|mark|nika;2026-12-13T11:30:00+05:00;2;Сцена;;;;;preview
+perf-day2-kids-02;Лунная смена;best-kids;solnyshko|luna|klepa|tisha|eva|roma;2026-12-13T12:00:00+05:00;3;Сцена;;;;;preview
+perf-day2-kids-03;Каменный цветок;best-kids;knopka|pchela|yozh|sova|lis|volk;2026-12-13T12:30:00+05:00;4;Сцена;;;;;preview
+perf-day2-juniors-01;Пятый этаж;best-juniors;a-k|b-s|v-g|d-r|e-t|zh-n;2026-12-13T13:00:00+05:00;5;Сцена;;;;;preview
+perf-day2-juniors-02;Точка кипения;best-juniors;i-v|k-l|l-m|m-n|n-o|o-p;2026-12-13T13:30:00+05:00;6;Сцена;;;;;preview
+perf-day2-varsity-01;Гравитация;best-varsity;g-a|d-b|e-v|zh-g|z-d|i-e;2026-12-13T14:00:00+05:00;7;Сцена;;;;;preview
+perf-day2-varsity-02;Дорога на восток;best-varsity;a-s|b-t|v-u|g-f|d-h|e-c;2026-12-13T14:15:00+05:00;8;Сцена;;;;;preview
+perf-day2-adults-01;Соль и мёд;best-adults;anna-vetrova|mariya-sokolova|polina-krylova|ekaterina-lavrova|darya-melnik|sofya-rodina;2026-12-13T15:00:00+05:00;9;Сцена;;;;;preview
+perf-day2-adults-02;Северный ветер;best-adults;alina-tihonova|veronika-smirnova|kseniya-orlova|yuliya-belova|marina-guseva|olga-fomina;2026-12-13T15:30:00+05:00;10;Сцена;;;;;preview
+perf-day2-adults-03;Электричка;best-adults;aleksey-panteleev|viktor-solovyov|ilya-romanov|maksim-zaharov|pavel-kuznetsov|sergey-dyomin;2026-12-13T16:00:00+05:00;11;Сцена;;;;;preview
+perf-day2-heels-01;Золото на коже;best-heels;amina|kamila|sabina|leyla|aida|dina;2026-12-13T16:40:00+05:00;12;Сцена;;;;;preview
+perf-day2-strip-01;Бархатный вечер;best-strip;viktoriya-lebedeva|alisa-nikitina|diana-volkova|karina-zaytseva|liliya-egorova|nelli-morozova;2026-12-13T17:10:00+05:00;13;Сцена;;;;;preview
+perf-day2-strip-02;Красная нить;best-strip-heels;viktoriya-lebedeva|alisa-nikitina|diana-volkova|karina-zaytseva|liliya-egorova|nelli-morozova;2026-12-13T17:40:00+05:00;14;Сцена;;;;;preview
+perf-day2-exp-01;Белый шум;best-experimental;timur-aslanov|roman-kim|artyom-valeev|nikita-zhukov|danil-hasanov|egor-sychev;2026-12-13T18:10:00+05:00;15;Сцена;;;;;preview

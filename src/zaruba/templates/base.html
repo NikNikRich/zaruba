@@ -28,6 +28,14 @@
 <body>
 <a class="skip-link" href="#main">Перейти к содержанию</a>
 
+{% if settings.preview_enabled %}
+<div class="notice">
+  <div class="wrap"><span class="badge">предпросмотр</span>
+  Демонстрационные данные для показа руководству: студии, участники, выступления
+  и тайминг помечены «пример». Публичные страницы остаются на подтверждённых фактах.</div>
+</div>
+{% endif %}
+
 <header class="site-header">
   <div class="wrap header-inner">
     <a class="brand" href="/">ЗАРУБА <span aria-hidden="true">·</span> Тюмень</a>

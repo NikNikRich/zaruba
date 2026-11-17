@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     # Пустая папка — законное состояние: страница объясняет, почему таблиц нет.
     results_dir: Path = BASE_DIR / "content" / "results"
 
+    # Презентационный overlay `content/editions/<год>.d/*.yaml`: выдуманные
+    # строки видны только при явном включении (`ZARUBA_PREVIEW_ENABLED=1`) и
+    # помечены `demo`. По умолчанию выключен — публичный контент и тесты
+    # остаются на подтверждённых фактах.
+    preview_enabled: bool = False
+
     # Кэш публичных страниц (docs/06 §6.20): 60 с, расписание — 15 с.
     cache_ttl_public: int = 60
     cache_ttl_schedule: int = 15
