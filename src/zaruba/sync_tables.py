@@ -43,6 +43,35 @@ class TableError(Exception):
     """Ошибка таблицы: сообщение называет файл, строку и колонку."""
 
 
+# UTF-16 (LE/BE) начинается с BOM: такой файл мы не разбираем, но и молча
+# превращать его в «кракозябры» через cp1251 нельзя — ошибка должна быть
+# понятной. Остальные два BOM (`utf-8-sig`) снимает сам кодек.
+UTF16_BOMS = (b"\xff\xfe", b"\xfe\xff")
+
+
+def _read_table_text(path: Path) -> str:
+    """Читает CSV в UTF-8 (с BOM или без) либо Windows-1251.
+
+    Русский Excel сохраняет таблицы в cp1251, «Блокнот» и Google Sheets — в
+    UTF-8. Порядок важен: cp1251 декодирует почти любые байты, поэтому её
+    пробуем последней, иначе UTF-8 с кириллицей молча стал бы мусором.
+    """
+
+    raw = path.read_bytes()
+    if raw.startswith(UTF16_BOMS):
+        raise TableError(
+            f"{path}: файл сохранён в UTF-16 — пересохраните таблицу в UTF-8 или Windows-1251"
+        )
+    for encoding in ("utf-8-sig", "cp1251"):
+        try:
+            return raw.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    raise TableError(
+        f"{path}: не удалось определить кодировку — нужен UTF-8 (с BOM или без) или Windows-1251"
+    )
+
+
 def _text(row: dict[str, str], key: str) -> str | None:
     value = row.get(key, "").strip()
     return value or None
@@ -335,7 +364,7 @@ def read_table(spec: TableSpec, tables_dir: Path) -> list[dict[str, str]]:
     path = tables_dir / spec.filename
     if not path.is_file():
         raise TableError(f"{path}: файл таблицы не найден")
-    raw = path.read_text(encoding="utf-8-sig")
+    raw = _read_table_text(path)
     if not raw.strip():
         raise TableError(f"{path}: таблица пуста")
 
@@ -352,7 +381,7 @@ def read_table(spec: TableSpec, tables_dir: Path) -> list[dict[str, str]]:
         raise TableError(f"{path}: шапка не совпадает с моделью (нет {missing}, лишние {unknown})")
 
     rows: list[dict[str, str]] = []
-    seen: set[str] = set()
+    seen: dict[str, int] = {}
     for raw_row in reader:
         row = {
             (key or "").strip(): (value or "").strip()
@@ -369,8 +398,10 @@ def read_table(spec: TableSpec, tables_dir: Path) -> list[dict[str, str]]:
         if not slug:
             raise TableError(f"{path}:{line}: пустой slug")
         if slug in seen:
-            raise TableError(f"{path}:{line}: slug «{slug}» повторяется")
-        seen.add(slug)
+            raise TableError(
+                f"{path}:{line}: slug «{slug}» повторяется — впервые в строке {seen[slug]}"
+            )
+        seen[slug] = line
         rows.append(row)
     if not rows:
         raise TableError(f"{path}: нет ни одной строки")

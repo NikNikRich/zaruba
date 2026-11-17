@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import re
 import shutil
 from pathlib import Path
 
@@ -398,3 +399,97 @@ def test_preview_pages_are_filled(preview_client: TestClient) -> None:
 
     assert "Белый шум" in preview_client.get("/performances?page=2").text
     assert "ЮБИЛЕЙНАЯ ЗАРУБА 2025" in preview_client.get("/results").text
+
+
+@pytest.mark.parametrize("encoding", ("utf-8", "utf-8-sig", "cp1251"))
+def test_read_table_accepts_real_world_encodings(tmp_path: Path, encoding: str) -> None:
+    """UTF-8 без BOM, UTF-8 с BOM и Windows-1251 — три реальных выгрузки.
+
+    Русский Excel сохраняет CSV в cp1251, «Блокнот» и Google Sheets — в UTF-8;
+    падать с `UnicodeDecodeError` на нормальной таблице контент-менеджера нельзя.
+    """
+
+    tables = _tables_copy(tmp_path)
+    path = tables / "studios.csv"
+    text = path.read_text(encoding="utf-8-sig")
+    path.write_bytes(text.encode(encoding))
+
+    rows = read_table(TABLE_SPECS[0], tables)
+
+    assert len(rows) == 12
+    assert rows[0]["slug"] == "pechat-tantsa"
+    assert rows[0]["name"] == "«Печать танца»"
+
+
+def test_utf16_table_is_rejected_with_a_clear_error(tmp_path: Path) -> None:
+    """UTF-16 не поддерживаем, но говорим об этом, а не показываем стектрейс."""
+
+    tables = _tables_copy(tmp_path)
+    path = tables / "studios.csv"
+    text = path.read_text(encoding="utf-8-sig")
+    path.write_bytes(text.encode("utf-16"))
+
+    with pytest.raises(TableError, match="UTF-16"):
+        read_table(TABLE_SPECS[0], tables)
+
+
+def test_headers_and_cells_are_trimmed_and_blank_lines_skipped(tmp_path: Path) -> None:
+    """«Грязная» таблица: пробелы вокруг шапки и клеток, пустые строки."""
+
+    spec = TABLE_SPECS[0]
+    path = tmp_path / spec.filename
+    header = " ; ".join(f"  {name}  " for name in spec.columns)
+    path.write_text(
+        "\n".join(
+            [
+                header,
+                "",
+                "   ",
+                "  studio-x  ;  Студия X  ;  Тюмень  ;  ;  ;  preview  ",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    rows = read_table(spec, tmp_path)
+
+    assert rows == [
+        {
+            "slug": "studio-x",
+            "name": "Студия X",
+            "city": "Тюмень",
+            "vk_url": "",
+            "demo": "",
+            "data_tag": "preview",
+        }
+    ]
+
+
+def test_duplicate_slug_names_the_sheet_and_keeps_the_overlay(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Дубль ключа — ошибка валидации, а не повод перезаписать готовый overlay."""
+
+    tables = _tables_copy(tmp_path)
+    base = tmp_path / "2026.yaml"
+    shutil.copyfile(BASE, base)
+    out_dir = overlay_dir(base)
+    data, _ = build_overlay(tables, base)
+    written = write_overlay(data, out_dir)
+    before = {path.name: path.read_bytes() for path in written}
+    assert before
+
+    path = tables / "studios.csv"
+    lines = path.read_text(encoding="utf-8-sig").splitlines()
+    path.write_text("\n".join([*lines, lines[1]]) + "\n", encoding="utf-8")
+
+    assert main(["--tables-dir", str(tables), "--base", str(base)]) == 1
+    stderr = capsys.readouterr().err
+
+    assert "studios.csv" in stderr, "ошибка не называет лист"
+    assert "slug «pechat-tantsa» повторяется" in stderr, "ошибка не называет ключ"
+    assert re.search(r"впервые в строке \d+", stderr), "нет номера первой строки"
+    assert {path.name: path.read_bytes() for path in written} == before, (
+        "невалидная таблица перезаписала существующий overlay"
+    )
