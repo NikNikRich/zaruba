@@ -23,6 +23,11 @@
 <script type="application/ld+json">{{ block|safe }}</script>
 {% endfor %}
 <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}?v={{ asset_v }}">
+{% if settings.max_miniapp %}
+{# Стили приветственного окна (docs/09 §9.11): отдельный файл, потому что
+   `style.css` держится в бюджете 32 000 байт и нужен обычному сайту. #}
+<link rel="stylesheet" href="{{ url_for('static', path='max-miniapp.css') }}?v={{ asset_v }}">
+{% endif %}
 <link rel="stylesheet" href="{{ url_for('static', path='print.css') }}?v={{ asset_v }}" media="print">
 </head>
 <body>
@@ -95,6 +100,13 @@
       {% endfor %}
     </nav>
     {% endif %}
+    {% if settings.max_miniapp %}
+    {# Окно можно открыть повторно: подсказка нужна тому, кто закрыл её на
+       первом визите или пришёл по диплинку (docs/09 §9.11). #}
+    <p class="max-guide">
+      <button class="max-guide__button" type="button" data-welcome-open>Гид по приложению</button>
+    </p>
+    {% endif %}
     {% if partners %}
     <div class="footer-partners">
       <p class="muted small">Партнёры и спонсоры</p>
@@ -106,6 +118,7 @@
   </div>
 </footer>
 {% if settings.max_miniapp %}
+{% include "partials/max-welcome.html" %}
 {# MAX Bridge — единственный внешний скрипт сайта; инициализация и поведение
    в `max-bridge.js`, потому что CSP запрещает инлайновые скрипты (docs/09). #}
 <script src="https://st.max.ru/js/max-web-app.js"></script>

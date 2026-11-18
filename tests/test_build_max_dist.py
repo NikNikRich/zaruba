@@ -45,6 +45,7 @@ def test_build_writes_pages_static_and_pages_markers(dist: Path) -> None:
     assert "Disallow: /" in (dist / "robots.txt").read_text(encoding="utf-8")
     assert (dist / "static" / "style.css").is_file()
     assert (dist / "static" / "max-bridge.js").is_file()
+    assert (dist / "static" / "max-miniapp.css").is_file()
     assert len(list(dist.glob("*.html"))) >= 15
 
 
@@ -74,7 +75,28 @@ def test_build_includes_max_bridge(dist: Path) -> None:
 
     assert "https://st.max.ru/js/max-web-app.js" in html
     assert re.search(r"static/max-bridge\.js\?v=[0-9a-f]{8}", html)
+    assert re.search(r"static/max-miniapp\.css\?v=[0-9a-f]{8}", html)
     assert "site-header--embedded" in html
+
+
+def test_welcome_modal_links_are_relative(dist: Path) -> None:
+    """Ссылки внутри окна переписываются как обычные: `schedule.html` и `../`.
+
+    Иначе на GitHub Pages `/schedule` увёл бы в корень домена, а не в папку
+    репозитория, и кнопки приветствия оказались бы нерабочими.
+    """
+
+    html = (dist / "index.html").read_text(encoding="utf-8")
+
+    assert 'href="/schedule"' not in html
+    for page in ("schedule.html", "studios.html", "tickets.html"):
+        assert re.search(rf'href="{page}" data-welcome-close', html), page
+    assert re.search(r"data-welcome-open>Гид по приложению", html)
+
+    nested = next(page for page in dist.rglob("*.html") if page.parent != dist)
+    nested_html = nested.read_text(encoding="utf-8")
+
+    assert re.search(r'href="\.\./schedule\.html" data-welcome-close', nested_html), nested
 
 
 def test_clean_output_removes_stale_files(builder: ModuleType, tmp_path: Path) -> None:

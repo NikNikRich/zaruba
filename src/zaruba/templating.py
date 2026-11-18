@@ -26,12 +26,14 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 
 templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
 
-# Хеш CSS в ссылке: статика кэшируется на час, и без версии после релиза
-# часть посетителей остаётся со старым файлом.
+# Хеш CSS и JS в ссылке: статика кэшируется на час, и без версии после релиза
+# часть посетителей остаётся со старым файлом. `max-miniapp.css` входит в хеш,
+# хотя подключается только в Mini App: иначе правка окна приветствия не
+# обновила бы ссылку в уже открытом приложении.
 ASSET_VERSION = hashlib.sha1(
     b"".join(
         (PACKAGE_DIR / "static" / name).read_bytes()
-        for name in ("style.css", "print.css", "max-bridge.js")
+        for name in ("style.css", "print.css", "max-miniapp.css", "max-bridge.js")
     )
 ).hexdigest()[:8]
 

@@ -62,6 +62,11 @@ PROTECTED_DIRS = (
 
 ROBOTS_TEXT = "User-agent: *\nDisallow: /\n"
 
+# Ассеты, без которых Mini App не работает. `max-miniapp.css` нужен только
+# режиму мессенджера, но пропасть из сборки он не должен молча (docs/09 §9.11):
+# `copy_static` копирует папку целиком, здесь — проверка результата.
+REQUIRED_ASSETS = ("style.css", "print.css", "max-miniapp.css", "max-bridge.js")
+
 
 def check_target(dist: Path) -> Path:
     """Каталог сборки; корень репозитория, `src` и системный корень — отказ."""
@@ -102,6 +107,9 @@ def build(dist: Path | None = None, settings: Settings | None = None) -> BuildSt
     stats.cards = sum(1 for url in pages if urlsplit(url).path.startswith(CARD_PREFIXES))
     write_pages(target, pages, stats)
     stats.static_files = copy_static(target)
+    missing = [name for name in REQUIRED_ASSETS if not (target / "static" / name).is_file()]
+    if missing:
+        raise PreviewBuildError(f"в сборке нет статики: {', '.join(missing)}")
     # `.nojekyll` — пустой файл-маркер: содержимое у него не читается.
     (target / ".nojekyll").write_text("", encoding="utf-8")
     (target / "robots.txt").write_text(ROBOTS_TEXT, encoding="utf-8")

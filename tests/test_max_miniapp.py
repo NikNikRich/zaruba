@@ -26,6 +26,7 @@ from zaruba.middleware import (
 
 STATIC_DIR = Path(__file__).resolve().parents[1] / "src" / "zaruba" / "static"
 BRIDGE_JS = STATIC_DIR / "max-bridge.js"
+MAX_MINIAPP_CSS = STATIC_DIR / "max-miniapp.css"
 BRIDGE_SRC = f"{MAX_BRIDGE_ORIGIN}/js/max-web-app.js"
 
 
@@ -54,6 +55,9 @@ def test_miniapp_is_off_by_default(client: TestClient) -> None:
 
     assert BRIDGE_SRC not in page.text
     assert "max-bridge.js" not in page.text
+    assert "max-miniapp.css" not in page.text
+    assert 'id="max-welcome-modal"' not in page.text
+    assert "data-welcome-open" not in page.text
     assert "site-header--embedded" not in page.text
     assert page.headers["content-security-policy"] == CSP
     assert page.headers["x-frame-options"] == "DENY"
@@ -115,6 +119,72 @@ def test_adapter_accepts_nested_card_paths() -> None:
         assert not pattern.fullmatch(bad), bad
 
 
+def test_miniapp_renders_welcome_dialog_hidden_by_default() -> None:
+    """Окно есть в разметке, но с `hidden`: без JS экран не перекрыт.
+
+    Ссылки внутри окна — обычные абсолютные `href="/..."`: их переписывает
+    сборка `dist/`, а не шаблон (docs/09 §9.11).
+    """
+
+    with mini_client() as mini:
+        html = mini.get("/").text
+
+    assert 'id="max-welcome-modal"' in html
+    assert 'role="dialog"' in html
+    assert 'aria-modal="true"' in html
+    assert re.search(r'id="max-welcome-modal"[^>]*hidden', html), "окно не спрятано без JS"
+    assert re.search(r"/static/max-miniapp\.css\?v=[0-9a-f]{8}", html), html[:800]
+    for text in (
+        "Добро пожаловать на ЗАРУБУ 2026!",
+        "Следи за таймингом",
+        "Ищи своих",
+        "Спрашивай бота",
+    ):
+        assert text in html, text
+    assert re.search(r'href="/schedule" data-welcome-close', html)
+    assert re.search(r'href="/studios" data-welcome-close', html)
+    assert re.search(r'href="/tickets" data-welcome-close', html)
+    assert re.search(r'type="button" data-welcome-close>Понятно, закрыть', html)
+    assert re.search(r"data-welcome-open>Гид по приложению", html)
+
+
+def test_welcome_css_is_separate_dark_and_touch_friendly() -> None:
+    """Окно живёт в отдельном файле и не тратит бюджет `style.css`."""
+
+    css = MAX_MINIAPP_CSS.read_text(encoding="utf-8")
+    card = re.search(r"\.max-welcome__card\s*\{([^}]*)\}", css)
+
+    assert card is not None, "нет правила .max-welcome__card"
+    assert "var(--bg2)" in card.group(1), "карточка не в тёмной палитре сайта"
+    assert "var(--lime)" in card.group(1), "нет лаймовой рамки"
+    assert "var(--r)" in card.group(1), "радиус не совпадает с остальным сайтом"
+    assert ".max-welcome[hidden] { display: none; }" in css, "hidden не гасит окно"
+    assert re.search(r"min-height:\s*44px", css), "тач-таргет меньше 44 px"
+    assert "@media (max-width: 360px)" in css, "нет адаптива под узкий экран"
+    assert MAX_MINIAPP_CSS.stat().st_size < 6000, (
+        f"max-miniapp.css {MAX_MINIAPP_CSS.stat().st_size} байт — файл перестал быть лёгким"
+    )
+
+
+def test_adapter_shows_welcome_once_and_respects_deeplinks() -> None:
+    """Флаг в `localStorage`, `try/catch` и запасной путь через `start_param`."""
+
+    source = BRIDGE_JS.read_text(encoding="utf-8")
+
+    for token in (
+        "zaruba_max_welcome_v1",
+        "localStorage.getItem",
+        "localStorage.setItem",
+        "catch (error)",
+        "getElementById('max-welcome-modal')",
+        "welcome.hidden = false",
+        "welcome.hidden = true",
+        "[data-welcome-close]",
+        "[data-welcome-open]",
+    ):
+        assert token in source, token
+
+
 def test_miniapp_changes_only_csp_and_frame_header() -> None:
     """Отличие режима — ровно политика и снятый `X-Frame-Options`."""
 
@@ -127,11 +197,15 @@ def test_miniapp_changes_only_csp_and_frame_header() -> None:
 
 
 def test_adapter_stays_small_and_has_a_fallback() -> None:
-    """Адаптер — меньше 40 строк: больше в нём просто нечему жить."""
+    """Адаптер — меньше 90 строк: навигация, диплинк и окно приветствия.
+
+    Порог поднят с 40 вместе с приветственным окном (§9.11): третьей
+    обязанности здесь быть не должно, для неё нужен отдельный повод.
+    """
 
     source = BRIDGE_JS.read_text(encoding="utf-8")
 
-    assert len(source.splitlines()) < 40, f"{len(source.splitlines())} строк"
+    assert len(source.splitlines()) < 90, f"{len(source.splitlines())} строк"
     for token in (
         "app.ready()",
         "BackButton.show()",

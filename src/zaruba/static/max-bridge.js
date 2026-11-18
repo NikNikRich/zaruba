@@ -1,7 +1,7 @@
-/* Адаптер MAX Mini App (docs/09): системная кнопка «Назад», внешние ссылки и
-   диплинки `?startapp=`. Единственный исполняемый JS сайта; подключается
-   только при ZARUBA_MAX_MINIAPP=true. Вне MAX (`platform === null`) не делает
-   ничего: ссылки и переходы остаются обычными. */
+/* Адаптер MAX Mini App (docs/09): системная кнопка «Назад», внешние ссылки,
+   диплинки `?startapp=` и приветственное окно (§9.11). Единственный
+   исполняемый JS сайта; подключается только при ZARUBA_MAX_MINIAPP=true.
+   Вне MAX (`platform === null`) навигация и ссылки остаются обычными. */
 (function () {
   'use strict';
   var app = window.WebApp;
@@ -35,4 +35,39 @@
       if (response.ok) location.replace(page);
     }).catch(function () {});
   }
+
+  // Приветствие: первый визит и только без диплинка — ссылка на конкретный
+  // раздел должна сразу вести к цели, а не в промежуточное окно.
+  var welcome = document.getElementById('max-welcome-modal');
+  var WELCOME_KEY = 'zaruba_max_welcome_v1';
+  var seen = null;
+  try {
+    seen = window.localStorage.getItem(WELCOME_KEY);
+  } catch (error) {
+    // Приватный режим WebView: хранилище бросает. Окно показываем — это не
+    // повод ломать страницу, — но флаг тогда не сохранится.
+    seen = null;
+  }
+  if (welcome && !seen && !start) welcome.hidden = false;
+
+  function closeWelcome() {
+    try {
+      window.localStorage.setItem(WELCOME_KEY, '1');
+    } catch (error) {
+      // Навигация важнее памяти: окно закрываем, даже если флаг не записался.
+    }
+    if (welcome) welcome.hidden = true;
+  }
+
+  document.addEventListener('click', function (event) {
+    var target = event.target.closest ? event.target : null;
+    if (!target) return;
+    // Кнопки-ссылки перехода тоже несут `data-welcome-close`: флаг ставится
+    // до перехода, и на следующей странице окно уже не появляется.
+    if (target.closest('[data-welcome-close]')) {
+      closeWelcome();
+    } else if (target.closest('[data-welcome-open]') && welcome) {
+      welcome.hidden = false;
+    }
+  });
 })();

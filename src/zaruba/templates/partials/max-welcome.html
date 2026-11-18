@@ -1,0 +1,26 @@
+{# Приветственное окно Mini App MAX (docs/09 §9.11). Рендерится только при
+   `max_miniapp=True`; `hidden` — состояние без JS, чтобы экран не перекрывался
+   до инициализации адаптера. Ссылки остаются обычными `<a href="/...">`:
+   `build_max_dist.py` сам перепишет их в относительные `*.html`, а адаптер
+   закроет окно по `data-welcome-close` перед переходом. #}
+<div class="max-welcome" id="max-welcome-modal" role="dialog" aria-modal="true"
+     aria-labelledby="max-welcome-title" hidden>
+  <div class="max-welcome__card">
+    <p class="max-welcome__eyebrow">MAX · мини-приложение</p>
+    <h2 class="max-welcome__title" id="max-welcome-title">Добро пожаловать на ЗАРУБУ 2026!</h2>
+    <ol class="max-welcome__steps">
+      <li><strong>Следи за таймингом</strong> — актуальное расписание блоков и залов
+      в реальном времени.</li>
+      <li><strong>Ищи своих</strong> — списки студий, участников и судейские протоколы
+      в один клик.</li>
+      <li><strong>Спрашивай бота</strong> — напиши название своей студии в чат боту,
+      чтобы узнать время выхода.</li>
+    </ol>
+    <div class="max-welcome__actions">
+      <a class="max-welcome__go" href="/schedule" data-welcome-close>Смотреть расписание</a>
+      <a class="max-welcome__link" href="/studios" data-welcome-close>Студии и участники</a>
+      <a class="max-welcome__link" href="/tickets" data-welcome-close>Билеты и площадка</a>
+      <button class="max-welcome__dismiss" type="button" data-welcome-close>Понятно, закрыть</button>
+    </div>
+  </div>
+</div>
