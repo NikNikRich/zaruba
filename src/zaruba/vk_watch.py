@@ -8,8 +8,10 @@
 начале ленты месяцами со старой датой, и сравнение по дате отправило бы его
 повторно после каждого перезапуска. Ключ поста такой ошибки не даёт.
 
-Уведомление ничего не публикует на сайте: текст поста — цитата со ссылкой на
-первоисточник. Перенос фактов в `content/` остаётся за человеком (AGENTS.md).
+Уведомление ничего не публикует на сайте само: пост либо уходит как цитата со
+ссылкой на первоисточник, либо превращается в черновик (`services/vk_parser`, §9.14)
+и уходит владельцу карточкой с кнопкой «Опубликовать». Запись в `content/` — только
+по команде человека из его чата (AGENTS.md).
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import Settings, get_settings
-from .services import max_bot, vk
+from .services import max_bot, vk, vk_parser
 from .services.vk import VkError
 
 logger = logging.getLogger("zaruba.vk_watch")
@@ -100,10 +102,30 @@ def remember_head(
     return len(posts)
 
 
+def _notification(post: vk.Post, settings: Settings, drafts_path: Path) -> dict[str, Any]:
+    """Сообщение владельцу: карточка черновика, если пост распознан.
+
+    Нераспознанный пост уходит прежним уведомлением: молчать о новости из
+    официального сообщества нельзя, а выдумывать для неё раздел сайта — тем более.
+    """
+
+    draft = vk_parser.build_draft(post)
+    if draft is None:
+        return vk.notification_body(post, settings)
+    try:
+        vk_parser.upsert_draft(drafts_path, draft)
+    except OSError as exc:
+        # Диск — не повод молчать: пост всё равно уходит владельцу, а публикация
+        # честно ответит «черновик не найден» и попросит повторить.
+        logger.warning("черновик %s не сохранён: %s", draft.id, exc)
+    return vk_parser.card_body(draft)
+
+
 def check_once(
     settings: Settings,
     *,
     seen_path: Path | None = None,
+    drafts_path: Path | None = None,
     dry_run: bool = False,
     poster: Callable[[Settings, int, Mapping[str, Any]], bool] | None = None,
     opener: vk.Opener | None = None,
@@ -113,9 +135,14 @@ def check_once(
 
     Лог пишется сразу после каждого сообщения, а не в конце: если прогон упадёт
     на третьем посте, первые два не уйдут повторно.
+
+    Пост, который разбирается в черновик (`services/vk_parser`), сохраняется в
+    `logs/vk_drafts.json` и уходит владельцу карточкой с кнопками: публикация —
+    отдельное решение человека, а не следствие мониторинга.
     """
 
     path = seen_path or settings.vk_seen_file
+    drafts = drafts_path or settings.vk_drafts_file
     seen = load_seen(path)
     posts = vk.fetch_posts(settings, opener=opener)
     queue = vk.unseen(posts, seen)
@@ -141,7 +168,7 @@ def check_once(
     done: list[str] = []
     failed: list[str] = []
     for post in queue:
-        if not post_message(settings, chat_id, vk.notification_body(post, settings)):
+        if not post_message(settings, chat_id, _notification(post, settings, drafts)):
             failed.append(post.key)
             continue
         done.append(post.key)

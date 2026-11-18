@@ -9,13 +9,16 @@ webhook всегда отвечает 200, потому что иначе MAX р
 from __future__ import annotations
 
 import json
+import subprocess
 import urllib.error
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, time
+from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from fastapi.testclient import TestClient
 
 from zaruba.config import Settings
@@ -34,7 +37,8 @@ from zaruba.models import (
     Studio,
     Ticket,
 )
-from zaruba.services import max_bot
+from zaruba.services import max_bot, vk_parser
+from zaruba.services.vk import Post
 
 SECRET = "zaruba-test-secret"
 TOKEN = "1234567890:test-token"
@@ -711,3 +715,507 @@ def test_broken_content_still_gets_an_answer(
     _, body = sent[0]
     assert "Билеты" in body["text"]
     assert link_url(body) == f"{SITE}/tickets"
+
+
+# --- Полуавтоматическая публикация из ВК (`docs/09` §9.14) ------------------
+#
+# Два рубежа: публикацию запускает только чат владельца, и файл контента после
+# неудачной проверки возвращается байт в байт. Git и `content check` в pytest не
+# запускаются: вместо них — `Runner`, который видит ровно те аргументы, что
+# ушли бы в процессы.
+
+OWNER_CHAT = 592065697
+FOREIGN_CHAT = 42
+POST_AT = datetime(2026, 11, 18, 10, 0, tzinfo=UTC)
+ANNOUNCEMENT = (
+    "Внимание! Перенос блока\nБлок 3 переносится с 15:00 на 16:30, расписание на сайте обновим."
+)
+OLD_ALERTS = """# Срочные оповещения организаторов (docs/09 §9.9).
+alerts:
+- id: old-block
+  status: send
+  title: Старый перенос блока
+  text: Блок 1 перенесён на час позже, расписание обновлено.
+  link_slug: schedule
+  urgent: true
+- id: manual-draft
+  status: draft
+  title: Ручной черновик
+  text: Ещё не отправленное оповещение про билеты.
+"""
+
+
+def drafts_settings(tmp_path: Path, **overrides: Any) -> Settings:
+    """Настройки с изолированными файлами: черновики, alerts и выпуск в tmp."""
+
+    content = tmp_path / "content" / "editions"
+    content.mkdir(parents=True)
+    (content / "2026.yaml").write_text("edition: 2026\n", encoding="utf-8")
+    base: dict[str, Any] = {
+        "vk_chat_id": OWNER_CHAT,
+        "max_alert_chat_id": None,
+        "vk_drafts_file": tmp_path / "logs" / "vk_drafts.json",
+        "alerts_file": tmp_path / "content" / "alerts.yaml",
+        "content_dir": content,
+    }
+    return bot_settings(**{**base, **overrides})
+
+
+def completed(code: int, stdout: str = "", stderr: str = "") -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess(["test"], code, stdout, stderr)
+
+
+class FakeRunner:
+    """Заглушка процессов: помнит вызовы и умеет «провалить» нужный шаг."""
+
+    def __init__(
+        self,
+        *,
+        check: int = 0,
+        status: str = "",
+        status_code: int = 0,
+        commit: int = 0,
+        push: int = 0,
+    ) -> None:
+        self.calls: list[list[str]] = []
+        self.check = check
+        self.status = status
+        self.status_code = status_code
+        self.commit = commit
+        self.push = push
+
+    def __call__(self, args: Any, cwd: Path) -> subprocess.CompletedProcess[str]:
+        argv = list(args)
+        self.calls.append(argv)
+        if argv[0] == "git":
+            if argv[1] == "status":
+                return completed(self.status_code, self.status, "fatal: not a git repository")
+            if argv[1] == "commit":
+                return completed(self.commit, "", "pre-commit: проверки не прошли")
+            if argv[1] == "push":
+                return completed(self.push, "", "! [rejected] main -> main (fetch first)")
+            return completed(0)
+        if argv[1] == "-m":
+            return completed(
+                self.check,
+                "" if self.check == 0 else "",
+                "" if self.check == 0 else "ОШИБКА: alerts.yaml: данные не прошли проверку",
+            )
+        return completed(0)
+
+    def git(self, *words: str) -> list[list[str]]:
+        return [call[1:] for call in self.calls if call[0] == "git" and call[1] in words]
+
+
+def seed_draft(settings: Settings, *, text: str = ANNOUNCEMENT, kinds: tuple[str, ...] = ()) -> Any:
+    """Кладёт черновик в лог так, как это сделал бы `vk_watch`."""
+
+    draft = vk_parser.build_draft(Post(-185685166, 243, POST_AT, text, kinds))
+    assert draft is not None
+    vk_parser.upsert_draft(Path(settings.vk_drafts_file), draft)
+    return draft
+
+
+def alerts_of(settings: Settings) -> list[dict[str, Any]]:
+    payload = yaml.safe_load(Path(settings.alerts_file).read_text(encoding="utf-8"))
+    return list(payload["alerts"])
+
+
+def draft_status(settings: Settings) -> str:
+    return vk_parser.load_drafts(Path(settings.vk_drafts_file))[0].status.value
+
+
+def callback_update(payload: str, *, chat_id: int = OWNER_CHAT) -> dict[str, Any]:
+    """Событие `message_callback`: нажатие inline-кнопки в чате."""
+
+    return {
+        "update_type": "message_callback",
+        "timestamp": 1_760_000_000_000,
+        "chat_id": chat_id,
+        "user": {"user_id": chat_id, "first_name": "Владелец", "is_bot": False},
+        "message": {
+            "sender": {"user_id": 1, "first_name": BOT, "is_bot": True},
+            "recipient": {"chat_id": chat_id, "chat_type": "dialog"},
+            "body": {"mid": "mid.2", "seq": 2, "text": ""},
+        },
+        "callback": {"callback_id": "cb.1", "payload": payload, "timestamp": 1_760_000_000_000},
+    }
+
+
+def test_foreign_chat_cannot_publish_and_gets_a_normal_answer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """«опубликовать vk-243» из чужого чата — обычный текст, сайт не меняется."""
+
+    settings = drafts_settings(tmp_path)
+    seed_draft(settings)
+    called: list[str] = []
+    monkeypatch.setattr(max_bot, "publish_draft", lambda s, i: called.append(i) or "Опубликовано")
+
+    plan = max_bot.plan_reply(message("опубликовать vk-243", chat_id=FOREIGN_CHAT), settings)
+
+    assert plan is not None
+    assert plan.chat_id == FOREIGN_CHAT
+    assert "Такого раздела я не знаю" in plan.body["text"]
+    assert called == []
+    assert draft_status(settings) == "pending"
+
+
+def test_owner_publishes_with_a_text_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings = drafts_settings(tmp_path)
+    seed_draft(settings)
+    called: list[str] = []
+    monkeypatch.setattr(
+        max_bot, "publish_draft", lambda s, i: called.append(i) or max_bot.PUBLISHED
+    )
+
+    plan = max_bot.plan_reply(message("Опубликовать vk-243", chat_id=OWNER_CHAT), settings)
+
+    assert plan is not None
+    assert called == ["vk-243"]
+    assert "Сайт обновится через 30–40 секунд" in plan.body["text"]
+
+
+def test_owner_publishes_with_the_inline_button(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings = drafts_settings(tmp_path)
+    seed_draft(settings)
+    called: list[str] = []
+    monkeypatch.setattr(
+        max_bot, "publish_draft", lambda s, i: called.append(i) or max_bot.PUBLISHED
+    )
+
+    plan = max_bot.plan_reply(callback_update("publish:vk-243"), settings)
+
+    assert plan is not None
+    assert called == ["vk-243"]
+
+
+def test_foreign_button_press_changes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings = drafts_settings(tmp_path)
+    seed_draft(settings)
+    monkeypatch.setattr(max_bot, "publish_draft", lambda s, i: "нельзя")
+
+    plan = max_bot.plan_reply(callback_update("publish:vk-243", chat_id=FOREIGN_CHAT), settings)
+
+    assert plan is not None
+    assert "Такого раздела я не знаю" in plan.body["text"]
+
+
+def test_alert_chat_is_the_owner_too(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path, vk_chat_id=None, max_alert_chat_id=OWNER_CHAT)
+
+    assert max_bot.owner_chats(settings) == frozenset({OWNER_CHAT})
+    plan = max_bot.plan_reply(message("черновики", chat_id=OWNER_CHAT), settings)
+    assert plan is not None
+    assert "Черновиков нет" in plan.body["text"]
+
+
+def test_drafts_list_shows_pending_rows_only_for_the_owner(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    seed_draft(settings)
+
+    owner = max_bot.plan_reply(message("черновики", chat_id=OWNER_CHAT), settings)
+    foreign = max_bot.plan_reply(message("черновики", chat_id=FOREIGN_CHAT), settings)
+
+    assert owner is not None and "vk-243" in owner.body["text"]
+    assert foreign is not None and "Такого раздела я не знаю" in foreign.body["text"]
+
+
+def test_publish_writes_the_alert_and_archives_the_previous_one(tmp_path: Path) -> None:
+    """На сайте горит одна плашка: новая встаёт первой, старая снимает `urgent`."""
+
+    settings = drafts_settings(tmp_path)
+    Path(settings.alerts_file).write_text(OLD_ALERTS, encoding="utf-8")
+    seed_draft(settings)
+    runner = FakeRunner()
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=runner)
+
+    rows = alerts_of(settings)
+    assert answer == max_bot.PUBLISHED
+    assert rows[0]["id"] == "vk-243"
+    assert rows[0]["status"] == "send"
+    assert rows[0]["urgent"] is True
+    assert rows[0]["link_slug"] == "schedule"
+    assert rows[1]["id"] == "old-block" and rows[1]["urgent"] is False
+    assert rows[2]["id"] == "manual-draft", "ручной черновик публикация не трогает"
+    assert draft_status(settings) == "published"
+
+
+def test_publish_keeps_the_file_header_and_commits_one_file(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    Path(settings.alerts_file).write_text(OLD_ALERTS, encoding="utf-8")
+    seed_draft(settings)
+    runner = FakeRunner()
+
+    max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=runner)
+
+    text = Path(settings.alerts_file).read_text(encoding="utf-8")
+    assert text.startswith("# Срочные оповещения организаторов"), "шапка-комментарий терялась"
+    assert runner.git("add") == [["add", "content/alerts.yaml"]]
+    assert runner.git("commit") == [["commit", "-m", "chore(bot): публикация из VK vk-243"]], (
+        "в коммит должен попасть ровно один файл с понятным сообщением"
+    )
+    assert runner.git("push") == [["push", "origin", "main"]]
+
+
+def test_failed_content_check_rolls_the_file_back(tmp_path: Path) -> None:
+    """Валидация не прошла — файл байт в байт прежний, черновик ещё ждёт."""
+
+    settings = drafts_settings(tmp_path)
+    Path(settings.alerts_file).write_text(OLD_ALERTS, encoding="utf-8")
+    before = Path(settings.alerts_file).read_bytes()
+    seed_draft(settings)
+    runner = FakeRunner(check=1)
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=runner)
+
+    assert Path(settings.alerts_file).read_bytes() == before
+    assert "файл откатил" in answer
+    assert "данные не прошли проверку" in answer
+    assert draft_status(settings) == "pending"
+    assert runner.git("commit") == [], "после провала проверки коммита быть не должно"
+
+
+def test_dirty_tree_stops_the_publication(tmp_path: Path) -> None:
+    """Чужие правки в дереве: пуш утащил бы в `main` то, что не проверяли."""
+
+    settings = drafts_settings(tmp_path)
+    Path(settings.alerts_file).write_text(OLD_ALERTS, encoding="utf-8")
+    before = Path(settings.alerts_file).read_bytes()
+    seed_draft(settings)
+    runner = FakeRunner(status=" M content/venues.yaml\n M content/alerts.yaml\n")
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=runner)
+
+    assert "посторонние изменения" in answer
+    assert "content/venues.yaml" in answer
+    assert Path(settings.alerts_file).read_bytes() == before
+    assert runner.git("add") == []
+    assert draft_status(settings) == "pending"
+
+
+def test_failed_push_leaves_the_tree_as_it_was(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    Path(settings.alerts_file).write_text(OLD_ALERTS, encoding="utf-8")
+    seed_draft(settings)
+    runner = FakeRunner(push=1)
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=runner)
+
+    assert "git push не удался" in answer
+    assert runner.git("reset") == [["reset", "--hard", "HEAD~1"]]
+    assert draft_status(settings) == "pending"
+
+
+def test_media_draft_goes_to_the_edition_file(tmp_path: Path) -> None:
+    """Карточка медиа — в файл выпуска: overlay виден только с флагом preview."""
+
+    settings = drafts_settings(tmp_path)
+    seed_draft(
+        settings,
+        text="Смотрите тизер 2026 — https://vk.com/video-185685166_456239017",
+        kinds=("video",),
+    )
+    edition = Path(settings.content_dir) / "2026.yaml"
+    edition.write_text("edition: 2026\nmedia: []\n", encoding="utf-8")
+    runner = FakeRunner()
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=runner)
+
+    payload = yaml.safe_load(edition.read_text(encoding="utf-8"))
+    assert answer == max_bot.PUBLISHED
+    assert payload["media"][0] == {
+        "slug": "vk-243",
+        "title": "Смотрите тизер 2026",
+        "kind": "video",
+        "platform": "VK Видео",
+        "url": "https://vk.com/video-185685166_456239017",
+    }
+    assert runner.git("add") == [["add", "content/editions/2026.yaml"]]
+    assert draft_status(settings) == "published"
+
+
+def test_unknown_or_processed_draft_is_reported_not_published(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    runner = FakeRunner()
+
+    assert "не найден" in max_bot.publish_draft(settings, "vk-999", repo_root=tmp_path, run=runner)
+
+    seed_draft(settings)
+    vk_parser.mark_draft(Path(settings.vk_drafts_file), "vk-243", vk_parser.DraftStatus.REJECTED)
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=runner)
+
+    assert "уже отклонён" in answer
+    assert runner.calls == []
+
+
+def test_reject_marks_the_draft_and_changes_no_content(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    seed_draft(settings)
+
+    plan = max_bot.plan_reply(message("Отклонить vk-243", chat_id=OWNER_CHAT), settings)
+
+    assert plan is not None
+    assert "Черновик отклонён" in plan.body["text"]
+    assert draft_status(settings) == "rejected"
+    assert not Path(settings.alerts_file).exists()
+
+
+def test_reject_of_a_foreign_chat_does_nothing(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    seed_draft(settings)
+
+    plan = max_bot.plan_reply(message("отклонить vk-243", chat_id=FOREIGN_CHAT), settings)
+
+    assert plan is not None
+    assert "Такого раздела я не знаю" in plan.body["text"]
+    assert draft_status(settings) == "pending"
+
+
+def test_broken_drafts_file_is_answered_not_raised(tmp_path: Path) -> None:
+    """Webhook обязан ответить 200: битый лог — текст владельцу, а не 500."""
+
+    settings = drafts_settings(tmp_path)
+    Path(settings.vk_drafts_file).parent.mkdir(parents=True, exist_ok=True)
+    Path(settings.vk_drafts_file).write_text("{", encoding="utf-8")
+
+    plan = max_bot.plan_reply(message("черновики", chat_id=OWNER_CHAT), settings)
+
+    assert plan is not None
+    assert "Черновики недоступны" in plan.body["text"]
+
+
+def test_callback_without_a_known_payload_is_a_plain_answer(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+
+    without_callback = max_bot.plan_reply(
+        {"update_type": "message_callback", "chat_id": OWNER_CHAT, "message": {}}, settings
+    )
+    no_id = max_bot.plan_reply(callback_update("publish"), settings)
+
+    assert without_callback is not None and "Такого раздела" in without_callback.body["text"]
+    assert no_id is not None and "Такого раздела" in no_id.body["text"]
+
+
+def test_callback_list_shows_the_drafts(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    seed_draft(settings)
+
+    plan = max_bot.plan_reply(callback_update("list"), settings)
+
+    assert plan is not None
+    assert "vk-243" in plan.body["text"]
+
+
+def test_reject_reports_unknown_and_processed_drafts(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+
+    assert "не найден" in max_bot.reject_draft(settings, "vk-999")
+
+    seed_draft(settings)
+    assert "Черновик отклонён" in max_bot.reject_draft(settings, "vk-243")
+    assert "уже отклонён" in max_bot.reject_draft(settings, "vk-243")
+
+
+def test_git_status_failure_stops_the_publication(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    Path(settings.alerts_file).write_text(OLD_ALERTS, encoding="utf-8")
+    seed_draft(settings)
+    runner = FakeRunner(status_code=128)
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=runner)
+
+    assert "git status не прошёл" in answer
+    assert runner.git("add") == []
+
+
+def test_content_file_outside_the_repository_is_refused(tmp_path: Path) -> None:
+    """Путь для `git add` обязан быть внутри репозитория, иначе публиковать нечего."""
+
+    settings = drafts_settings(tmp_path)
+    Path(settings.alerts_file).write_text(OLD_ALERTS, encoding="utf-8")
+    seed_draft(settings)
+    elsewhere = tmp_path / "repo"
+    elsewhere.mkdir()
+    runner = FakeRunner()
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=elsewhere, run=runner)
+
+    assert "вне репозитория" in answer
+    assert runner.git("add") == []
+
+
+def test_alerts_file_is_created_when_missing_and_a_draft_without_section(tmp_path: Path) -> None:
+    """Первый файл оповещений и черновик без раздела — законные состояния."""
+
+    settings = drafts_settings(tmp_path)
+    seed_draft(settings, text="Внимание! Важная новость без раздела")
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=FakeRunner())
+
+    rows = alerts_of(settings)
+    assert answer == max_bot.PUBLISHED
+    assert rows == [
+        {
+            "id": "vk-243",
+            "status": "send",
+            "title": "Внимание! Важная новость без раздела",
+            "text": rows[0]["text"],
+            "urgent": True,
+        }
+    ], "без раздела ключ link_slug не пишется вовсе, а не остаётся пустым"
+
+
+def test_failed_content_check_removes_a_brand_new_file(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    assert not Path(settings.alerts_file).exists()
+    seed_draft(settings)
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=FakeRunner(check=1))
+
+    assert "файл откатил" in answer
+    assert not Path(settings.alerts_file).exists(), "файла не было — и появиться он не должен"
+
+
+def test_broken_alerts_yaml_is_reported_without_touching_content(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    Path(settings.alerts_file).write_text("alerts: [\n", encoding="utf-8")
+    seed_draft(settings)
+
+    broken = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=FakeRunner())
+
+    assert "не разобрать YAML" in broken
+    assert Path(settings.alerts_file).read_text(encoding="utf-8") == "alerts: [\n"
+
+
+def test_alerts_key_must_be_a_list(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    Path(settings.alerts_file).write_text("alerts: one\n", encoding="utf-8")
+    seed_draft(settings)
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=FakeRunner())
+
+    assert "должно быть списком" in answer
+    assert draft_status(settings) == "pending"
+
+
+def test_failed_commit_unstages_and_keeps_the_content_as_it_was(tmp_path: Path) -> None:
+    settings = drafts_settings(tmp_path)
+    Path(settings.alerts_file).write_text(OLD_ALERTS, encoding="utf-8")
+    before = Path(settings.alerts_file).read_bytes()
+    seed_draft(settings)
+    runner = FakeRunner(commit=1)
+
+    answer = max_bot.publish_draft(settings, "vk-243", repo_root=tmp_path, run=runner)
+
+    assert "git commit не прошёл" in answer
+    assert runner.git("reset") == [["reset", "--quiet"]]
+    assert Path(settings.alerts_file).read_bytes() == before
+    assert draft_status(settings) == "pending"

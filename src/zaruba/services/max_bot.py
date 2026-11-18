@@ -17,17 +17,25 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 import ssl
+import subprocess
+import sys
 import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 from typing import Any, NamedTuple, Protocol
 
-from ..config import Settings
+import yaml
+
+from ..config import BASE_DIR, Settings
 from ..models import Edition, Participant, Performance, Studio, Venue
+from . import vk_parser
 from .edition import fee_prices
 
 logger = logging.getLogger("zaruba.max_bot")
@@ -472,6 +480,8 @@ def plan_reply(
 
     if kind == "bot_started":
         return _outgoing(update, message, GREETING, "", settings)
+    if kind == "message_callback":
+        return _callback_reply(update, message, settings)
     if kind != "message_created":
         # Остальные события (правки, удаления, остановка бота) ответа не требуют.
         return None
@@ -484,6 +494,12 @@ def plan_reply(
     text = normalize(str((message.get("body") or {}).get("text") or ""))
     if not text:
         return _outgoing(update, message, GREETING, "", settings)
+
+    # Команды публикации проверяются до разделов: «опубликовать vk-243» не
+    # должно случайно совпасть с основой слова из списка разделов.
+    command = _owner_command(update, message, text, settings)
+    if command is not None:
+        return command
 
     # Имя студии или участника важнее раздела: «студия Печать танца» — это запрос
     # про конкретную карточку, а не про каталог.
@@ -642,3 +658,436 @@ def reply_to(
         if post_message(settings, plan.chat_id, plan.body):
             sent += 1
     return sent
+
+
+# --- Полуавтоматическая публикация постов ВК (`docs/09` §9.14) --------------
+#
+# Конвейер: пост сообщества → черновик (`services/vk_parser`) → карточка в чат
+# владельца → «Опубликовать» → файл контента, `content check`, коммит и пуш.
+# Кнопка живёт в мессенджере, поэтому единственная защита от чужого нажатия —
+# сравнение chat_id с чатом владельца: всё остальное (секрет вебхука, токен)
+# доказывает подлинность платформы, а не право менять сайт.
+
+DRAFT_ID = r"vk-\d{1,20}"
+# `опубликовать vk-243` / `отклонить vk-243`: глагол и id, ничего лишнего.
+DRAFT_COMMAND_RE = re.compile(rf"^(опубликовать|отклонить)\s+({DRAFT_ID})$")
+DRAFT_LIST_WORD = "черновики"
+# `payload` кнопки: тот же смысл, но машинный формат (`publish:vk-243`).
+DRAFT_CALLBACK_RE = re.compile(rf"^(publish|reject|list)(?::({DRAFT_ID}))?$")
+
+PUBLISHED = "Опубликовано! Сайт обновится через 30–40 секунд."
+REJECTED = "Черновик отклонён."
+
+
+def owner_chats(settings: Settings) -> frozenset[int]:
+    """Чаты владельца: `ZARUBA_VK_CHAT_ID` и чат срочных оповещений.
+
+    Список, а не одно поле: на домашнем ПК это один и тот же чат, но в облаке
+    оповещения могут уходить в канал, и тогда команды приходят во второй.
+    """
+
+    return frozenset(
+        chat for chat in (settings.vk_chat_id, settings.max_alert_chat_id) if chat is not None
+    )
+
+
+def draft_action(text: str) -> tuple[str, str] | None:
+    """Текст сообщения → действие и id черновика. `None` — это не команда.
+
+    Сравнение строгое: «опубликуй вк 243» или «опубликовать всё» остаются
+    обычным текстом, и бот отвечает на них как на разговор, а не меняет сайт.
+    """
+
+    lowered = text.strip()
+    if lowered == DRAFT_LIST_WORD:
+        return ("list", "")
+    match = DRAFT_COMMAND_RE.match(lowered)
+    if match is None:
+        return None
+    verb, draft_id = match.groups()
+    return ("publish" if verb == "опубликовать" else "reject", draft_id)
+
+
+def callback_action(update: Mapping[str, Any]) -> tuple[str, str] | None:
+    """Нажатие кнопки → действие и id. `None` — чужой или непонятный payload."""
+
+    callback = update.get("callback")
+    if not isinstance(callback, Mapping):
+        return None
+    match = DRAFT_CALLBACK_RE.match(str(callback.get("payload") or ""))
+    if match is None:
+        return None
+    action, draft_id = match.groups()
+    if action == "list":
+        return ("list", "")
+    if draft_id is None:
+        return None
+    return (action, draft_id)
+
+
+def drafts_answer(settings: Settings) -> str:
+    """Список черновиков, ждущих решения: id, тип и заголовок."""
+
+    drafts = [
+        draft
+        for draft in vk_parser.load_drafts(Path(settings.vk_drafts_file))
+        if draft.status is vk_parser.DraftStatus.PENDING
+    ]
+    if not drafts:
+        return "Черновиков нет: новых постов ВКонтакте не приходило."
+    lines = ["Черновики, ждут решения:"]
+    lines.extend(f"• {draft.id} — {draft.kind.label}: {draft.title}" for draft in drafts)
+    lines.append("Команды: «Опубликовать vk-…», «Отклонить vk-…».")
+    return "\n".join(lines)
+
+
+def reject_draft(settings: Settings, draft_id: str) -> str:
+    """Помечает черновик отклонённым: файл контента не трогаем вовсе."""
+
+    path = Path(settings.vk_drafts_file)
+    draft = vk_parser.find_draft(vk_parser.load_drafts(path), draft_id)
+    if draft is None:
+        return f"Черновик {draft_id} не найден."
+    if draft.status is not vk_parser.DraftStatus.PENDING:
+        return f"Черновик {draft_id} уже {draft.status.label} — менять нечего."
+    vk_parser.mark_draft(path, draft_id, vk_parser.DraftStatus.REJECTED)
+    return f"{REJECTED} ({draft_id})"
+
+
+def draft_answer(settings: Settings, action: str, draft_id: str = "") -> str:
+    """Действие по команде владельца. Исключения — текстом, а не 500: webhook
+    обязан ответить 200, иначе MAX повторит доставку и отпишется от бота."""
+
+    try:
+        if action == "publish":
+            return publish_draft(settings, draft_id)
+        if action == "reject":
+            return reject_draft(settings, draft_id)
+        return drafts_answer(settings)
+    except (vk_parser.DraftError, OSError) as exc:
+        logger.warning("MAX: черновики недоступны: %s", exc)
+        return f"Черновики недоступны: {exc}"
+
+
+# Точка подмены в тестах: настоящий git и `content check` в pytest не запускаются.
+# Аргументы — списком, без `shell`: строка с кавычками на Windows ломается.
+Runner = Callable[[Sequence[str], Path], subprocess.CompletedProcess[str]]
+
+# `sys.executable` — это и есть `.venv\Scripts\python.exe`, когда бот запущен из
+# `.venv` (`docs/09` §9.12): путь не дублируется в коде и не ломается на Linux.
+CONTENT_CHECK: tuple[str, ...] = (sys.executable, "-m", "zaruba.content", "check")
+
+
+class PublishError(Exception):
+    """Публикация остановлена: сообщение называет причину, а не код возврата."""
+
+
+def _run(args: Sequence[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    """Боевой запуск: без shell, вывод читается как UTF-8.
+
+    Кодировка задаётся явно: русские сообщения `zaruba.content check` в консоли
+    Windows иначе декодируются как cp866, и в MAX уехала бы абракадабра.
+    """
+
+    return subprocess.run(
+        list(args),
+        cwd=str(cwd),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+
+
+def _tail(result: subprocess.CompletedProcess[str], limit: int = 300) -> str:
+    """Последняя непустая строка вывода: в ней и лежит ошибка."""
+
+    text = (result.stderr or "").strip() or (result.stdout or "").strip()
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return lines[-1][:limit] if lines else f"код {result.returncode}"
+
+
+def _git(args: Sequence[str], cwd: Path, run: Runner) -> subprocess.CompletedProcess[str]:
+    return run(["git", *args], cwd)
+
+
+def _git_ok(
+    args: Sequence[str], cwd: Path, run: Runner, what: str
+) -> subprocess.CompletedProcess[str]:
+    result = _git(args, cwd, run)
+    if result.returncode != 0:
+        raise PublishError(f"git {what} не прошёл: {_tail(result)}")
+    return result
+
+
+def _relative(target: Path, root: Path) -> str:
+    """Путь файла внутри репозитория: `git add` ждёт его, а не абсолютный."""
+
+    try:
+        return Path(target).resolve().relative_to(Path(root).resolve()).as_posix()
+    except ValueError as exc:
+        raise PublishError(f"{target}: файл контента вне репозитория {root}") from exc
+
+
+def _dirty_paths(output: str) -> list[str]:
+    """Строки `git status --porcelain` → пути (переименование — новый путь)."""
+
+    paths: list[str] = []
+    for line in output.splitlines():
+        if len(line) < 4:
+            continue
+        path = line[3:].strip()
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        paths.append(path.strip('"'))
+    return paths
+
+
+def _require_clean_tree(root: Path, target: Path, run: Runner) -> None:
+    """Публикация только на чистом дереве.
+
+    `git add` одного файла сам по себе безопасен, но коммит и пуш утащили бы в
+    `main` чужие правки, которые человек ещё не проверял. Неотслеживаемые файлы
+    не мешают: они в коммит не попадут, а `.clinerules` или `logs/` на рабочей
+    машине есть всегда.
+    """
+
+    allowed = _relative(target, root)
+    status = _git_ok(["status", "--porcelain", "--untracked-files=no"], root, run, "status")
+    foreign = [path for path in _dirty_paths(status.stdout or "") if path != allowed]
+    if foreign:
+        raise PublishError("в рабочем дереве есть посторонние изменения: " + ", ".join(foreign[:5]))
+
+
+def _yaml_header(path: Path) -> str:
+    """Шапка-комментарий файла: она объясняет, откуда берутся строки.
+
+    `yaml.safe_dump` комментарии не сохраняет, поэтому блок `#` в начале файла
+    читается отдельно и дописывается обратно. Без этого первая же публикация
+    стёрла бы объяснение про лист `alerts` из Google Таблицы.
+    """
+
+    if not path.is_file():
+        return ""
+    lines: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("#") or not line.strip():
+            lines.append(line)
+            continue
+        break
+    header = "\n".join(lines).rstrip()
+    return f"{header}\n" if header else ""
+
+
+def _rows(path: Path, key: str) -> list[dict[str, Any]]:
+    """Список строк YAML-файла по ключу (`alerts` или `media`)."""
+
+    if not path.is_file():
+        return []
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        raise PublishError(f"{path}: не разобрать YAML — {exc}") from exc
+    if not isinstance(raw, Mapping):
+        raise PublishError(f"{path}: ожидался YAML-объект с полем {key}")
+    rows = raw.get(key) or []
+    if not isinstance(rows, list):
+        raise PublishError(f"{path}: поле {key} должно быть списком")
+    return [dict(row) for row in rows if isinstance(row, Mapping)]
+
+
+def _write_yaml(path: Path, header: str, payload: Mapping[str, Any]) -> None:
+    """Атомарная запись: `.tmp` + `os.replace`, иначе сайт увидит половину файла."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = yaml.safe_dump(dict(payload), allow_unicode=True, sort_keys=False)
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_text(f"{header}{body}", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def _restore(path: Path, original: bytes | None) -> None:
+    """Возвращает файл к состоянию до публикации; `None` — файла не было."""
+
+    if original is None:
+        path.unlink(missing_ok=True)
+        return
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_bytes(original)
+    os.replace(tmp, path)
+
+
+def edition_media_file(settings: Settings) -> Path:
+    """Файл выпуска для карточки медиа: `content/editions/<год>.yaml`.
+
+    Overlay `*.d/media.yaml` не подходит: он читается только при
+    `ZARUBA_PREVIEW_ENABLED` (`docs/06` §6.25) и хранит демонстрационные строки,
+    поэтому опубликованная карточка не появилась бы на сайте вовсе. Год берётся
+    из имени самого свежего `content/editions/*.yaml` — без загрузки выпуска,
+    чтобы публикация не зависела от валидности остального контента.
+    """
+
+    years = [
+        int(path.stem) for path in Path(settings.content_dir).glob("*.yaml") if path.stem.isdigit()
+    ]
+    year = max(years) if years else date.today().year
+    return Path(settings.content_dir) / f"{year}.yaml"
+
+
+def _alert_row(draft: vk_parser.Draft) -> dict[str, Any]:
+    """Строка `Alert` для `alerts.yaml`: опубликована и срочная — значит плашка."""
+
+    row: dict[str, Any] = {
+        "id": draft.id,
+        "status": "send",
+        "title": draft.title,
+        "text": draft.text,
+    }
+    if draft.link_slug:
+        row["link_slug"] = draft.link_slug
+    row["urgent"] = True
+    return row
+
+
+def _media_row(draft: vk_parser.Draft) -> dict[str, Any]:
+    """Строка `MediaItem` для списка `media` выпуска."""
+
+    return {
+        "slug": draft.id,
+        "title": draft.title,
+        "kind": draft.media_kind or "video",
+        "platform": draft.platform or "Другое",
+        "url": draft.media_url or draft.post_url,
+    }
+
+
+def _apply_draft(target: Path, draft: vk_parser.Draft) -> None:
+    """Записывает черновик в файл контента по его типу.
+
+    Оповещение встаёт первым и снимает `urgent` с прежних: на сайте горит одна
+    плашка, и это должна быть актуальная (`services/alerts.active_alert` берёт
+    первую опубликованную срочную строку). Старые строки не удаляются — они
+    остаются опубликованными, просто перестают быть плашкой.
+    """
+
+    header = _yaml_header(target)
+    if draft.kind is vk_parser.DraftKind.ALERT:
+        rows = _rows(target, "alerts")
+        for row in rows:
+            if row.get("urgent") and row.get("status", "draft") == "send":
+                row["urgent"] = False
+        rows.insert(0, _alert_row(draft))
+        _write_yaml(target, header, {"alerts": rows})
+        return
+    rows = _rows(target, "media")
+    rows.append(_media_row(draft))
+    _write_yaml(target, header, {"media": rows})
+
+
+def _commit(target: Path, root: Path, draft: vk_parser.Draft, run: Runner) -> None:
+    """Коммит одного файла и пуш в `main`.
+
+    Сбой на любом шаге оставляет дерево таким, каким оно было: `git add` без
+    коммита снимается `git reset`, коммит откатывается `reset --hard`. Иначе
+    следующее `git pull --ff-only` из супервизора разъехалось бы с origin, и
+    публикация перестала бы работать до ручного вмешательства.
+    """
+
+    relative = _relative(target, root)
+    _git_ok(["add", relative], root, run, "add")
+    committed = _git(["commit", "-m", f"chore(bot): публикация из VK {draft.id}"], root, run)
+    if committed.returncode != 0:
+        _git(["reset", "--quiet"], root, run)
+        raise PublishError(f"git commit не прошёл: {_tail(committed)}")
+    pushed = _git(["push", "origin", "main"], root, run)
+    if pushed.returncode != 0:
+        _git(["reset", "--hard", "HEAD~1"], root, run)
+        raise PublishError(f"git push не удался: {_tail(pushed)}")
+
+
+def publish_draft(
+    settings: Settings,
+    draft_id: str,
+    *,
+    repo_root: Path | None = None,
+    run: Runner | None = None,
+) -> str:
+    """Черновик → боевой контент → `main`. Возвращает ответ владельцу в MAX.
+
+    Порядок шагов — это и есть защита: сначала чистота дерева, потом файл, потом
+    `content check` и только после него коммит. Любая неудача откатывает файл, а
+    черновик остаётся `pending`: повторяемая попытка после правки данных, а не
+    «наполовину опубликовано».
+    """
+
+    drafts_path = Path(settings.vk_drafts_file)
+    draft = vk_parser.find_draft(vk_parser.load_drafts(drafts_path), draft_id)
+    if draft is None:
+        return f"Черновик {draft_id} не найден: возможно, он уже обработан."
+    if draft.status is not vk_parser.DraftStatus.PENDING:
+        return f"Черновик {draft_id} уже {draft.status.label} — повторно не публикую."
+
+    root = Path(repo_root or BASE_DIR)
+    run_ = run or _run
+    target = (
+        Path(settings.alerts_file)
+        if draft.kind is vk_parser.DraftKind.ALERT
+        else edition_media_file(settings)
+    )
+    original = target.read_bytes() if target.is_file() else None
+    try:
+        _require_clean_tree(root, target, run_)
+        _apply_draft(target, draft)
+        check = run_(CONTENT_CHECK, root)
+        if check.returncode != 0:
+            _restore(target, original)
+            return f"Проверка контента не прошла, файл откатил: {_tail(check)}"
+        _commit(target, root, draft, run_)
+    except (PublishError, OSError) as exc:
+        _restore(target, original)
+        logger.warning("MAX: публикация %s остановлена: %s", draft_id, exc)
+        return f"Не опубликовано ({draft_id}): {exc}"
+    vk_parser.mark_draft(drafts_path, draft_id, vk_parser.DraftStatus.PUBLISHED)
+    logger.info("MAX: черновик %s опубликован", draft_id)
+    return PUBLISHED
+
+
+def _owner_command(
+    update: Mapping[str, Any],
+    message: Mapping[str, Any],
+    text: str,
+    settings: Settings,
+) -> Outgoing | None:
+    """Ответ на команду публикации — только из чата владельца.
+
+    Чужому человеку на те же слова отвечаем как на обычный текст (`None` →
+    дальше по разбору сообщения): «опубликовать vk-1» не должно быть способом
+    поменять сайт, а ответ «нет прав» подсказал бы, что такие команды есть.
+    """
+
+    action = draft_action(text)
+    if action is None:
+        return None
+    chat_id = _chat_id(update, message)
+    if chat_id is None or chat_id not in owner_chats(settings):
+        logger.warning("MAX: команда публикации из чужого чата %s — игнорирую", chat_id)
+        return None
+    answer = draft_answer(settings, *action)
+    return Outgoing(chat_id=chat_id, body=message_body(answer, "", settings))
+
+
+def _callback_reply(
+    update: Mapping[str, Any], message: Mapping[str, Any], settings: Settings
+) -> Outgoing | None:
+    """Нажатие inline-кнопки: тот же разбор и та же проверка chat_id."""
+
+    chat_id = _chat_id(update, message)
+    if chat_id is None:
+        return None
+    action = callback_action(update)
+    if action is None or chat_id not in owner_chats(settings):
+        logger.warning("MAX: кнопка черновика из чужого чата %s — игнорирую", chat_id)
+        return Outgoing(chat_id=chat_id, body=message_body(UNKNOWN, "", settings))
+    answer = draft_answer(settings, *action)
+    return Outgoing(chat_id=chat_id, body=message_body(answer, "", settings))

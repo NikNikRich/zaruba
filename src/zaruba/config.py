@@ -92,6 +92,10 @@ class Settings(BaseSettings):
     vk_chat_id: int | None = None
     # Файл состояния: `logs/` в .gitignore, мониторинг живёт на одной машине.
     vk_seen_file: Path = BASE_DIR / "logs" / "vk_seen.json"
+    # Черновики для полуавтоматической публикации (`docs/09` §9.14): пост ВК,
+    # разобранный в заготовку `Alert`/`MediaItem`. Тоже в `logs/`: это состояние
+    # одной машины, а не контент сайта.
+    vk_drafts_file: Path = BASE_DIR / "logs" / "vk_drafts.json"
     # Дополнительный корневой сертификат для api.vk.com, если системных мало.
     vk_ca_file: Path | None = None
 

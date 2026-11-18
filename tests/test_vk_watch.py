@@ -17,7 +17,7 @@ import pytest
 
 from zaruba import vk_watch
 from zaruba.config import Settings
-from zaruba.services import max_bot, vk
+from zaruba.services import max_bot, vk, vk_parser
 from zaruba.services.vk import Post, VkError
 from zaruba.vk_watch import (
     WatchError,
@@ -42,6 +42,9 @@ def watch_settings(tmp_path: Path, **overrides: Any) -> Settings:
         "vk_chat_id": 777,
         "max_alert_chat_id": None,
         "vk_seen_file": tmp_path / "vk_seen.json",
+        # Черновики тоже в tmp: иначе прогон теста писал бы `logs/vk_drafts.json`
+        # рабочей машины и следующий тест увидел бы чужие строки.
+        "vk_drafts_file": tmp_path / "vk_drafts.json",
     }
     return Settings(**{**base, **overrides})
 
@@ -192,6 +195,29 @@ def test_second_run_sends_nothing(tmp_path: Path) -> None:
 
     assert report.sent == ()
     assert calls == []
+
+
+def test_new_post_becomes_a_draft_and_a_card_with_buttons(tmp_path: Path) -> None:
+    """Распознанный пост — не цитата, а заготовка с кнопкой: сайт меняет человек."""
+
+    settings = watch_settings(tmp_path)
+    payload = feed(
+        make_item(
+            id=243,
+            text="Внимание! Перенос блока\nБлок 3 переносится на 16:30.",
+        )
+    )
+    calls, poster = collector()
+
+    report = check_once(settings, poster=poster, opener=opener_for(payload), now=NOW)
+
+    drafts = vk_parser.load_drafts(settings.vk_drafts_file)
+    assert report.sent == (f"{OWNER}_243",)
+    assert [draft.id for draft in drafts] == ["vk-243"]
+    assert drafts[0].kind is vk_parser.DraftKind.ALERT
+    _, body = calls[0]
+    assert "Оповещение на сайт" in body["text"]
+    assert "publish:vk-243" in str(body["attachments"]), "кнопки решения обязательны"
 
 
 def test_failed_delivery_is_not_logged_and_retried(tmp_path: Path) -> None:
