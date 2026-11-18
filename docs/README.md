@@ -16,7 +16,7 @@
 | `05-fan-interactive.md` | **Актуальная цель:** фанатский сайт для зрителей — «баттл-сетка», дуэли, прогнозы, рост охвата |
 | `06-info-section.md` | **Реализованная часть:** информационный блок — 18 страниц, §6.0 — статус, §6.22 — этапы и приёмка |
 | `07-preview-data.md` | Презентационные таблицы, overlay `content/editions/*.d`, `data_tag`, `--drop-preview` |
-| `08-deploy-and-sheets.md` | Google Таблицы и `ZARUBA_SHEETS_MAP`, секреты GitHub, автодеплой на VPS, режим `preview` |
+| `08-deploy-and-sheets.md` | Google Таблицы и `ZARUBA_SHEETS_MAP`, секреты GitHub, публикация Pages и ручная выкладка на VPS, режим `preview` |
 | `09-max-miniapp.md` | Mini App в MAX: флаг `ZARUBA_MAX_MINIAPP`, сборка `dist/`, GitHub Pages, диплинки `?startapp=`, бот-проводник `POST /max/webhook` и `--polling` (§9.8, §9.10), срочные оповещения из листа `alerts` (§9.9), запуск бота 24/7 на домашнем ПК (§9.12) |
 
 Дата сбора данных: **2026-10-23**. Все внешние факты — со ссылками на источники;
@@ -35,7 +35,7 @@
 | `/ratings` | методика `v1` и честное пустое состояние; таблиц нет, раздел за флагом |
 | Служебные `/about`, `/rules`, `/privacy`, `/takedown` | готово |
 | SEO: JSON-LD, `sitemap.xml`, `robots.txt`, canonical | готово |
-| Публикация: Docker + Caddy, автодеплой, синхронизация таблиц | готово: `docker-compose.yml`, `Caddyfile`, `deploy/setup_vps.sh`, `deploy.yml`, `sync-sheets.yml`; образ собирает CI |
+| Публикация: GitHub Pages по расписанию, ручной деплой на VPS | готово: `pages-max.yml` (Pages + данные таблиц), `docker-compose.yml`, `Caddyfile`, `deploy/setup_vps.sh`, `deploy.yml`, `sync-sheets.yml` |
 | Презентационные данные (`docs/07`) | таблицы `docs/templates/*.csv`, overlay `content/editions/2026.d/`, флаг `ZARUBA_PREVIEW_ENABLED` |
 | `/organizers` | не сделано: публичных данных нет |
 | Тайминг блоков 2026, `.ics` | ждём данные организаторов |

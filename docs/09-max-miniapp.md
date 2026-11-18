@@ -101,13 +101,15 @@ MAX передаёт его мини-приложению в `window.WebApp.init
 
 ## 9.6. Обновление и после слияния в `main`
 
-- По расписанию (`*/30 * * * *`) и по пушу workflow забирает таблицы, гоняет
-  `zaruba.content check`, `pytest`, собирает `dist/` и публикует Pages.
-- GitHub запускает `schedule` только из workflow-файла в **ветке по умолчанию**.
-  До слияния `pages-max.yml` в `main` расписание молчит: работают пуш в
-  `feat/max-miniapp` и кнопка **Run workflow**.
-- После слияния добавьте `main` в `on.push.branches`, чтобы Pages обновлялся и
-  от коммитов в основную ветку.
+- По расписанию (`*/30 * * * *`) и по пушу (`main`, `feat/max-miniapp`) workflow
+  забирает таблицы, гоняет `zaruba.content check`, `pytest`, собирает `dist/` и
+  публикует Pages.
+- GitHub запускает `schedule` только из workflow-файла в **ветке по умолчанию**,
+  поэтому `main` есть и в `on.push.branches`, и в расписании. До слияния
+  расписание молчит: работают пуш в `feat/max-miniapp` и **Run workflow**.
+- `deploy.yml` и `sync-sheets.yml` запускаются только вручную: постоянная
+  публикация — Pages, а выкладка на VPS и коммит таблиц в git нужны лишь при
+  переезде (`08-deploy-and-sheets.md` §8.4).
 - Коммитов workflow почти не делает: данные таблиц живут в опубликованном
   `dist/`, а не в истории. Исключение одно — лог срочных оповещений
   `content/editions/<год>.d/sent_alerts.json` (§9.9): без него следующий запуск

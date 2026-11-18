@@ -364,9 +364,10 @@ cookies и внешний скрипт, а CSP в `middleware.py` запреща
 
 ## 12. Чего в репозитории нет (осознанно)
 
-- **Staging-окружения.** Деплой один — на `main` после зелёных проверок
-  (`.github/workflows/deploy.yml`: тесты, линтеры, контент, затем `git reset
-  --hard` и `docker compose up -d --build` по SSH). Предпросмотр изменений —
+- **Staging-окружения.** Деплой один — запуск `deploy.yml` вручную после зелёных
+  проверок (тесты, линтеры, контент, затем `git reset --hard` и `docker compose
+  up -d --build` по SSH); пуш в `main` его больше не запускает, постоянная
+  публикация идёт на GitHub Pages. Предпросмотр изменений —
   локальный запуск и `preview`-режим (`ZARUBA_PREVIEW_ENABLED`), а не второй
   сервер; подробности — `docs/08-deploy-and-sheets.md`.
 - **Реестра образов.** Образ собирается на сервере; если это станет медленно,
@@ -387,7 +388,7 @@ cookies и внешний скрипт, а CSP в `middleware.py` запреща
 3. git clone в /opt/zaruba, .env (prod, DOMAIN, https-адрес), chmod 600
 4. docker compose up -d --build → web (healthy), caddy на 80/443, сертификат
 5. SITE_HOST=<домен> bash deploy/smoke.sh → все ok
-6. секреты VPS_HOST/VPS_USER/VPS_SSH_KEY в GitHub — дальше деплой по пушу
+6. секреты VPS_HOST/VPS_USER/VPS_SSH_KEY в GitHub, дальше Actions → deploy → Run workflow
 7. cron: бэкап в 03:20, /healthz каждые 5 минут, journald 200 МБ
 8. Вебмастер/GSC: подтвердить домен, отдать sitemap
 9. тег v0.1.0 в git; откат — `git reset --hard <коммит>` и повторный деплой

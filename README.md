@@ -27,7 +27,7 @@
 | Рейтинги (M6) | готово: методика `v1`; таблиц нет, при выключенном `ZARUBA_RATINGS_ENABLED` — `noindex` и вне sitemap |
 | Результаты 2025 (M6) | готово: `/results` — расчёт по 21 номинации судейских листов, места расчётные, дети по инициалам |
 | Служебные страницы (M6) | готово: `/about`, `/rules`, `/privacy`, `/takedown` + ряд футера |
-| Публикация (M6) | готово: Dockerfile, compose (web + Caddy с сертификатом Let's Encrypt), автодеплой по SSH, синхронизация таблиц из Google Sheets, CI, CSP/HSTS в `middleware.py`, ранбук `deploy/README.md`, `deploy/smoke.sh` |
+| Публикация (M6) | готово: Dockerfile, compose (web + Caddy с сертификатом Let's Encrypt), публикация на GitHub Pages с данными из Google Sheets, ручной деплой по SSH, CI, CSP/HSTS в `middleware.py`, ранбук `deploy/README.md`, `deploy/smoke.sh` |
 | MAX: Mini App и бот (`docs/09`) | готово: `ZARUBA_MAX_MINIAPP`, статика для GitHub Pages, диплинки `?startapp=`; бот-проводник отвечает ценой, блоками дня, адресом и карточкой студии (`POST /max/webhook` и `python -m zaruba.max_bot --polling`), срочные оповещения из листа `alerts` — плашкой и рассылкой `python -m zaruba.max_notify --send-alerts` (без базы и без новых зависимостей) |
 
 ### Документы проекта
@@ -42,7 +42,7 @@
 | `docs/05-fan-interactive.md` | Фанатский интерактив: «баттл-сетка», дуэли, прогнозы |
 | `docs/06-info-section.md` | **Реализованная часть:** информационный блок — 18 страниц, §6.0 — статус, §6.22 — приёмка |
 | `docs/07-preview-data.md` | Презентационные таблицы, overlay `content/editions/*.d`, `data_tag` и `--drop-preview` |
-| `docs/08-deploy-and-sheets.md` | Google Таблицы и секреты GitHub, автодеплой на VPS, режим показа `preview` |
+| `docs/08-deploy-and-sheets.md` | Google Таблицы и секреты GitHub, публикация Pages и ручная выкладка на VPS, режим показа `preview` |
 
 ## Решения, которые уже зафиксированы
 
@@ -313,9 +313,10 @@ docker compose up -d --build
 docker compose ps                    # web — healthy, caddy — running
 ```
 
-Дальше деплой идёт сам: пуш в `main` прогоняет проверки и пересобирает контейнер
-по SSH (`.github/workflows/deploy.yml`), а Google Таблицы раз в 30 минут
-обновляют данные (`sync-sheets.yml`).
+Основная публикация — GitHub Pages без сервера: пуш в `main` и расписание раз в
+30 минут запускают `pages-max.yml`, который сам забирает данные из Google Таблиц
+(`docs/09`). Выкладка на VPS осталась ручной: вкладка `Actions` → `deploy` →
+**Run workflow**; `sync-sheets` — тоже по кнопке.
 
 Что важно именно для этого проекта:
 
