@@ -656,6 +656,22 @@ def test_empty_message_is_answered_with_the_greeting() -> None:
     assert "ЗАРУБА" in plan.body["text"]
 
 
+def test_greeting_points_to_the_button_next_to_the_input(
+    sent: list[tuple[int, dict[str, Any]]],
+) -> None:
+    """Постоянный вход на сайт — кнопка у поля ввода: приветствие говорит о ней.
+
+    Кнопки в сообщении живут только до следующей переписки, а кнопка рядом с
+    полем для сообщений остаётся на месте — человек ищет сайт там.
+    """
+
+    with bot_client(bot_settings()) as client:
+        post(client, message("/start"))
+
+    _, body = sent[0]
+    assert "рядом с полем для сообщений" in body["text"]
+
+
 def test_bare_location_question_opens_the_venue() -> None:
     """«Куда?» — вопрос без существительного: раздел всё равно площадка."""
 
