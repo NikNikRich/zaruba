@@ -53,7 +53,10 @@ def test_tickets_page_does_not_sell_anything(client: TestClient) -> None:
     assert "1\u00a0500 ₽" in html, "взносы в таблице — с разрядами, как цены билетов"
     assert "1500 ₽" not in html, "разряды нужны и во взносах: «1 500», а не «1500»"
     assert "Официальная форма заявки" in html
-    assert "не объявлен" in html, "ценз 2026 на афише не опубликован"
+    # Ценз 2026 объявлен: метка «6+» на афише кассы (сверено 18.11.2026,
+    # в «Положении» её нет) — страница обязана показать её, а не «не объявлен».
+    assert "возрастной ценз" in html
+    assert "6+" in html
 
 
 def test_tickets_page_explains_refund_and_discount(client: TestClient) -> None:

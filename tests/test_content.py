@@ -491,8 +491,12 @@ def test_2026_fees_and_tickets_are_confirmed(edition_2026: Path) -> None:
 
     prices = {ticket.title: ticket.price for ticket in edition.tickets}
     assert prices["12 декабря, один день"] == 1000
-    assert prices["13 декабря, 2-й блок (взрослые команды)"] == 800
+    # 2-й блок: в «Положении» 800 ₽, но касса продаёт за 1000 ₽ — сверено
+    # 18.11.2026 по странице заказа, поэтому публикуем цену канала продаж.
+    assert prices["13 декабря, 2-й блок (взрослые команды)"] == 1000
     assert prices["12–13 декабря, оба дня"] == 1800
+    # Ценз взялся с афиши кассы: в «Положении» возрастного рейтинга нет.
+    assert edition.age_rating == "6+"
 
     assert len(edition.master_classes) == 4
     assert edition.master_class_pass_early == 5000

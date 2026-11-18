@@ -150,7 +150,9 @@ def test_event_json_ld_offer_links_to_prices_not_to_sales(client: TestClient) ->
         "сайт не продаёт — ведём на свою страницу цен"
     )
     assert offer["priceCurrency"] == "RUB"
-    assert offer["price"] == 800, "в offers — минимальная подтверждённая цена билета"
+    # Минимальная цена билета 2026 — 1000 ₽: 2-й блок касса продаёт за 1000 ₽,
+    # хотя в «Положении» было 800 ₽ (сверено 18.11.2026).
+    assert offer["price"] == 1000, "в offers — минимальная подтверждённая цена билета"
 
 
 def test_faq_page_has_faq_json_ld(client: TestClient) -> None:
