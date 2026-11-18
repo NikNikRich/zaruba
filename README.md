@@ -28,7 +28,7 @@
 | Результаты 2025 (M6) | готово: `/results` — расчёт по 21 номинации судейских листов, места расчётные, дети по инициалам |
 | Служебные страницы (M6) | готово: `/about`, `/rules`, `/privacy`, `/takedown` + ряд футера |
 | Публикация (M6) | готово: Dockerfile, compose (web + Caddy с сертификатом Let's Encrypt), публикация на GitHub Pages с данными из Google Sheets, ручной деплой по SSH, CI, CSP/HSTS в `middleware.py`, ранбук `deploy/README.md`, `deploy/smoke.sh` |
-| MAX: Mini App и бот (`docs/09`) | готово: `ZARUBA_MAX_MINIAPP`, статика для GitHub Pages, диплинки `?startapp=`; бот-проводник отвечает ценой, блоками дня, адресом и карточкой студии (`POST /max/webhook` и `python -m zaruba.max_bot --polling`), срочные оповещения из листа `alerts` — плашкой и рассылкой `python -m zaruba.max_notify --send-alerts` (без базы и без новых зависимостей) |
+| MAX: Mini App и бот (`docs/09`) | готово: `ZARUBA_MAX_MINIAPP`, статика для GitHub Pages, диплинки `?startapp=`; бот-проводник отвечает ценой, блоками дня, адресом и карточкой студии (`POST /max/webhook` и `python -m zaruba.max_bot --polling`), срочные оповещения из листа `alerts` — плашкой и рассылкой `python -m zaruba.max_notify --send-alerts`, мониторинг постов сообщества ВКонтакте с уведомлением в MAX (`python -m zaruba.vk_watch --loop`): без базы и без новых зависимостей |
 
 ### Документы проекта
 

@@ -17,7 +17,7 @@
 | `06-info-section.md` | **Реализованная часть:** информационный блок — 18 страниц, §6.0 — статус, §6.22 — этапы и приёмка |
 | `07-preview-data.md` | Презентационные таблицы, overlay `content/editions/*.d`, `data_tag`, `--drop-preview` |
 | `08-deploy-and-sheets.md` | Google Таблицы и `ZARUBA_SHEETS_MAP`, секреты GitHub, публикация Pages и ручная выкладка на VPS, режим `preview` |
-| `09-max-miniapp.md` | Mini App в MAX: флаг `ZARUBA_MAX_MINIAPP`, сборка `dist/`, GitHub Pages, диплинки `?startapp=`, бот-проводник `POST /max/webhook` и `--polling` (§9.8, §9.10), срочные оповещения из листа `alerts` (§9.9), запуск бота 24/7 на домашнем ПК (§9.12) |
+| `09-max-miniapp.md` | Mini App в MAX: флаг `ZARUBA_MAX_MINIAPP`, сборка `dist/`, GitHub Pages, диплинки `?startapp=`, бот-проводник `POST /max/webhook` и `--polling` (§9.8, §9.10), срочные оповещения из листа `alerts` (§9.9), запуск бота 24/7 на домашнем ПК (§9.12), мониторинг постов ВКонтакте с уведомлением в MAX (§9.13) |
 
 Дата сбора данных: **2026-10-23**. Все внешние факты — со ссылками на источники;
 оценки и прогнозы помечены как `ГИПОТЕЗА`.
