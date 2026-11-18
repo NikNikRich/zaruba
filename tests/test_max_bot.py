@@ -12,13 +12,28 @@ import json
 import urllib.error
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, date, datetime, time
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 
 from zaruba.config import Settings
+from zaruba.content import load_latest
 from zaruba.main import create_app
+from zaruba.models import (
+    AgeGroup,
+    DanceFormat,
+    Edition,
+    Fee,
+    FeeAudience,
+    Nomination,
+    Participant,
+    Performance,
+    ScheduleBlock,
+    Studio,
+    Ticket,
+)
 from zaruba.services import max_bot
 
 SECRET = "zaruba-test-secret"
@@ -432,3 +447,251 @@ def test_json_that_is_not_an_update_is_ignored(sent: list[Any]) -> None:
 
     assert response.status_code == 200
     assert sent == []
+
+
+# --- ответы из живого контента (§9.8, шаг 1) ------------------------------
+#
+# Сеть и YAML здесь не нужны: ответ — чистая функция от `Edition`, `Venue` и
+# даты. Проверяем именно данные: цену с учётом `early_until`, блоки с временем,
+# адрес площадки и карточку студии или участника.
+
+
+def sample_edition() -> Edition:
+    """Небольшой выпуск: два дня, один блок, одна студия, один участник."""
+
+    return Edition(
+        edition=2026,
+        title="«ЗАРУБА» 2026",
+        dates=[date(2026, 12, 12), date(2026, 12, 13)],
+        venue="zolotye-vorota",
+        status="confirmed",
+        updated_at=datetime(2026, 11, 17, 18, 0, tzinfo=UTC),
+        nominations=[
+            Nomination(
+                slug="best-baby",
+                name="БЕСТ ЗАРУБА БЕЙБИ",
+                format=DanceFormat.TEAM,
+                age_group=AgeGroup.ADULTS_15,
+                day=1,
+            )
+        ],
+        blocks=[
+            ScheduleBlock(
+                slug="kids",
+                day=1,
+                title="Детский блок",
+                starts_at=time(10, 0),
+                ends_at=time(14, 0),
+                nominations=["best-baby"],
+            )
+        ],
+        studios=[Studio(slug="pechat-tantsa", name="«Печать танца»")],
+        participants=[
+            Participant(
+                slug="ivan-petrov",
+                display_name="Иван Петров",
+                age_group=AgeGroup.ADULTS,
+                studio="pechat-tantsa",
+            )
+        ],
+        performances=[
+            Performance(
+                slug="wind-solo",
+                title="Соло «Ветер»",
+                nomination="best-baby",
+                participants=["ivan-petrov"],
+                scheduled_at=datetime(2026, 12, 12, 11, 30),
+                order_no=1,
+            )
+        ],
+        tickets=[Ticket(slug="day1", title="12 декабря, один день", price=1000, day=1)],
+        fees=[
+            Fee(
+                slug="adults-solo",
+                audience=FeeAudience.ADULTS,
+                format=DanceFormat.SOLO,
+                amount_early=1500,
+                amount_late=1800,
+                early_until=date(2026, 11, 14),
+            )
+        ],
+    )
+
+
+def reply(text: str, **kwargs: Any) -> dict[str, Any]:
+    plan = max_bot.plan_reply(message(text), bot_settings(), **kwargs)
+    assert plan is not None
+    return plan.body
+
+
+def test_tickets_answer_names_the_price_and_the_early_rate() -> None:
+    body = reply("сколько стоят билеты", edition=sample_edition(), today=date(2026, 11, 10))
+
+    assert "1000 ₽" in body["text"]
+    assert "12 декабря" in body["text"]
+    assert "от 1500 ₽ до 14 ноября" in body["text"]
+    assert link_url(body) == f"{SITE}/tickets"
+
+
+def test_tickets_answer_switches_to_the_late_rate() -> None:
+    """После `early_until` бот называет позднюю ставку, а не прошлую."""
+
+    body = reply("билеты", edition=sample_edition(), today=date(2026, 11, 18))
+
+    assert "от 1800 ₽" in body["text"]
+    assert "ранняя ставка была до 14 ноября" in body["text"]
+
+
+def test_schedule_answer_lists_blocks_with_time() -> None:
+    body = reply("расписание", edition=sample_edition())
+
+    assert "• 10:00–14:00 · Детский блок" in body["text"]
+    assert "12 декабря" in body["text"]
+
+
+def test_schedule_without_timing_says_it_is_not_published() -> None:
+    """У 2026 тайминга нет: бот честно говорит об этом и не выдумывает часы."""
+
+    live = load_latest(bot_settings()).edition
+    assert not live.blocks, "в 2026 появился тайминг — обновите ожидание теста"
+
+    body = reply("во сколько блоки", edition=live)
+
+    assert "не опубликован" in body["text"]
+    assert link_url(body) == f"{SITE}/schedule"
+
+
+def test_venue_answer_gives_dates_and_address(venues: Any) -> None:
+    body = reply(
+        "где проходит",
+        edition=sample_edition(),
+        venue=venues["zolotye-vorota"],
+    )
+
+    assert "12–13 декабря 2026" in body["text"]
+    assert "Золотые ворота Сибири" in body["text"]
+    assert "ул. Герцена, 87" in body["text"]
+    assert link_url(body) == f"{SITE}/venue"
+
+
+def test_venue_answer_without_venue_does_not_invent_an_address() -> None:
+    assert "Адрес уточняется" in reply("площадка", edition=sample_edition())["text"]
+
+
+def test_studio_name_leads_to_the_card_and_the_shows() -> None:
+    body = reply("студия Печать танца", edition=sample_edition())
+
+    assert "Студия «Печать танца»" in body["text"]
+    assert "11:30, 12 декабря" in body["text"]
+    assert "БЕСТ ЗАРУБА БЕЙБИ" in body["text"]
+    open_app = next(button for button in buttons(body) if button["type"] == "open_app")
+    assert open_app["payload"] == "studios/pechat-tantsa"
+    assert link_url(body) == f"{SITE}/studios/pechat-tantsa"
+
+
+def test_participant_name_leads_to_the_card() -> None:
+    body = reply("Иван Петров", edition=sample_edition())
+
+    assert "Иван Петров" in body["text"]
+    assert "Соло «Ветер»" in body["text"]
+    assert link_url(body) == f"{SITE}/participants/ivan-petrov"
+
+
+def test_short_query_is_not_a_name_search() -> None:
+    """«Ив» и «Аня» — часть любого вопроса, поэтому короче четырёх букв не ищем."""
+
+    body = reply("ив", edition=sample_edition())
+
+    assert link_url(body) == SITE
+
+
+def test_studio_without_shows_says_so() -> None:
+    edition = sample_edition().model_copy(update={"performances": []})
+    body = reply("печать танца", edition=edition)
+
+    assert "Выступлений в расписании пока нет" in body["text"]
+
+
+def test_webhook_answers_with_the_live_price(sent: list[tuple[int, dict[str, Any]]]) -> None:
+    """Тот же ответ, что и в чистом тесте, но через настоящий webhook."""
+
+    with bot_client(bot_settings()) as client:
+        post(client, message("сколько стоят билеты"))
+
+    _, body = sent[0]
+    price = load_latest(bot_settings()).edition.tickets[0].price
+    assert f"{price} ₽" in body["text"]
+    assert link_url(body) == f"{SITE}/tickets"
+
+
+def test_human_dates_join_one_month_and_split_different_ones() -> None:
+    assert max_bot.human_dates([]) == ""
+    assert max_bot.human_dates([date(2026, 12, 12)]) == "12 декабря 2026"
+    assert max_bot.human_dates([date(2026, 12, 12), date(2026, 12, 13)]) == "12–13 декабря 2026"
+    assert (
+        max_bot.human_dates([date(2026, 12, 31), date(2027, 1, 2)])
+        == "31 декабря 2026, 2 января 2027"
+    )
+
+
+def test_tickets_answer_handles_a_block_ticket_and_an_empty_price_list() -> None:
+    edition = sample_edition()
+    with_block = edition.model_copy(
+        update={
+            "tickets": [
+                Ticket(slug="block", title="Финальный блок", price=800, block="Вечерний блок")
+            ]
+        }
+    )
+    assert "· Вечерний блок — 800 ₽" in max_bot.tickets_answer(with_block, date(2026, 11, 10))
+
+    without_tickets = edition.model_copy(update={"tickets": [], "fees": []})
+    assert "ещё не объявлены" in max_bot.tickets_answer(without_tickets, date(2026, 11, 10))
+
+
+def test_empty_message_is_answered_with_the_greeting() -> None:
+    plan = max_bot.plan_reply(message(""), bot_settings())
+
+    assert plan is not None
+    assert "ЗАРУБА" in plan.body["text"]
+
+
+def test_bare_location_question_opens_the_venue() -> None:
+    """«Куда?» — вопрос без существительного: раздел всё равно площадка."""
+
+    body = reply("куда?", edition=sample_edition())
+
+    assert link_url(body) == f"{SITE}/venue"
+
+
+def test_schedule_and_names_without_data_do_not_invent_anything() -> None:
+    """Пустой выпуск и слишком короткое имя — честные пустые состояния."""
+
+    empty = sample_edition().model_copy(
+        update={"blocks": [], "nominations": [], "studios": [Studio(slug="yug", name="Юг")]}
+    )
+
+    assert "после публикации «Положения»" in max_bot.schedule_answer(empty)
+    assert max_bot.find_hit(empty, "где юг") is None
+
+
+def test_broken_content_still_gets_an_answer(
+    broken_settings: Settings, sent: list[tuple[int, dict[str, Any]]]
+) -> None:
+    """Битый YAML — 200 и общая фраза: 500 заставил бы MAX отписаться от бота."""
+
+    settings = broken_settings.model_copy(
+        update={
+            "max_bot_token": TOKEN,
+            "max_bot_secret": SECRET,
+            "max_bot_name": BOT,
+            "max_bot_site_url": SITE,
+        }
+    )
+    with bot_client(settings) as client:
+        response = post(client, message("билеты"))
+
+    assert response.status_code == 200
+    _, body = sent[0]
+    assert "Билеты" in body["text"]
+    assert link_url(body) == f"{SITE}/tickets"

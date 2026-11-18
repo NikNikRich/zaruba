@@ -92,6 +92,29 @@ def test_miniapp_csp_allows_bridge_and_embedding() -> None:
         assert forbidden not in csp, forbidden
 
 
+def test_adapter_accepts_nested_card_paths() -> None:
+    """Бот ведёт на карточку (`participants/ivan-petrov`), а не только на каталог.
+
+    Смотрим на сам шаблон из `max-bridge.js`, а не на копию в тесте: правило
+    «одна страница или вложенный путь» живёт в одном месте. Пустой `start_param`,
+    заглавные буквы и `../` остаются за бортом — адаптер не должен уводить на
+    произвольный файл сборки.
+    """
+
+    source = BRIDGE_JS.read_text(encoding="utf-8")
+    line = next(item for item in source.splitlines() if ".test(start" in item)
+    found = re.search(r"/\^(.*)\$/\.test", line)
+    assert found is not None, line
+
+    pattern = re.compile(found.group(1))
+
+    assert pattern.fullmatch("participants/ivan-petrov")
+    assert pattern.fullmatch("studios/pechat-tantsa")
+    assert pattern.fullmatch("schedule")
+    for bad in ("", "../secret", "Schedule", "a" * 70):
+        assert not pattern.fullmatch(bad), bad
+
+
 def test_miniapp_changes_only_csp_and_frame_header() -> None:
     """Отличие режима — ровно политика и снятый `X-Frame-Options`."""
 
