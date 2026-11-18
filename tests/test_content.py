@@ -365,7 +365,10 @@ def test_edition_has_confirmed_judges(edition_path: Path) -> None:
 
     assert len(edition.judges) == 4
     assert {judge.role.value for judge in edition.judges} == {"judge", "mc"}
-    assert all(judge.source_id == "kassy-event" for judge in edition.judges)
+    assert all(judge.source_id == "vk-anons-2025" for judge in edition.judges), (
+        "жюри 2025 — из анонса VK (пост 207): страницу «Касс Ру» 2-1612 организатор "
+        "переиспользовал под выпуск 2026"
+    )
 
 
 def test_judge_with_unknown_block_is_reported(tmp_path: Path, edition_path: Path) -> None:
