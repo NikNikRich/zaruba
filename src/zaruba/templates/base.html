@@ -36,10 +36,15 @@
 </div>
 {% endif %}
 
-<header class="site-header">
+<header class="site-header{% if settings.max_miniapp %} site-header--embedded{% endif %}">
   <div class="wrap header-inner">
-    <a class="brand" href="/">ЗАРУБА <span aria-hidden="true">·</span> Тюмень</a>
+    {# В Mini App MAX нативный заголовок окна уже называет бота: логотип —
+       дубль, но ссылка на главную нужна, поэтому она уходит в меню. #}
+    <a class="brand" href="/"{% if settings.max_miniapp %} hidden{% endif %}>ЗАРУБА <span aria-hidden="true">·</span> Тюмень</a>
     <nav class="nav" aria-label="Основная навигация">
+      {% if settings.max_miniapp %}
+      <a href="/"{% if current_path == '/' %} aria-current="page"{% endif %}>Главная</a>
+      {% endif %}
       {% for item in nav %}
       <a href="{{ item.url }}"{% if current_path == item.url %} aria-current="page"{% endif %}>{{ item.label }}</a>
       {% endfor %}
@@ -89,5 +94,11 @@
     Нашли ошибку — напишите в сообщество, мы исправим и укажем источник.</p>
   </div>
 </footer>
+{% if settings.max_miniapp %}
+{# MAX Bridge — единственный внешний скрипт сайта; инициализация и поведение
+   в `max-bridge.js`, потому что CSP запрещает инлайновые скрипты (docs/09). #}
+<script src="https://st.max.ru/js/max-web-app.js"></script>
+<script src="{{ url_for('static', path='max-bridge.js') }}?v={{ asset_v }}" defer></script>
+{% endif %}
 </body>
 </html>

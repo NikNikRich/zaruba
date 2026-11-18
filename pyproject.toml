@@ -82,6 +82,9 @@ zaruba = [
     "templates/pages/*.html",
     "templates/pages/legal/*.html",
     "static/*.css",
+    # Адаптер MAX Mini App: без него режим ZARUBA_MAX_MINIAPP останется без
+    # BackButton и openLink в образе, собранном через `pip install .`.
+    "static/*.js",
     # Фавикон и OG-обложка: Docker ставит пакет через `pip install --no-deps .`,
     # и без этих строк иконка и карточка для соцсетей в образ не попадут.
     "static/*.svg",

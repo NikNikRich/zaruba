@@ -33,6 +33,7 @@
 | Результаты 2025 (§6.24) | готово: `/results` — расчёт по 21 номинации судейских листов, места расчётные, дети по инициалам | `content/results/2025.yaml`, `services/results.py` |
 | Презентационные данные (`07`) | готово: таблицы `docs/templates/*.csv`, overlay `content/editions/2026.d/`, флаг `ZARUBA_PREVIEW_ENABLED`, `--drop-preview` | `sync_tables.py`, `content.py` |
 | Рекламные слоты (§6.27) | готово: три зарезервированных места, заглушки в dev, два демо-оффера в preview, `content/offers.yaml`, маркировка 38-ФЗ | `partials/service-tips.html`, `services/tips.py`, `tests/test_service_tips.py` |
+| Mini App MAX (`09`) | готово: флаг `ZARUBA_MAX_MINIAPP`, CSP с MAX Bridge, адаптер `max-bridge.js`, сборка `dist/`, workflow `pages-max` | `middleware.py`, `static/max-bridge.js`, `scripts/build_max_dist.py`, `.github/workflows/pages-max.yml` |
 
 Проверки на 2026-11-18: `pytest` — 457 тестов (покрытие 94 % при пороге 90 %),
 `ruff check src tests`, `ruff format --check src tests` и `mypy` — чисто,

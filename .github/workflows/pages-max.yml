@@ -1,0 +1,109 @@
+name: pages-max
+
+# Статика Mini App для мессенджера MAX на бесплатном GitHub Pages (docs/09).
+# Данные те же, что у боевого сайта: перед сборкой забираем листы из Google
+# Таблиц. Коммитов здесь нет — Pages публикует результат сборки, а не историю
+# репозитория, поэтому `contents: read`.
+#
+# Важно: GitHub запускает `schedule` только из workflow-файла в ветке по
+# умолчанию. Пока файл не влит в `main`, расписание молчит; работают пуш в
+# `feat/max-miniapp` и кнопка «Run workflow» (с выбором ветки). После слияния
+# достаточно добавить `main` в `push.branches`.
+on:
+  push:
+    branches: [feat/max-miniapp]
+  schedule:
+    # Раз в 30 минут: владелец правит таблицу — Mini App обновляется сам.
+    # GitHub может задержать запуск в пиковые минуты, данные меняют руками.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Две публикации одновременно перетирали бы артефакт: вторая сборка может
+# обогнать первую, и на Pages останется старый `dist`.
+concurrency:
+  group: pages-max
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Установка
+        # Тот же лок с хешами, что в образе: Pages показывает ровно то, что
+        # прошло бы проверки боевого деплоя.
+        run: |
+          python -m pip install --require-hashes -r requirements-dev.lock
+          python -m pip install --no-deps -e .
+
+      - name: Настроена ли таблица
+        id: cfg
+        env:
+          ZARUBA_SHEETS_MAP: ${{ secrets.ZARUBA_SHEETS_MAP }}
+        run: |
+          # В форке и до настройки секретов сборка не падает, а честно идёт на
+          # данных репозитория: красный workflow каждые полчаса никому не нужен.
+          if [ -z "${ZARUBA_SHEETS_MAP:-}" ]; then
+            echo "ready=0" >> "$GITHUB_OUTPUT"
+            echo "::notice::ZARUBA_SHEETS_MAP не задан — сборка на данных репозитория"
+          else
+            echo "ready=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Выгрузка листов
+        if: steps.cfg.outputs.ready == '1'
+        env:
+          ZARUBA_SHEET_ID: ${{ secrets.ZARUBA_SHEET_ID }}
+          ZARUBA_SHEETS_MAP: ${{ secrets.ZARUBA_SHEETS_MAP }}
+        # Скрипт атомарен: если хоть один лист не скачался, файлы остаются
+        # прежними, а шаг падает — битый YAML в `dist` не уедет.
+        run: python -m zaruba.sync_tables --from-sheets
+
+      - name: Контент выпусков
+        run: python -m zaruba.content check
+
+      - name: Тесты
+        # Правка таблицы не должна ломать страницы: Mini App — та же вёрстка,
+        # что и сайт, только с другим флагом окружения.
+        run: python -m pytest -q
+
+      - name: Сборка статики
+        env:
+          ZARUBA_MAX_MINIAPP: "true"
+          # prod убирает заглушки рекламных слотов: публичная копия не должна
+          # показывать «место под интеграцию». Preview включается отдельно и
+          # только вручную — демо-данные на Pages не нужны.
+          ZARUBA_ENV: prod
+        run: |
+          python scripts/build_max_dist.py
+          test -f dist/index.html
+          test -f dist/.nojekyll
+
+      - name: Подготовка Pages
+        uses: actions/configure-pages@v5
+
+      - name: Артефакт
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -35,6 +35,33 @@ CSP = (
     "base-uri 'self'"
 )
 
+# Origin MAX Bridge: единственный внешний скрипт сайта, и только в режиме
+# Mini App (docs/09). Адрес взят из документации MAX
+# (dev.max.ru/docs/webapps/bridge): `max-web-app.js` отдаётся оттуда и
+# определяет `window.WebApp`.
+MAX_BRIDGE_ORIGIN = "https://st.max.ru"
+
+# Отличия от обычной политики ровно два, и оба следуют из способа запуска:
+#   * `script-src` разрешает MAX Bridge — без него `BackButton` и `openLink`
+#     не работают, а инлайновый инициализатор потребовал бы `unsafe-inline`;
+#   * `frame-ancestors` разрешает клиенту MAX встроить страницу. При этом
+#     `X-Frame-Options: DENY` в этом режиме не отправляется: старые браузеры
+#     проверяют его раньше CSP и закрыли бы Mini App.
+CSP_MAX_MINIAPP = (
+    "default-src 'self'; "
+    "img-src 'self' data:; "
+    "style-src 'self'; "
+    f"script-src 'self' {MAX_BRIDGE_ORIGIN}; "
+    "connect-src 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'self' https://max.ru https://*.max.ru; "
+    "frame-src 'none'; "
+    "object-src 'none'; "
+    "worker-src 'none'; "
+    "manifest-src 'self'; "
+    "base-uri 'self'"
+)
+
 STATIC_CACHE = "public, max-age=3600"
 # HTML без `max-age`: браузер обязан спросить сервер. Без этого прокси и браузеры
 # кэшируют страницы эвристически, и после правки YAML человек видит старую афишу.
@@ -63,12 +90,31 @@ SECURITY_HEADERS: tuple[tuple[str, str], ...] = (
 )
 
 
+def security_headers(*, miniapp: bool = False) -> tuple[tuple[str, str], ...]:
+    """Заголовки ответа; в режиме Mini App меняются политика и запрет фрейма.
+
+    Остальные строки одинаковы: `nosniff`, реферальная политика и запреты
+    плагина не зависят от того, где открыта страница.
+    """
+
+    if not miniapp:
+        return SECURITY_HEADERS
+    return tuple(
+        ("Content-Security-Policy", CSP_MAX_MINIAPP)
+        if name == "Content-Security-Policy"
+        else (name, value)
+        for name, value in SECURITY_HEADERS
+        if name != "X-Frame-Options"
+    )
+
+
 class SecurityHeadersMiddleware:
     """Заголовки на каждом ответе; `Cache-Control` — час для статики, ревалидация для HTML."""
 
-    def __init__(self, app: ASGIApp, *, hsts: bool = False) -> None:
+    def __init__(self, app: ASGIApp, *, hsts: bool = False, miniapp: bool = False) -> None:
         self.app = app
         self.hsts = hsts
+        self.headers = security_headers(miniapp=miniapp)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -80,7 +126,7 @@ class SecurityHeadersMiddleware:
         async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(scope=message)
-                for name, value in SECURITY_HEADERS:
+                for name, value in self.headers:
                     headers.setdefault(name, value)
                 headers.setdefault("Cache-Control", STATIC_CACHE if is_static else PAGE_CACHE)
                 if self.hsts:

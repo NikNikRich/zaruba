@@ -84,7 +84,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "собираются из заголовка Host, а подмена Host уводит их на чужой домен"
         )
     app.add_middleware(HeadMiddleware)
-    app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_prod)
+    app.add_middleware(
+        SecurityHeadersMiddleware, hsts=settings.is_prod, miniapp=settings.max_miniapp
+    )
     # Последним: `add_middleware` кладёт его снаружи остальных, и номер запроса
     # есть уже в обработчиках ошибок — иначе страница сбоя осталась бы без номера.
     app.add_middleware(RequestIdMiddleware)

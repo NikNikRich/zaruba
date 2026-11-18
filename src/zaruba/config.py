@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     # остаются на подтверждённых фактах.
     preview_enabled: bool = False
 
+    # Режим Mini App в мессенджере MAX (docs/09): подключает MAX Bridge,
+    # разрешает встраивание во фрейм клиента MAX и убирает дубль логотипа
+    # в шапке. По умолчанию выключен — публичный сайт не меняется.
+    max_miniapp: bool = False
+
     # Кэш публичных страниц (docs/06 §6.20): 60 с, расписание — 15 с.
     cache_ttl_public: int = 60
     cache_ttl_schedule: int = 15

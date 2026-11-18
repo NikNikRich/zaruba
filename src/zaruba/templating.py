@@ -29,7 +29,10 @@ templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
 # Хеш CSS в ссылке: статика кэшируется на час, и без версии после релиза
 # часть посетителей остаётся со старым файлом.
 ASSET_VERSION = hashlib.sha1(
-    b"".join((PACKAGE_DIR / "static" / name).read_bytes() for name in ("style.css", "print.css"))
+    b"".join(
+        (PACKAGE_DIR / "static" / name).read_bytes()
+        for name in ("style.css", "print.css", "max-bridge.js")
+    )
 ).hexdigest()[:8]
 
 MONTHS: tuple[str, ...] = (

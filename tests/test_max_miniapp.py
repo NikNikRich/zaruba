@@ -1,0 +1,111 @@
+"""Mini App MAX (`docs/09`): флаг, CSP, адаптер и компактная шапка.
+
+Проверки держат границу между обычным сайтом и режимом мессенджера: без флага
+разметка и заголовки остаются прежними, с флагом появляется ровно то, что
+описано в спеке, а не «что-нибудь ещё».
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Iterator
+from contextlib import contextmanager
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+from zaruba.config import Settings
+from zaruba.main import create_app
+from zaruba.middleware import (
+    CSP,
+    CSP_MAX_MINIAPP,
+    MAX_BRIDGE_ORIGIN,
+    security_headers,
+)
+
+STATIC_DIR = Path(__file__).resolve().parents[1] / "src" / "zaruba" / "static"
+BRIDGE_JS = STATIC_DIR / "max-bridge.js"
+BRIDGE_SRC = f"{MAX_BRIDGE_ORIGIN}/js/max-web-app.js"
+
+
+@contextmanager
+def mini_client() -> Iterator[TestClient]:
+    with TestClient(create_app(Settings(max_miniapp=True))) as test_client:
+        yield test_client
+
+
+def test_miniapp_is_off_by_default(client: TestClient) -> None:
+    """Обычный сайт не должен знать про MAX: ни скрипта, ни политики, ни шапки."""
+
+    page = client.get("/")
+
+    assert BRIDGE_SRC not in page.text
+    assert "max-bridge.js" not in page.text
+    assert "site-header--embedded" not in page.text
+    assert page.headers["content-security-policy"] == CSP
+    assert page.headers["x-frame-options"] == "DENY"
+
+
+def test_miniapp_connects_bridge_and_adapter() -> None:
+    with mini_client() as mini:
+        html = mini.get("/").text
+
+    assert f'<script src="{BRIDGE_SRC}"></script>' in html
+    assert re.search(r"/static/max-bridge\.js\?v=[0-9a-f]{8}", html), html[:800]
+    assert 'class="site-header site-header--embedded"' in html
+
+
+def test_miniapp_hides_the_duplicate_logo_but_keeps_a_home_link() -> None:
+    """Нативный заголовок MAX уже называет бота: логотип — дубль, ссылка нужна."""
+
+    with mini_client() as mini:
+        html = mini.get("/").text
+
+    assert re.search(r'<a class="brand" href="/" hidden>', html)
+    assert re.search(r'<a href="/" aria-current="page">Главная</a>', html)
+
+
+def test_miniapp_csp_allows_bridge_and_embedding() -> None:
+    with mini_client() as mini:
+        headers = mini.get("/").headers
+
+    csp = headers["content-security-policy"]
+
+    assert csp == CSP_MAX_MINIAPP
+    assert "script-src 'self' https://st.max.ru" in csp
+    assert "frame-ancestors 'self' https://max.ru https://*.max.ru" in csp
+    assert "x-frame-options" not in headers, "DENY закрыл бы Mini App во фрейме клиента"
+    for forbidden in ("unsafe-inline", "unsafe-eval", "default-src *"):
+        assert forbidden not in csp, forbidden
+
+
+def test_miniapp_changes_only_csp_and_frame_header() -> None:
+    """Отличие режима — ровно политика и снятый `X-Frame-Options`."""
+
+    plain = dict(security_headers())
+    mini = dict(security_headers(miniapp=True))
+
+    assert set(plain) - {"X-Frame-Options"} == set(mini)
+    assert mini["X-Content-Type-Options"] == plain["X-Content-Type-Options"]
+    assert mini["Content-Security-Policy"] == CSP_MAX_MINIAPP
+
+
+def test_adapter_stays_small_and_has_a_fallback() -> None:
+    """Адаптер — меньше 40 строк: больше в нём просто нечему жить."""
+
+    source = BRIDGE_JS.read_text(encoding="utf-8")
+
+    assert len(source.splitlines()) < 40, f"{len(source.splitlines())} строк"
+    for token in (
+        "app.ready()",
+        "BackButton.show()",
+        "BackButton.hide()",
+        "history.back()",
+        "openLink(",
+        "platform",
+        "start_param",
+        r"index\.html",
+    ):
+        assert token in source, token
+    for forbidden in ("eval(", "document.write", "innerHTML"):
+        assert forbidden not in source, forbidden
