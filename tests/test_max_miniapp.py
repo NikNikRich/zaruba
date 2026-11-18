@@ -12,6 +12,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from zaruba.config import Settings
@@ -32,6 +33,18 @@ BRIDGE_SRC = f"{MAX_BRIDGE_ORIGIN}/js/max-web-app.js"
 def mini_client() -> Iterator[TestClient]:
     with TestClient(create_app(Settings(max_miniapp=True))) as test_client:
         yield test_client
+
+
+def test_env_flag_enables_miniapp(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`ZARUBA_MAX_MINIAPP=true` — тот же флаг, что видит CI и Pages."""
+
+    monkeypatch.setenv("ZARUBA_MAX_MINIAPP", "true")
+
+    assert Settings().max_miniapp is True
+
+    monkeypatch.setenv("ZARUBA_MAX_MINIAPP", "false")
+
+    assert Settings().max_miniapp is False
 
 
 def test_miniapp_is_off_by_default(client: TestClient) -> None:
