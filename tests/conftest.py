@@ -20,6 +20,7 @@ def _settings_for(content: Path) -> Settings:
         content_dir=content / "editions",
         venues_file=content / "venues.yaml",
         alerts_file=content / "alerts.yaml",
+        scores_file=content / "scores.yaml",
         glossary_file=content / "glossary.yaml",
         faq_file=content / "faq.yaml",
         history_file=content / "history.yaml",

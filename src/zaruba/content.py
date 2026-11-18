@@ -24,10 +24,12 @@ from .models import (
     FaqItem,
     GlossaryEntry,
     HistoryEntry,
+    JudgeScore,
     Nomination,
     Photo,
     ResultNomination,
     Results,
+    ScoreFeed,
     ServiceTip,
     Venue,
 )
@@ -38,6 +40,7 @@ FAQ_ADAPTER = TypeAdapter(list[FaqItem])
 HISTORY_ADAPTER = TypeAdapter(list[HistoryEntry])
 PHOTOS_ADAPTER = TypeAdapter(list[Photo])
 RESULTS_ADAPTER = TypeAdapter(Results)
+SCORES_ADAPTER = TypeAdapter(ScoreFeed)
 SERVICE_TIPS_ADAPTER = TypeAdapter(list[ServiceTip])
 
 
@@ -655,6 +658,103 @@ def load_all_results(settings: Settings | None = None) -> list[Results]:
     return loaded
 
 
+# --- Подтверждённые оценки судей (`docs/06` §6.28) --------------------------
+#
+# Отдельный файл, а не `content/results/<год>.yaml`: там расчёт по фотографиям
+# листов, а здесь — выписка из протокола, которую подтвердил главный судья.
+# Смешать их в одном файле значило бы поставить знак равенства между «мы
+# посчитали» и «судьи подтвердили».
+
+
+@lru_cache(maxsize=4)
+def _scores_cached(path: str, fingerprint: tuple[int, int, int]) -> ScoreFeed:
+    """Разбор файла по отпечатку: оценку не должна отставать от таблицы."""
+
+    raw = _read_yaml(Path(path), "полями edition, updated_at, rows")
+    try:
+        return SCORES_ADAPTER.validate_python(raw)
+    except ValidationError as exc:
+        raise _validation_error(Path(path), exc) from exc
+
+
+def _check_score_name(path: Path, row: JudgeScore, nomination: Nomination) -> None:
+    """Детское соло и дуэт — инициалы, как в результатах (§6.1 п.6, §6.24)."""
+
+    if nomination.age_group is AgeGroup.ADULTS or nomination.format not in (
+        DanceFormat.SOLO,
+        DanceFormat.DUET,
+    ):
+        return
+    parts = row.participant.split(" и ")
+    if not all(INITIALS_RE.match(part) or " " not in part for part in parts):
+        raise ContentError(
+            f"{path}: {row.nomination}: «{row.participant}» — детская номинация, "
+            "в ней публикуются только инициалы или сценическое имя"
+        )
+
+
+def _check_scores(feed: ScoreFeed, bundle: EditionBundle, path: Path) -> None:
+    """Оценка обязана ссылаться на номинацию выпуска и не спорить с местом.
+
+    Проверяются и неподтверждённые строки: опечатка в номинации черновика
+    станет ошибкой ровно в тот день, когда организатор поставит `ДА`, —
+    а это уже перед публикацией, не перед правкой.
+    """
+
+    edition = bundle.edition
+    if feed.edition != edition.edition:
+        raise ContentError(f"{path}: в файле выпуск {feed.edition}, а ожидался {edition.edition}")
+    nominations = edition.nomination_index
+    seen: set[tuple[str, str]] = set()
+    places: dict[str, list[int]] = {}
+    for row in feed.rows:
+        found = nominations.get(row.nomination)
+        if found is None:
+            raise ContentError(
+                f"{path}: номинации «{row.nomination}» нет в выпуске {edition.edition}"
+            )
+        if found.demo:
+            raise ContentError(
+                f"{path}: «{row.nomination}» — каркас каталога, а не номинация выпуска"
+            )
+        _check_score_name(path, row, found)
+        if not row.published:
+            continue
+        key = (row.nomination, row.participant)
+        if key in seen:
+            raise ContentError(f"{path}: {row.nomination}: «{row.participant}» указан дважды")
+        seen.add(key)
+        if row.place is not None:
+            places.setdefault(row.nomination, []).append(row.place)
+
+    for slug, values in places.items():
+        if len(set(values)) != len(values):
+            raise ContentError(f"{path}: {slug}: место присвоено дважды")
+        if sorted(values) != list(range(1, len(values) + 1)):
+            raise ContentError(f"{path}: {slug}: места идут не подряд — {sorted(values)}")
+
+
+def load_scores(settings: Settings | None = None) -> ScoreFeed | None:
+    """Подтверждённые оценки судей; `None` — файла нет, раздела на сайте нет.
+
+    Пустое состояние законно: до протокола подтверждать нечего. Битый файл —
+    авария: он ломает `/results`, поэтому ошибка называет файл и поле.
+    """
+
+    settings = settings or get_settings()
+    path = Path(settings.scores_file)
+    if not path.is_file():
+        return None
+    stat = path.stat()
+    feed = _scores_cached(str(path), (stat.st_mtime_ns, stat.st_size, len(str(path))))
+    bundle = next((item for item in load_site(settings) if item.year == feed.edition), None)
+    if bundle is None:
+        raise ContentError(f"{path}: выпуска {feed.edition} нет в content/editions")
+    _check_scores(feed, bundle, path)
+    # Кэш отдаёт один объект на всех: страница не должна править данные соседа.
+    return feed.model_copy(deep=True)
+
+
 @lru_cache(maxsize=8)
 def _knowledge_cached(
     glossary_file: str,
@@ -731,6 +831,7 @@ def main(argv: list[str] | None = None) -> int:
                 archive = load_history(settings.history_file)
                 photos = load_photos(settings.photos_file)
                 results = load_all_results(settings)
+                scores = load_scores(settings)
                 knowledge = load_knowledge(settings)
                 alerts = load_alerts(settings)
                 # Офферы проверяются тем же прогоном: битый `offers.yaml` должен
@@ -757,6 +858,12 @@ def main(argv: list[str] | None = None) -> int:
                         f"OK  результаты {item.edition}: {len(item.nominations)} номинаций, "
                         f"{item.rows} строк, мест присвоено {placed}"
                     )
+                confirmed = len(scores.published) if scores is not None else 0
+                total = len(scores.rows) if scores is not None else 0
+                print(
+                    f"OK  оценки судей: подтверждено к показу {confirmed}"
+                    + (f" из {total} строк" if scores is not None else " (файла нет)")
+                )
             for bundle in bundles:
                 print(f"OK  {bundle.year}: {_summary(bundle)}")
             print(f"проверено выпусков: {len(bundles)}")

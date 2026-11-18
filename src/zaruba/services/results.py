@@ -21,6 +21,7 @@ from ..models import (
     ResultNomination,
     ResultRow,
     Results,
+    ScoreFeed,
     Source,
 )
 
@@ -162,4 +163,93 @@ def results_view(bundle: EditionBundle, results: Results) -> ResultsView:
         nominations=len(results.nominations),
         participants=results.rows,
         notes=list(results.notes),
+    )
+
+
+# --- Подтверждённые оценки судей (`docs/06` §6.28) --------------------------
+
+
+@dataclass(frozen=True)
+class ScoreLine:
+    participant: str
+    studio: str | None
+    performance: str | None
+    score: float
+    place: int | None
+
+
+@dataclass(frozen=True)
+class ScoreNomination:
+    slug: str
+    title: str
+    day: int | None
+    number: int | None
+    lines: list[ScoreLine]
+
+
+@dataclass(frozen=True)
+class ScoreBoard:
+    edition: int
+    updated_at: datetime
+    nominations: list[ScoreNomination]
+    rows: int
+
+
+def scores_view(bundle: EditionBundle, feed: ScoreFeed) -> ScoreBoard | None:
+    """Подтверждённые оценки, сгруппированные по номинациям.
+
+    `None` — ни одной подтверждённой строки: страница не рисует пустую таблицу
+    и не обещает протокол, которого ещё нет. Порядок строк — место, затем балл:
+    так таблица читается сверху вниз, а строки без места не рвут её середину.
+    """
+
+    published = feed.published
+    if not published:
+        return None
+    edition = bundle.edition
+    index = edition.nomination_index
+    # Номер номинации внутри дня — порядок строк выпуска, как в результатах.
+    order: dict[str, int] = {}
+    per_day: dict[int, int] = {}
+    for nomination in edition.nominations:
+        if nomination.demo or nomination.day is None:
+            continue
+        per_day[nomination.day] = per_day.get(nomination.day, 0) + 1
+        order[nomination.slug] = per_day[nomination.day]
+
+    grouped: dict[str, list[ScoreLine]] = {}
+    for row in published:
+        found = index.get(row.nomination)
+        if found is None:
+            # Проверка при загрузке это уже отсекла; страховка для рендера.
+            continue
+        grouped.setdefault(row.nomination, []).append(
+            ScoreLine(
+                participant=row.participant,
+                studio=row.studio,
+                performance=row.performance,
+                score=row.score,
+                place=row.place,
+            )
+        )
+
+    nominations: list[ScoreNomination] = []
+    for slug, lines in grouped.items():
+        found = index[slug]
+        lines.sort(key=lambda line: (line.place is None, line.place or 0, -line.score))
+        nominations.append(
+            ScoreNomination(
+                slug=slug,
+                title=found.title,
+                day=found.day,
+                number=order.get(slug),
+                lines=lines,
+            )
+        )
+    nominations.sort(key=lambda item: (item.day or 0, item.number or 0))
+    return ScoreBoard(
+        edition=feed.edition,
+        updated_at=feed.updated_at,
+        nominations=nominations,
+        rows=sum(len(item.lines) for item in nominations),
     )

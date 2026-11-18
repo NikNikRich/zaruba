@@ -7,21 +7,31 @@ import io
 import json
 import re
 import shutil
+import sys
 import urllib.error
 import urllib.request
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 import yaml
 from fastapi.testclient import TestClient
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 from zaruba import sync_tables as sync_tables_module
 from zaruba.config import Settings
 from zaruba.content import ContentError, load_edition, load_site, merge_overlay, overlay_dir
 from zaruba.main import create_app
-from zaruba.models import Edition
+from zaruba.models import AlertStatus, Edition, JudgeScore, ScoreFeed
 from zaruba.sync_tables import (
+    ALERT_COLUMNS,
+    COLUMN_HINTS,
+    COLUMN_TITLES,
     DEFAULT_SHEETS_TIMEOUT,
+    SCORE_COLUMNS,
+    SCORES_FILENAME,
     SHEETS_ID_ENV,
     SHEETS_MAP_ENV,
     TABLE_SPECS,
@@ -35,11 +45,15 @@ from zaruba.sync_tables import (
     fetch_sheet_text,
     fetch_sheets,
     main,
+    parse_alerts,
+    parse_scores,
+    read_scores,
     read_table,
     sheet_export_url,
     sheet_sources,
     timing_patches,
     write_overlay,
+    write_scores,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -854,3 +868,310 @@ def test_build_overlay_notices_a_missing_sheet() -> None:
 
     with pytest.raises(TableError, match="nominations.csv"):
         build_overlay(TABLES, BASE, texts=texts)
+
+
+# --- Русская мастер-таблица, оценки судей и книга для организаторов ---------
+#
+# Мастер-таблицу заполняет человек, а не контент-менеджер: шапка русская,
+# вторая строка — подсказка, списки — выпадающие. Проверяется всё, на чём
+# организатор может споткнуться: подсказка вместо данных, «да» вместо «true»
+# и главное правило — строка без `ДА` не публикуется ни при каких условиях.
+
+EVENT_NOW = datetime(2026, 11, 18, 10, 0, tzinfo=ZoneInfo("Asia/Yekaterinburg"))
+
+
+def _spec(section: str) -> TableSpec:
+    return next(item for item in TABLE_SPECS if item.section == section)
+
+
+def _titles(section: str, columns: tuple[str, ...]) -> list[str]:
+    return [COLUMN_TITLES[section][column] for column in columns]
+
+
+def _hints(section: str, columns: tuple[str, ...]) -> list[str]:
+    return [COLUMN_HINTS[section][column] for column in columns]
+
+
+def _csv_text(header: list[str], rows: list[list[str]]) -> str:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, delimiter=";")
+    writer.writerow(header)
+    writer.writerows(rows)
+    return buffer.getvalue()
+
+
+def test_russian_header_and_hint_row_are_read(tmp_path: Path) -> None:
+    spec = _spec("studios")
+    header = _titles("studios", spec.columns)
+    header[0] = "slug"  # смешанная шапка: косметика не повод падать
+    (tmp_path / spec.filename).write_bytes(
+        _csv_text(
+            header,
+            [
+                _hints("studios", spec.columns),
+                ["pechat-tantsa", "«Печать танца»", "Тюмень", "", "нет", "подтверждено"],
+                ["demo-studio", "Демо-студия", "Тюмень", "", "да", "пример"],
+            ],
+        ).encode("utf-8-sig")
+    )
+
+    rows = read_table(spec, tmp_path)
+
+    assert [row["slug"] for row in rows] == ["pechat-tantsa", "demo-studio"]
+    assert (rows[0]["data_tag"], rows[0]["demo"]) == (TAG_REAL, "false")
+    assert (rows[1]["data_tag"], rows[1]["demo"]) == (TAG_PREVIEW, "true")
+
+
+def test_two_headers_for_one_column_are_named(tmp_path: Path) -> None:
+    spec = _spec("studios")
+    (tmp_path / spec.filename).write_text(
+        _csv_text(["slug", *_titles("studios", spec.columns)], []), encoding="utf-8-sig"
+    )
+
+    with pytest.raises(TableError, match="две колонки"):
+        read_table(spec, tmp_path)
+
+
+def test_alerts_accept_russian_headers_and_hint_row(tmp_path: Path) -> None:
+    path = tmp_path / "alerts.csv"
+    raw = _csv_text(
+        _titles("alerts", ALERT_COLUMNS),
+        [
+            _hints("alerts", ALERT_COLUMNS),
+            [
+                "shift-kids",
+                "Опубликовать",
+                "Перенос детского блока",
+                "Детский блок начинается позже: точное время — в расписании.",
+                "schedule",
+                "да",
+            ],
+        ],
+    )
+
+    alerts = parse_alerts(raw, path)
+
+    assert len(alerts) == 1
+    assert alerts[0].status is AlertStatus.SEND
+    assert alerts[0].urgent is True
+    assert alerts[0].link_slug == "schedule"
+
+
+def _scores_raw(rows: list[list[str]]) -> str:
+    return _csv_text(_titles("scores", SCORE_COLUMNS), [_hints("scores", SCORE_COLUMNS), *rows])
+
+
+def test_scores_sheet_publishes_only_confirmed_rows(tmp_path: Path) -> None:
+    raw = _scores_raw(
+        [
+            ["perf-1", "best-solo-kids", "«Печать танца»", "А. К.", "34,0", "1", "ДА"],
+            ["perf-2", "best-solo-kids", "«Печать танца»", "Л. В.", "29,5", "2", "нет"],
+            ["perf-3", "best-solo-kids", "«Печать танца»", "Д. Ш.", "12", "", ""],
+        ]
+    )
+
+    feed = parse_scores(raw, Path(SCORES_FILENAME), edition=2026, now=EVENT_NOW)
+
+    assert [row.participant for row in feed.rows] == ["А. К."]
+    assert feed.rows[0].score == 34.0
+    assert feed.rows[0].place == 1
+    assert feed.published == feed.rows
+    assert (feed.edition, feed.updated_at) == (2026, EVENT_NOW)
+
+
+def test_unconfirmed_row_stays_unpublished_even_in_the_file_model() -> None:
+    feed = ScoreFeed(
+        edition=2026,
+        updated_at=EVENT_NOW,
+        rows=[
+            JudgeScore(nomination="best-solo-kids", participant="А. К.", score=34.0, place=1),
+            JudgeScore(
+                nomination="best-solo-kids",
+                participant="Л. В.",
+                score=29.5,
+                place=2,
+                published=True,
+            ),
+        ],
+    )
+
+    assert [row.participant for row in feed.published] == ["Л. В."]
+
+
+@pytest.mark.parametrize(
+    ("row", "message"),
+    [
+        (["perf-1", "best-solo-kids", "", "А. К.", "тридцать", "1", "ДА"], "не число"),
+        (["perf-1", "best-solo-kids", "", "А. К.", "30", "первое", "ДА"], "место"),
+        (["perf-1", "best-solo-kids", "", "А. К.", "30", "1", "может быть"], "Опубликовать"),
+        (["perf-1", "best-solo-kids", "", "", "30", "1", "ДА"], "participant"),
+    ],
+)
+def test_scores_sheet_names_the_bad_cell(tmp_path: Path, row: list[str], message: str) -> None:
+    path = tmp_path / SCORES_FILENAME
+
+    with pytest.raises(TableError, match=message):
+        parse_scores(_scores_raw([row]), path, edition=2026, now=EVENT_NOW)
+
+
+def test_template_scores_are_drafts_only() -> None:
+    """Шаблон едет в репозиторий с «нет»: примеры не должны стать публикацией."""
+
+    feed = read_scores(TABLES, edition=2026, now=EVENT_NOW)
+
+    assert feed.rows == []
+    assert feed.published == []
+
+
+def _published_feed() -> ScoreFeed:
+    return ScoreFeed(
+        edition=2026,
+        updated_at=EVENT_NOW,
+        rows=[
+            JudgeScore(
+                nomination="best-solo-kids",
+                participant="А. К.",
+                studio="«Печать танца»",
+                score=34.0,
+                place=1,
+                published=True,
+            ),
+            JudgeScore(
+                nomination="best-solo-kids",
+                participant="Л. В.",
+                studio="«Печать танца»",
+                score=31.5,
+                place=2,
+                published=True,
+            ),
+        ],
+    )
+
+
+def test_confirmed_scores_reach_the_results_page(content_settings: Settings) -> None:
+    write_scores(_published_feed(), content_settings.scores_file)
+
+    with TestClient(create_app(content_settings)) as client:
+        html = client.get("/results").text
+
+    assert "Оценки судей 2026" in html
+    assert "А. К." in html
+    assert "31,5" in html
+    assert "БЕСТ ЗАРУБА СОЛО ДЕТИ" in html
+
+
+def test_draft_scores_create_no_file_and_no_section(content_settings: Settings) -> None:
+    draft = ScoreFeed(
+        edition=2026,
+        updated_at=EVENT_NOW,
+        rows=[
+            JudgeScore(
+                nomination="best-solo-kids",
+                participant="А. К.",
+                score=34.0,
+                place=1,
+                published=False,
+            )
+        ],
+    )
+
+    path = write_scores(draft, content_settings.scores_file)
+    assert not path.exists(), "черновик не должен создавать content/scores.yaml"
+
+    with TestClient(create_app(content_settings)) as client:
+        html = client.get("/results").text
+
+    assert "Оценки судей 2026" not in html
+    assert 'id="scores"' not in html
+
+
+def _master_xlsx(tmp_path: Path) -> Path:
+    """Книга собирается тем же скриптом, что и `docs/templates/*.xlsx`."""
+
+    scripts = REPO_ROOT / "scripts"
+    if str(scripts) not in sys.path:
+        sys.path.insert(0, str(scripts))
+    import export_master_xlsx
+
+    return export_master_xlsx.build_workbook(TABLES, tmp_path / "ZARUBA_2026_MASTER.xlsx")
+
+
+def test_master_xlsx_has_russian_headers_hints_and_lists(tmp_path: Path) -> None:
+    workbook = load_workbook(_master_xlsx(tmp_path))
+
+    assert workbook.sheetnames == [
+        "КАК ЗАПОЛНЯТЬ",
+        "Расписание",
+        "Номинации",
+        "Судьи",
+        "Студии",
+        "Участники",
+        "Выступления",
+        "Оценки судей",
+        "Оповещения",
+        "Фото и видео",
+        "Мерч и партнеры",
+    ]
+
+    scores = workbook["Оценки судей"]
+    assert [cell.value for cell in scores[1]] == _titles("scores", SCORE_COLUMNS)
+    assert [cell.value for cell in scores[2]] == _hints("scores", SCORE_COLUMNS)
+    assert scores.freeze_panes == "A3"
+    assert str(scores["A1"].font.color.rgb).endswith("C6F73A")
+    assert scores["A2"].font.italic is True
+
+    published = get_column_letter(SCORE_COLUMNS.index("published") + 1)
+    rules = {str(rule.sqref): rule.formula1 for rule in scores.data_validations.dataValidation}
+    assert rules == {f"{published}3:{published}60": '"ДА,НЕТ"'}
+
+    # Примеры из шаблона остаются черновиками и в книге — организатор видит «НЕТ».
+    column = SCORE_COLUMNS.index("published") + 1
+    assert {scores.cell(row=row, column=column).value for row in range(3, scores.max_row + 1)} == {
+        "НЕТ"
+    }
+
+
+def test_master_xlsx_mirrors_the_tables_and_explains_the_rules(tmp_path: Path) -> None:
+    workbook = load_workbook(_master_xlsx(tmp_path))
+
+    studios = workbook["Студии"]
+    header = [cell.value for cell in studios[1]]
+    rows = read_table(_spec("studios"), TABLES)
+    assert studios.max_row == len(rows) + 2, "подсказка не должна попасть в данные"
+    assert header == _titles("studios", _spec("studios").columns)
+    tag = header.index(COLUMN_TITLES["studios"]["data_tag"]) + 1
+    assert {studios.cell(row=row, column=tag).value for row in range(3, studios.max_row + 1)} <= {
+        "подтверждено",
+        "пример",
+    }
+
+    guide = workbook["КАК ЗАПОЛНЯТЬ"]
+    assert guide.sheet_view.showGridLines is False
+    assert guide["A1"].font.size == 20
+    assert guide["A4"].value == "1. Золотые правила"
+    assert guide["A4"].font.size == 14
+    assert guide["A5"].font.size == 12
+
+
+def _cells(path: Path) -> dict[str, list[list[str]]]:
+    workbook = load_workbook(path)
+    return {
+        name: [
+            ["" if cell.value is None else str(cell.value) for cell in row]
+            for row in workbook[name].iter_rows()
+        ]
+        for name in workbook.sheetnames
+    }
+
+
+def test_committed_master_xlsx_matches_the_script(tmp_path: Path) -> None:
+    """Книга в репозитории — вывод скрипта, а не правка руками в Excel.
+
+    Сравниваются значения ячеек, а не байты: zip-контейнер пишет время
+    записи файлов, и оно меняется от запуска к запуску при том же содержимом.
+    """
+
+    committed = TABLES / "ZARUBA_2026_MASTER.xlsx"
+
+    assert committed.is_file(), "соберите книгу: python scripts/export_master_xlsx.py"
+    assert _cells(committed) == _cells(_master_xlsx(tmp_path))

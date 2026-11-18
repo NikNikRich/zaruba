@@ -17,11 +17,58 @@
   {{ view.participants }}
   {{ view.participants|plural("участник", "участника", "участников") }}.
   Таблицы собраны из фотографий судейских листов, а не из протокола.</p>
+  {% elif scores %}
+  <p class="lead">Оргкомитет подтвердил оценки судей {{ scores.edition }}:
+  {{ scores.rows }} {{ scores.rows|plural("строка", "строки", "строк") }} по
+  {{ scores.nominations|length }}
+  {{ scores.nominations|length|plural("номинации", "номинациям", "номинациям") }}.
+  Показаны только строки с отметкой «ДА» в таблице организаторов.</p>
   {% else %}
   <p class="lead">Судейские листы разобраны не для всех выпусков. Там, где их нет,
   страницы результатов тоже нет: пустая таблица «данных не будет» хуже, чем её отсутствие.</p>
   {% endif %}
 </div>
+
+{% if scores %}
+<section class="section" id="scores">
+  <h2>Оценки судей {{ scores.edition }} — подтверждено оргкомитетом</h2>
+  <p class="muted small">Здесь только строки, которые главный судья или оргкомитет
+  отметили в таблице как «Опубликовать на сайте? — ДА». Черновики, строки с «НЕТ»
+  и пустые клетки не показываются ни на сайте, ни в мини-приложении.
+  Данные обновлены {{ scores.updated_at|fmt_dt }}.</p>
+
+  {% for item in scores.nominations %}
+  <section class="block" id="score-{{ item.slug }}">
+    <div class="block-head">
+      <h3>{% if item.number %}{{ item.number }}. {% endif %}{{ item.title }}</h3>
+    </div>
+    <div class="table-wrap">
+      <table class="table table--results">
+        <caption class="sr-only">Оценки судей: {{ item.title }}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Место</th>
+            <th scope="col">Участник</th>
+            <th scope="col">Студия / команда</th>
+            <th scope="col">Баллы</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in item.lines %}
+          <tr>
+            <td class="mono">{{ line.place if line.place is not none else "—" }}</td>
+            <td>{{ line.participant }}</td>
+            <td>{{ line.studio or "—" }}</td>
+            <td class="mono">{{ line.score|score }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endfor %}
+</section>
+{% endif %}
 
 {% if view %}
 <div class="callout">
@@ -145,7 +192,8 @@
   исправление войдёт в дату обновления.</p>
   <p class="section-link"><a href="/history">что известно о других выпусках →</a></p>
 </section>
-{% else %}
+{# Подтверждённые оценки уже показаны выше: «почему таблиц нет» не повторяем. #}
+{% elif not scores %}
 <section class="section">
   <h2>Почему таблиц нет</h2>
   <ul class="facts">

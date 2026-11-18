@@ -46,6 +46,8 @@ Overlay — не второй выпуск: загрузчик `merge_overlay` �
 | `judges.csv` | `slug`, `name`, `role`, `city`, `regalia`, `styles`, `blocks`, `source_id`, `photo`, `photo_author`, `photo_license`, `photo_use`, `photo_purpose`, `photo_source_url`, `photo_nature`, `demo`, `data_tag` |
 | `media.csv` | `slug`, `title`, `kind`, `platform`, `url`, `preview_image`, `meta`, `nomination_slug`, `data_tag` |
 | `commerce.csv` | `slug`, `title`, `category`, `price`, `status`, `description`, `cta_label`, `url`, `erid`, `data_tag` |
+| `alerts.csv` | `id`, `status`, `title`, `text`, `link_slug`, `urgent` |
+| `scores.csv` | `performance`, `nomination`, `studio`, `participant`, `score`, `place`, `published` |
 
 Списки (`levels`, `nominations`, `participants`, `styles`, `blocks`) пишутся
 через `|` (запятая тоже принимается). Время — `ЧЧ:ММ`, дата-время —
@@ -127,8 +129,11 @@ $env:ZARUBA_PREVIEW_ENABLED = "1"
   `content check` по шаблону. Исключение одно: `content/offers.preview.yaml`,
   где токены `DEMO-PREVIEW-*` разрешены и файл читается только в preview;
   в боевой `content/offers.yaml` такой токен не пройдёт проверку.
-- **XLSX** — в зависимостях нет `openpyxl`, а лок заморожен; формат CSV
-  открывается в Excel и не требует новой библиотеки.
+- **XLSX как источник данных** — Google Таблицы читаются через CSV-экспорт,
+  поэтому `openpyxl` (dev-зависимость) нужен только скрипту
+  `scripts/export_master_xlsx.py`: он собирает книгу для организаторов
+  `docs/templates/ZARUBA_2026_MASTER.xlsx` из тех же CSV. Обратного пути нет:
+  книгу в git не правят, её пересобирают (`08-deploy-and-sheets.md` §8.1).
 - **Записи `real` из таблицы** — намеренно, чтобы импорт не мог подменить
   опубликованный факт.
 

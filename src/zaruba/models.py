@@ -820,6 +820,50 @@ class Results(Strict):
         return sum(len(item.rows) for item in self.nominations)
 
 
+# Потолок балла: в критериях листа максимум 10 и пять критериев (`Criterion`),
+# то есть 50 у одного судьи. Здесь балл уже итоговый, поэтому 800 — заведомо
+# больше любого возможного значения, а не выдуманная шкала.
+SCORE_MAX = 800.0
+
+
+class JudgeScore(Strict):
+    """Строка подтверждённого листа «Оценки судей» (`docs/06` §6.28).
+
+    Это не расчёт по фотографиям листов (§6.24), а выписка из протокола,
+    которую заполняет главный судья: одна строка — одна оценка участника
+    в номинации. `performance` — код выступления, если оценка привязана
+    к конкретному номеру; пустая клетка законна (у команды выступления
+    может не быть).
+
+    `published` по умолчанию `False`: подтверждение — явное действие, а не
+    отсутствие ошибки. Строка без `ДА` в таблице не попадает ни в файл, ни
+    на страницу, ни в мини-приложение — фильтр стоит в двух местах сразу
+    (разбор листа и загрузчик файла).
+    """
+
+    performance: Slug | None = None
+    nomination: Slug
+    studio: str | None = Field(default=None, max_length=80)
+    participant: str = Field(min_length=2, max_length=80)
+    score: float = Field(ge=0, le=SCORE_MAX)
+    place: int | None = Field(default=None, ge=1, le=100)
+    published: bool = False
+
+
+class ScoreFeed(Strict):
+    """Файл `content/scores.yaml`: подтверждённые оценки одного выпуска."""
+
+    edition: int = Field(ge=2010, le=2100)
+    updated_at: datetime
+    rows: list[JudgeScore] = Field(default_factory=list, max_length=2000)
+
+    @property
+    def published(self) -> list[JudgeScore]:
+        """Только подтверждённые строки: черновик не становится публикацией."""
+
+        return [row for row in self.rows if row.published]
+
+
 class ScheduleBlock(Strict):
     slug: Slug
     day: int = Field(ge=1, le=3)

@@ -27,6 +27,10 @@ dev = [
     "pytest-cov>=5.0",
     "pip-audit>=2.7",
     "pre-commit>=3.7",
+    # `openpyxl` собирает мастер-таблицу `docs/templates/ZARUBA_2026_MASTER.xlsx`
+    # (scripts/export_master_xlsx.py). Только для разработки: веб-приложению
+    # Excel-файл не нужен, в рантайм-образ он не попадает.
+    "openpyxl>=3.1",
     # `uv` собирает кросс-платформенный лок зависимостей (`--universal`):
     # из Windows-окружения он всё равно оставляет uvloop для Linux с маркером.
     "uv>=0.5",

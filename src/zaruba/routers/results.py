@@ -10,10 +10,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from ..content import load_results_for, load_site, result_years
+from ..content import load_results_for, load_scores, load_site, result_years
 from ..models import TipSlot
 from ..services.edition import media_by_nomination
-from ..services.results import results_view
+from ..services.results import results_view, scores_view
 from ..services.tips import resolve_tip
 from ..templating import render
 
@@ -29,6 +29,14 @@ def results_page(request: Request) -> HTMLResponse:
     year = next((item for item in result_years(settings) if item in known), None)
     bundle = next((item for item in bundles if item.year == year), latest)
     results = load_results_for(settings, year) if year is not None else None
+    # Подтверждённые оценки — отдельный файл (§6.28): он не зависит от того,
+    # разобраны ли фотографии листов, и не смешивается с расчётными местами.
+    scores_feed = load_scores(settings)
+    scores_bundle = (
+        next((item for item in bundles if item.year == scores_feed.edition), None)
+        if scores_feed is not None
+        else None
+    )
     service_tip = resolve_tip(settings, TipSlot.PROTOCOLS_INLINE)
 
     return render(
@@ -38,6 +46,9 @@ def results_page(request: Request) -> HTMLResponse:
         edition=bundle.edition,
         venue=bundle.venue,
         view=results_view(bundle, results) if results is not None else None,
+        scores=scores_view(scores_bundle, scores_feed)
+        if scores_feed is not None and scores_bundle is not None
+        else None,
         # Привязка медиа к номинациям — из того же выпуска, чьи листы разобраны:
         # карточка 2026 года не должна «висеть» под таблицей 2025-го.
         media_for_nominations=media_by_nomination(bundle.edition),

@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # Срочные оповещения организаторов (`docs/09` §9.9): файл уровня сайта, а не
     # выпуска — оповещение живёт сутки, а выпуск год.
     alerts_file: Path = BASE_DIR / "content" / "alerts.yaml"
+    # Подтверждённые главным судьёй оценки из листа «Оценки судей» (`docs/06`
+    # §6.28). Как и оповещения — файл уровня сайта: выпуск указан внутри.
+    scores_file: Path = BASE_DIR / "content" / "scores.yaml"
 
     # Презентационный overlay `content/editions/<год>.d/*.yaml`: выдуманные
     # строки видны только при явном включении (`ZARUBA_PREVIEW_ENABLED=1`) и

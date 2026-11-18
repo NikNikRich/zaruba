@@ -14,7 +14,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import __version__
 from .config import Settings, get_settings
-from .content import ContentError, load_all_results, load_site
+from .content import ContentError, load_all_results, load_scores, load_site
 from .errors import query_errors
 from .middleware import (
     REQUEST_ID_HEADER,
@@ -214,6 +214,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             load_site(settings)
             load_all_results(settings)
+            load_scores(settings)
         except ContentError as exc:
             logger.error("healthz: контент не прошёл проверку: %s", exc)
             response.status_code = 503
