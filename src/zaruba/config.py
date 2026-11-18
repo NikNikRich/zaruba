@@ -74,6 +74,27 @@ class Settings(BaseSettings):
     # рассылка не запускается, но бот-проводник продолжает работать.
     max_alert_chat_id: int | None = None
 
+    # Мониторинг постов официального сообщества ВКонтакте (`docs/09` §9.13).
+    # Токен — единственный включатель: без него `python -m zaruba.vk_watch`
+    # пишет «проверка пропущена» и выходит с 0, как рассылка без бота.
+    vk_token: str = ""
+    # Короткое имя сообщества: `wall.get` принимает `domain=`, поэтому числовой
+    # owner_id в настройках не нужен — он приходит в каждом посте.
+    vk_group: str = "zaruba72champ"
+    vk_api_version: str = "5.199"
+    # Период опроса: минута — «мгновенно» для человека и 1 запрос в минуту для
+    # VK, то есть далеко от лимита 3 запроса в секунду на токен.
+    vk_interval: int = 60
+    # Сколько последних постов читать за цикл: чтобы не потерять серию
+    # публикаций между двумя опросами.
+    vk_posts: int = 10
+    # Куда слать: пусто — тот же чат, что у срочных оповещений.
+    vk_chat_id: int | None = None
+    # Файл состояния: `logs/` в .gitignore, мониторинг живёт на одной машине.
+    vk_seen_file: Path = BASE_DIR / "logs" / "vk_seen.json"
+    # Дополнительный корневой сертификат для api.vk.com, если системных мало.
+    vk_ca_file: Path | None = None
+
     # Кэш публичных страниц (docs/06 §6.20): 60 с, расписание — 15 с.
     cache_ttl_public: int = 60
     cache_ttl_schedule: int = 15
@@ -105,6 +126,12 @@ class Settings(BaseSettings):
         """Адрес сайта для ссылок бота: явный, иначе публичный; без хвостового `/`."""
 
         return (self.max_bot_site_url or self.public_base_url).rstrip("/")
+
+    @property
+    def vk_chat(self) -> int | None:
+        """Адресат уведомлений: свой чат, иначе общий чат оповещений."""
+
+        return self.vk_chat_id if self.vk_chat_id is not None else self.max_alert_chat_id
 
     @property
     def service_tips_visible(self) -> bool:
