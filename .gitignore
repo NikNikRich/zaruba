@@ -22,4 +22,10 @@ assets/photos/*
 # Служебные файлы ОС: их создаёт Explorer/Finder, в репозитории им делать нечего
 .DS_Store
 Thumbs.db
+# Презентационная сборка `scripts/build_static_preview.py`:
+# архив и единый HTML уходят руководству через мессенджер, а не в git,
+# рабочая папка — мусор.
+*.zip
+.preview-build/
+zaruba_2026_preview.html
 
