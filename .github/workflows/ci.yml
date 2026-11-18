@@ -36,7 +36,18 @@ jobs:
         run: |
           python -m uv pip compile --universal --generate-hashes -o requirements.lock pyproject.toml
           python -m uv pip compile --universal --generate-hashes --extra dev -o requirements-dev.lock pyproject.toml
-          git diff --exit-code -- requirements.lock requirements-dev.lock
+          # Сравниваем только пины и хеши. Комментарии `# via` и шапку команды uv
+          # пишет по-разному на Linux-раннере и на Windows, где лок собирают:
+          # `git diff` падал на строке `#   starlette`, которую нельзя исправить
+          # осмысленно, а сборку ломает только расхождение версий и хешей.
+          for f in requirements.lock requirements-dev.lock; do
+            git show "HEAD:$f" | grep -vE '^[[:space:]]*#' | grep -vE '^[[:space:]]*$' > "/tmp/$f.head"
+            grep -vE '^[[:space:]]*#' "$f" | grep -vE '^[[:space:]]*$' > "/tmp/$f.new"
+            if ! diff -u "/tmp/$f.head" "/tmp/$f.new"; then
+              echo "::error::$f расходится с pyproject.toml — пересоберите лок: python -m uv pip compile --universal --generate-hashes -o $f pyproject.toml"
+              exit 1
+            fi
+          done
 
       - name: Линт
         run: python -m ruff check src tests
