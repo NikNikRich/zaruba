@@ -120,6 +120,21 @@ if (-not $hasToken) {
     Write-Step ("         Бот не запустится. Впишите токен и запустите: Start-ScheduledTask -TaskName {0}" -f $TaskName)
 }
 
+# Мониторинг ВК — второй процесс того же супервизора (docs/09 §9.13): свой
+# токен и свой лог, отдельной задачи Планировщика не нужно.
+$hasVkToken = $false
+if (Test-Path -LiteralPath $envFile) {
+    $vkLine = Select-String -LiteralPath $envFile -Pattern '^\s*ZARUBA_VK_TOKEN\s*=\s*\S' -ErrorAction SilentlyContinue
+    $hasVkToken = [bool]$vkLine
+}
+if ($hasVkToken) {
+    Write-Step 'мониторинг VK: токен найден — супервизор поднимет zaruba.vk_watch вторым процессом'
+}
+else {
+    Write-Step 'мониторинг VK: ZARUBA_VK_TOKEN не задан — уведомления о постах приходить не будут'
+}
+
+
 $standby = Get-AcStandbySeconds
 if ($null -eq $standby) {
     Write-Step 'сон: настройку powercfg прочитать не удалось — проверьте «Сон после» вручную'

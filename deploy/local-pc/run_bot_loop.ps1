@@ -30,6 +30,13 @@
     Остановить бота по `logs/max_bot.pid` и выйти: так снимается процесс,
     оставшийся после аварийной остановки задачи.
 
+.PARAMETER VkInterval
+    Период опроса постов ВКонтакте, секунды. Процесс мониторинга поднимается
+    вторым рядом с ботом, только если в окружении задан ZARUBA_VK_TOKEN.
+
+.PARAMETER SkipVk
+    Не запускать мониторинг ВК: токен есть, а уведомления сейчас не нужны.
+
 .PARAMETER Once
     Один запуск бота и выход (диагностика): цикл не перезапускает его.
 
@@ -49,7 +56,9 @@ param(
     [int]$LogKeepFiles = 3,
     [double]$PollTimeout = 30,
     [double]$PollPause = 1,
+    [int]$VkInterval = 60,
     [switch]$SkipRefresh,
+    [switch]$SkipVk,
     [switch]$Stop,
     [switch]$Once
 )
@@ -67,6 +76,10 @@ $logDir = Join-Path $RepoRoot 'logs'
 $botLog = Join-Path $logDir 'max_bot.log'
 $loopLog = Join-Path $logDir 'max_bot_loop.log'
 $pidFile = Join-Path $logDir 'max_bot.pid'
+# Отдельные файлы у мониторинга ВК: строки двух процессов в одном журнале
+# не разложить, а PID нужен свой — иначе `-Stop` снимет не тот процесс.
+$vkLog = Join-Path $logDir 'vk_watch.log'
+$vkPidFile = Join-Path $logDir 'vk_watch.pid'
 $maxBytes = [int64]$LogMaxMB * 1MB
 
 if (-not (Test-Path -LiteralPath $logDir)) {
@@ -177,6 +190,22 @@ function Stop-StaleBot {
     Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
 }
 
+function Stop-StaleVkWatch {
+    # Тот же риск, что у бота: остановка задачи гасит только powershell, а
+    # дочерний мониторинг продолжал бы слать уведомления параллельно с новым.
+    if (-not (Test-Path -LiteralPath $vkPidFile)) { return }
+    $text = Get-Content -LiteralPath $vkPidFile -ErrorAction SilentlyContinue | Select-Object -First 1
+    $stale = 0
+    if ([int]::TryParse("$text".Trim(), [ref]$stale) -and $stale -gt 0) {
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$stale" -ErrorAction SilentlyContinue
+        if ($proc -and ("$($proc.CommandLine)" -like '*zaruba.vk_watch*')) {
+            $null = Stop-ProcessTree -ProcessId $stale
+            Write-LoopLog "снят прошлый мониторинг VK: PID $stale"
+        }
+    }
+    Remove-Item -LiteralPath $vkPidFile -Force -ErrorAction SilentlyContinue
+}
+
 function Invoke-DataRefresh {
     # Обновление данных. Любая ошибка — строка в лог и продолжение работы:
     # сеть отвалилась, данные приедут в следующий раз, бот падать не должен.
@@ -239,8 +268,20 @@ function Start-Bot {
     return $proc
 }
 
+function Start-VkWatch {
+    # Второй процесс рядом с ботом, а не вторая задача Планировщика: второй
+    # супервизор означал бы ещё один `git pull` и ещё один набор логов.
+    $inner = '"{0}" -m zaruba.vk_watch --loop --interval {1} 1>>"{2}" 2>&1' -f `
+        $PythonPath, $VkInterval, $vkLog
+    $proc = Start-Process -FilePath $env:ComSpec -ArgumentList ('/d /c "' + $inner + '"') `
+        -WorkingDirectory $RepoRoot -WindowStyle Hidden -PassThru
+    Set-Content -LiteralPath $vkPidFile -Value $proc.Id -Encoding ASCII
+    return $proc
+}
+
 if ($Stop) {
     Stop-StaleBot
+    Stop-StaleVkWatch
     Write-LoopLog 'остановка: цикл больше не запускается'
     exit 0
 }
@@ -274,6 +315,7 @@ $env:GIT_TERMINAL_PROMPT = '0'
 
 $null = Invoke-LogRotation -Path $loopLog -MaxBytes $maxBytes -Keep $LogKeepFiles
 Stop-StaleBot
+Stop-StaleVkWatch
 
 if ([string]::IsNullOrEmpty($env:ZARUBA_MAX_BOT_TOKEN)) {
     # Перезапуск каждые 5 секунд тут вреден: бот умирал бы с кодом 1 и писал
@@ -283,6 +325,17 @@ if ([string]::IsNullOrEmpty($env:ZARUBA_MAX_BOT_TOKEN)) {
 }
 $nextRefresh = Get-Date
 $bot = $null
+$vk = $null
+# Мониторинг ВК — второй процесс рядом с ботом. Без токена он не нужен, а в
+# диагностическом `-Once` второй бесконечный цикл только мешал бы выходу.
+$vkToken = -not [string]::IsNullOrEmpty($env:ZARUBA_VK_TOKEN)
+$watchVk = $vkToken -and (-not $Once) -and (-not $SkipVk)
+if (-not $vkToken) {
+    Write-LoopLog 'мониторинг VK: ZARUBA_VK_TOKEN не задан — процесс не запускается (docs/09 §9.13)'
+}
+elseif (-not $watchVk) {
+    Write-LoopLog 'мониторинг VK: пропущен (-Once или -SkipVk)'
+}
 try {
     while ($true) {
         if (-not $SkipRefresh -and (Get-Date) -ge $nextRefresh) {
@@ -295,6 +348,11 @@ try {
         $bot = Start-Bot
         $reason = 'exit'
 
+        if ($watchVk -and ($null -eq $vk -or $vk.HasExited)) {
+            $vk = Start-VkWatch
+            Write-LoopLog ('запуск мониторинга VK: -m zaruba.vk_watch --loop --interval {0}' -f $VkInterval)
+        }
+
         # Секунда вместо минуты: обещание «перезапуск через 5 секунд» должно
         # выполняться, а не превращаться в «через 5 секунд плюс шаг проверки».
         while (-not $bot.HasExited) {
@@ -305,6 +363,20 @@ try {
                 ((Get-Item -LiteralPath $botLog).Length -gt $maxBytes)) {
                 $reason = 'rotate'
                 break
+            }
+            if ($watchVk -and $vk.HasExited) {
+                # Падение мониторинга не повод рвать сессию бота, который в этот
+                # момент отвечает людям: перезапускаем только мониторинг.
+                Write-LoopLog ("мониторинг VK завершился, код {0}; перезапуск" -f $vk.ExitCode)
+                $vk = Start-VkWatch
+            }
+            if ($watchVk -and (Test-Path -LiteralPath $vkLog) -and
+                ((Get-Item -LiteralPath $vkLog).Length -gt $maxBytes)) {
+                $null = Stop-ProcessTree -ProcessId $vk.Id
+                $null = $vk.WaitForExit(15000)
+                $null = Invoke-LogRotation -Path $vkLog -MaxBytes $maxBytes -Keep $LogKeepFiles
+                Write-LoopLog "лог VK превысил $LogMaxMB МБ — поворот и перезапуск мониторинга"
+                $vk = Start-VkWatch
             }
             if (-not $SkipRefresh -and (Get-Date) -ge $nextRefresh) {
                 # Контент бот перечитывает на каждом цикле опроса (`load_latest`),
@@ -336,7 +408,11 @@ finally {
     if ($bot -and -not $bot.HasExited) {
         $null = Stop-ProcessTree -ProcessId $bot.Id
     }
+    if ($vk -and -not $vk.HasExited) {
+        $null = Stop-ProcessTree -ProcessId $vk.Id
+    }
     Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $vkPidFile -Force -ErrorAction SilentlyContinue
     Write-LoopLog 'цикл остановлен'
 }
 
