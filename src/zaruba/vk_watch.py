@@ -168,6 +168,14 @@ def watch_forever(
     """
 
     pause = settings.vk_interval if interval is None else interval
+    # Строка на старте: без неё пустой `vk_watch.log` не отличить от «процесс не
+    # поднялся», а именно по нему проверяют, что мониторинг жив (docs/09 §9.13).
+    logger.info(
+        "мониторинг VK: старт, сообщество %s, период %s с, чат %s",
+        settings.vk_group,
+        pause,
+        settings.vk_chat,
+    )
     while cycles is None or cycles > 0:
         try:
             report = check_once(

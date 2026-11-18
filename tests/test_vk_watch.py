@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -275,6 +276,28 @@ def test_loop_stops_after_the_given_cycles(tmp_path: Path) -> None:
     )
 
     assert pauses == [15, 15]
+
+
+def test_loop_writes_a_start_line_to_the_log(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Пустой `vk_watch.log` не отличить от «процесс не поднялся»."""
+
+    settings = watch_settings(tmp_path)
+
+    with caplog.at_level(logging.INFO, logger="zaruba.vk_watch"):
+        watch_forever(
+            settings,
+            cycles=1,
+            poster=collector()[1],
+            opener=opener_for(feed()),
+            sleep=lambda pause: None,
+            now=NOW,
+        )
+
+    assert "старт" in caplog.text
+    assert "zaruba72champ" in caplog.text
+    assert "777" in caplog.text
 
 
 def test_cli_requires_a_flag() -> None:
