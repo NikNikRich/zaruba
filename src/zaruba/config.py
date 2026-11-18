@@ -49,6 +49,22 @@ class Settings(BaseSettings):
     # в шапке. По умолчанию выключен — публичный сайт не меняется.
     max_miniapp: bool = False
 
+    # Бот-проводник MAX (docs/09 §9.8). Пара `token` + `secret` — это и есть
+    # включатель: без обоих адрес `/max/webhook` отвечает 404. Токен выдаёт
+    # MAX при создании бота и живёт только в окружении, никогда — в коде.
+    max_bot_token: str = ""
+    # Секрет подписки: MAX присылает его в `X-Max-Bot-Api-Secret`, и другого
+    # доказательства, что запрос пришёл от платформы, у нас нет.
+    max_bot_secret: str = ""
+    # Публичное имя бота (username): из него собирается кнопка `open_app`,
+    # открывающая мини-приложение сразу на нужной странице.
+    max_bot_name: str = ""
+    # Адрес сайта для кнопки-ссылки. Пусто — берётся `public_base_url`.
+    max_bot_site_url: str = ""
+    # Дополнительный корневой сертификат для исходящих запросов к MAX
+    # (Минцифры): без него TLS-проверка `platform-api2.max.ru` падает.
+    max_bot_ca_file: Path | None = None
+
     # Кэш публичных страниц (docs/06 §6.20): 60 с, расписание — 15 с.
     cache_ttl_public: int = 60
     cache_ttl_schedule: int = 15
@@ -68,6 +84,18 @@ class Settings(BaseSettings):
     @property
     def is_prod(self) -> bool:
         return self.env == "prod"
+
+    @property
+    def max_bot_enabled(self) -> bool:
+        """Бот включён только парой: токен без секрета — открытый адрес в сети."""
+
+        return bool(self.max_bot_token and self.max_bot_secret)
+
+    @property
+    def max_bot_site(self) -> str:
+        """Адрес сайта для ссылок бота: явный, иначе публичный; без хвостового `/`."""
+
+        return (self.max_bot_site_url or self.public_base_url).rstrip("/")
 
     @property
     def service_tips_visible(self) -> bool:

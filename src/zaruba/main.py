@@ -96,6 +96,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         catalogue,
         history,
         legal,
+        max_bot,
         media,
         public,
         ratings,
@@ -113,6 +114,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(schedule.router)
     app.include_router(catalogue.router)
     app.include_router(seo.router)
+    # Бот живёт на том же приложении: отдельный процесс ради одного адреса
+    # тянул бы второй контейнер и второй сертификат (docs/09 §9.8).
+    app.include_router(max_bot.router)
     app.state.nav = build_nav(app)
     app.state.footer_links = build_footer(app)
     app.state.legal_links = build_legal(app)
