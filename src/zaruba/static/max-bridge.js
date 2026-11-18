@@ -27,10 +27,9 @@
     app.openLink(link.href);
   }, true);
 
-  // Диплинк `https://max.ru/<bot>?startapp=schedule`: переходим только на
-  // существующую страницу статической сборки, иначе остаёмся на главной.
+  // Диплинк `?startapp=`: страница сборки, в том числе вложенная (`participants/ivan-petrov`).
   var start = inside && app.initDataUnsafe && app.initDataUnsafe.start_param;
-  if (inside && home && /^[a-z0-9-]{1,40}$/.test(start || '')) {
+  if (inside && home && /^[a-z0-9][a-z0-9/-]{0,63}$/.test(start || '')) {
     var page = start + '.html';
     fetch(page, { method: 'HEAD' }).then(function (response) {
       if (response.ok) location.replace(page);

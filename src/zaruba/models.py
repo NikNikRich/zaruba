@@ -1049,6 +1049,53 @@ class ServiceTip(Strict):
     valid_until: date | None = None
 
 
+class AlertStatus(StrEnum):
+    """`draft` — черновик в таблице, `send` — опубликовано и уходит в MAX."""
+
+    DRAFT = "draft"
+    SEND = "send"
+
+    @property
+    def label(self) -> str:
+        return {"draft": "черновик", "send": "к отправке"}[self.value]
+
+
+class Alert(Strict):
+    """Срочное оповещение организаторов из листа `alerts` (`docs/09` §9.9).
+
+    Это не новость сайта, а короткая плашка «что изменилось»: перенос блока,
+    отмена номинации, вход по другому адресу. Поэтому текста мало — до 280
+    символов, а вся конкретика живёт на странице, куда ведёт `link_slug`.
+    """
+
+    id: Slug
+    status: AlertStatus = AlertStatus.DRAFT
+    title: str = Field(min_length=3, max_length=80)
+    text: str = Field(min_length=10, max_length=280)
+    # Slug страницы сайта, а не произвольный URL: плашка не должна уводить
+    # на чужой домен и не должна ломать статическую сборку относительных ссылок.
+    link_slug: Slug | None = None
+    # `urgent` — только такие строки становятся плашкой на главной и в расписании:
+    # обычное оповещение уходит в MAX, но вёрстку не перекрашивает.
+    urgent: bool = False
+
+    @property
+    def is_published(self) -> bool:
+        return self.status is AlertStatus.SEND
+
+    @property
+    def in_feed(self) -> bool:
+        """Плашка: опубликовано и помечено срочным."""
+
+        return self.is_published and self.urgent
+
+
+class AlertFeed(Strict):
+    """Файл `content/alerts.yaml`: строки листа `alerts`, уже проверенные моделью."""
+
+    alerts: list[Alert] = Field(default_factory=list, max_length=40)
+
+
 class MasterClass(Strict):
     """Мастер-класс: время и педагог из афиши, цена до и после срока."""
 

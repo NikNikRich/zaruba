@@ -19,7 +19,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  # Публикация Pages и коммит лога отправленных оповещений: без лога в репозитории
+  # следующий запуск (новый runner, чистое дерево) разослал бы те же строки снова.
+  contents: write
   pages: write
   id-token: write
 
@@ -89,6 +91,38 @@ jobs:
           python scripts/build_max_dist.py
           test -f dist/index.html
           test -f dist/.nojekyll
+
+      - name: Срочные оповещения в MAX
+        # Кнопка «Run workflow» — способ разослать оповещение сразу после правки
+        # таблицы, не дожидаясь получасового расписания (docs/09 §9.9).
+        env:
+          ZARUBA_MAX_BOT_TOKEN: ${{ secrets.ZARUBA_MAX_BOT_TOKEN }}
+          ZARUBA_MAX_BOT_NAME: ${{ secrets.ZARUBA_MAX_BOT_NAME }}
+          ZARUBA_MAX_BOT_SITE_URL: ${{ secrets.ZARUBA_MAX_BOT_SITE_URL }}
+          ZARUBA_MAX_ALERT_CHAT_ID: ${{ secrets.ZARUBA_MAX_ALERT_CHAT_ID }}
+        # Сбой доставки не отменяет публикацию страниц: лог не пополнится, и
+        # строка уйдёт при следующем запуске.
+        continue-on-error: true
+        run: python -m zaruba.max_notify --send-alerts
+
+      - name: Сохранить лог отправленных
+        # В git едет ровно один файл: `dist` публикует Pages, overlay из таблиц
+        # в репозиторий не коммитится.
+        run: |
+          files=$(ls content/editions/*.d/sent_alerts.json 2>/dev/null || true)
+          if [ -z "$files" ]; then
+            echo "лога отправленных нет — сохранять нечего"
+            exit 0
+          fi
+          git add $files
+          if git diff --cached --quiet; then
+            echo "лог отправленных не изменился"
+            exit 0
+          fi
+          git config user.name "zaruba-max[bot]"
+          git config user.email "zaruba-max@users.noreply.github.com"
+          git commit -m "chore: лог срочных оповещений MAX [skip ci]"
+          git push
 
       - name: Подготовка Pages
         uses: actions/configure-pages@v5

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 from ..content import (
+    load_alerts,
     load_history,
     load_knowledge,
     load_latest,
@@ -22,6 +23,7 @@ from ..models import (
     NominationLevel,
     TipSlot,
 )
+from ..services.alerts import active_alert
 from ..services.edition import (
     catalogue_bundle,
     day_views,
@@ -75,6 +77,7 @@ def home(request: Request) -> HTMLResponse:
         partners=partner_offers(edition),
         registration_state=registration_state(edition),
         archive=archive if archive.year != edition.edition else None,
+        alert=active_alert(load_alerts(settings)),
         # §6.19: Event на главной — даты, место и ссылка на билеты.
         json_ld=[event_json_ld(bundle, base_url(request))],
     )

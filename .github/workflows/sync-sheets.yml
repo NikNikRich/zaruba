@@ -76,13 +76,13 @@ jobs:
       - name: Коммит обновлённых данных
         if: steps.cfg.outputs.ready == '1'
         run: |
-          if git diff --quiet -- docs/templates content/editions; then
+          if git diff --quiet -- docs/templates content/editions content/alerts.yaml; then
             echo "изменений нет — коммитить нечего"
             exit 0
           fi
           git config user.name "zaruba-sync[bot]"
           git config user.email "zaruba-sync@users.noreply.github.com"
-          git add docs/templates content/editions
+          git add docs/templates content/editions content/alerts.yaml
           # Один коммит на выгрузку: в истории видно, какие данные приехали и
           # когда, а deploy.yml срабатывает ровно один раз.
           git commit -m "chore: данные таблиц из Google Sheets"

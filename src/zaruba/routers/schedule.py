@@ -7,8 +7,9 @@ from typing import Annotated
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import HTMLResponse
 
-from ..content import load_latest
+from ..content import load_alerts, load_latest
 from ..models import TipSlot
+from ..services.alerts import active_alert
 from ..services.edition import (
     day_views,
     edition_notice,
@@ -56,5 +57,6 @@ def schedule(
         master_class_slot=master_class_slot(bundle.edition),
         active_day=day,
         service_tip=service_tip,
+        alert=active_alert(load_alerts(settings)),
         page_title="Расписание",
     )

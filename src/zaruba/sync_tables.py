@@ -31,7 +31,7 @@ import os
 import sys
 import urllib.error
 import urllib.request
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -43,6 +43,8 @@ from pydantic import BaseModel, ValidationError
 from .config import BASE_DIR
 from .content import ContentError, merge_overlay, overlay_dir
 from .models import (
+    Alert,
+    AlertFeed,
     CommerceOffer,
     Edition,
     Judge,
@@ -431,6 +433,149 @@ TABLE_SPECS += (
     ),
 )
 
+# --- Лист `alerts`: срочные оповещения -------------------------------------
+#
+# Отдельный лист, а не ещё одна таблица выпуска: оповещение живёт сутки, ему не
+# нужны `data_tag` и сверка с опубликованным YAML — наоборот, таблица и есть
+# источник истины. Поэтому у него свой разбор и свой файл `content/alerts.yaml`,
+# а не overlay `content/editions/<год>.d`: плашку видят в проде, а overlay
+# подмешивается только при `ZARUBA_PREVIEW_ENABLED=1`.
+
+ALERT_COLUMNS = ("id", "status", "title", "text", "link_slug", "urgent")
+ALERTS_SECTION = "alerts"
+ALERTS_FILENAME = "alerts.csv"
+ALERTS_PATH = BASE_DIR / "content" / "alerts.yaml"
+
+
+def parse_alerts(raw: str, path: Path) -> list[Alert]:
+    """Разбирает лист `alerts`; пустая таблица — «оповещений нет», а не ошибка."""
+
+    try:
+        delimiter = csv.Sniffer().sniff(raw[:4096], delimiters=";,\t").delimiter
+    except csv.Error:
+        delimiter = ";"
+
+    reader = csv.DictReader(raw.splitlines(), delimiter=delimiter)
+    fields = tuple((name or "").strip() for name in (reader.fieldnames or ()))
+    if not fields:
+        raise TableError(f"{path}: таблица пуста — нужна шапка {list(ALERT_COLUMNS)}")
+    missing = [name for name in ALERT_COLUMNS if name not in fields]
+    unknown = [name for name in fields if name not in ALERT_COLUMNS]
+    if missing or unknown:
+        raise TableError(f"{path}: шапка не совпадает с моделью (нет {missing}, лишние {unknown})")
+
+    alerts: list[Alert] = []
+    seen: dict[str, int] = {}
+    for raw_row in reader:
+        row = {
+            (key or "").strip(): (value or "").strip()
+            for key, value in raw_row.items()
+            if key is not None
+        }
+        if not any(row.values()):
+            continue
+        line = reader.line_num
+        alert_id = row.get("id", "")
+        if not alert_id:
+            raise TableError(f"{path}:{line}: пустой id — по нему считается повтор отправки")
+        if alert_id in seen:
+            raise TableError(
+                f"{path}:{line}: id «{alert_id}» повторяется — впервые в строке {seen[alert_id]}"
+            )
+        seen[alert_id] = line
+        try:
+            alerts.append(
+                Alert.model_validate(
+                    {
+                        "id": alert_id,
+                        "status": row.get("status") or "draft",
+                        "title": row.get("title", ""),
+                        "text": row.get("text", ""),
+                        "link_slug": row.get("link_slug") or None,
+                        "urgent": row.get("urgent") or False,
+                    }
+                )
+            )
+        except ValidationError as exc:
+            details = "; ".join(
+                f"{'.'.join(str(part) for part in error['loc']) or '<строка>'}: {error['msg']}"
+                for error in exc.errors()
+            )
+            raise TableError(f"{path}:{line}: {details}") from exc
+    return alerts
+
+
+def read_alerts(tables_dir: Path) -> list[Alert]:
+    """Локальный `docs/templates/alerts.csv`; файла нет — оповещений нет."""
+
+    path = tables_dir / ALERTS_FILENAME
+    if not path.is_file():
+        return []
+    return parse_alerts(_read_table_text(path), path)
+
+
+def alerts_from(texts: Mapping[str, str], tables_dir: Path) -> list[Alert]:
+    """Оповещения из выгрузки Google Таблиц, а при её отсутствии — из CSV."""
+
+    if ALERTS_FILENAME in texts:
+        return parse_alerts(texts[ALERTS_FILENAME], Path(f"<лист {ALERTS_FILENAME}>"))
+    return read_alerts(tables_dir)
+
+
+def write_alerts(alerts: Sequence[Alert], path: Path = ALERTS_PATH) -> Path:
+    """Пишет `content/alerts.yaml` через `.tmp` и подмену: половины файла не бывает.
+
+    Совпадающий файл не перезаписывается: иначе каждая выгрузка давала бы коммит
+    в `sync-sheets` и стирала комментарии-подсказки в файле.
+    """
+
+    path = Path(path)
+    payload = [item.model_dump(mode="json", exclude_none=True) for item in alerts]
+    if path.is_file():
+        try:
+            loaded = AlertFeed.model_validate(
+                yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            )
+        except (yaml.YAMLError, ValidationError):
+            loaded = None
+        if loaded is not None:
+            current = [item.model_dump(mode="json", exclude_none=True) for item in loaded.alerts]
+            if current == payload:
+                return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = yaml.safe_dump({"alerts": payload}, allow_unicode=True, sort_keys=False)
+    tmp = path.with_name(f".{path.name}.tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
+    return path
+
+
+def _check_alerts(alerts: Sequence[Alert], path: Path) -> list[str]:
+    """Сверка таблицы с `content/alerts.yaml`: расхождение — повод перезаписать."""
+
+    if not path.is_file():
+        return [] if not alerts else [f"{path}: файла нет, а в таблице {len(alerts)} строк"]
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(loaded, dict):
+        return [f"{path}: ожидался YAML-объект с полем alerts"]
+    try:
+        current = AlertFeed.model_validate(loaded).alerts
+    except ValidationError as exc:
+        return [f"{path}: {_validation_message(path, exc)}"]
+
+    problems: list[str] = []
+    left = {item.id: item.model_dump() for item in alerts}
+    right = {item.id: item.model_dump() for item in current}
+    for slug in sorted(set(left) - set(right)):
+        problems.append(f"alerts.{slug}: есть в таблице, нет в {path.name}")
+    for slug in sorted(set(right) - set(left)):
+        problems.append(f"alerts.{slug}: есть в {path.name}, нет в таблице")
+    for slug in sorted(set(left) & set(right)):
+        different = sorted(key for key in left[slug] if left[slug][key] != right[slug][key])
+        if different:
+            problems.append(f"alerts.{slug}: расходятся поля {different}")
+    return problems
+
 
 # --- Google Таблицы: CSV по публичной ссылке -------------------------------
 #
@@ -503,7 +648,7 @@ def sheet_sources(environ: Mapping[str, str] | None = None) -> dict[str, str]:
     if not mapping:
         return {}
 
-    known = {spec.section for spec in TABLE_SPECS}
+    known = {spec.section for spec in TABLE_SPECS} | {ALERTS_SECTION}
     unknown = sorted(set(mapping) - known)
     if unknown:
         raise TableError(f"{SHEETS_MAP_ENV}: неизвестные листы {unknown}; есть {sorted(known)}")
@@ -515,18 +660,24 @@ def sheet_sources(environ: Mapping[str, str] | None = None) -> dict[str, str]:
         )
 
     sheet_id = environ.get(SHEETS_ID_ENV, "").strip()
-    sources: dict[str, str] = {}
-    for spec in TABLE_SPECS:
-        value = mapping[spec.section]
+
+    def url_for(section: str, value: str) -> str:
         if value.startswith(("http://", "https://")):
-            sources[spec.filename] = value
-        elif sheet_id:
-            sources[spec.filename] = sheet_export_url(sheet_id, value)
-        else:
+            return value
+        if not sheet_id:
             raise TableError(
-                f"{SHEETS_MAP_ENV}: у листа «{spec.section}» указан gid «{value}», но "
+                f"{SHEETS_MAP_ENV}: у листа «{section}» указан gid «{value}», но "
                 f"{SHEETS_ID_ENV} не задан — нужен id таблицы или полный URL листа"
             )
+        return sheet_export_url(sheet_id, value)
+
+    sources: dict[str, str] = {
+        spec.filename: url_for(spec.section, mapping[spec.section]) for spec in TABLE_SPECS
+    }
+    # `alerts` не обязателен: оповещений может не быть, и старые карты листов
+    # без него должны продолжать работать без правки секрета.
+    if ALERTS_SECTION in mapping:
+        sources[ALERTS_FILENAME] = url_for(ALERTS_SECTION, mapping[ALERTS_SECTION])
     return sources
 
 
@@ -971,6 +1122,12 @@ def main(argv: list[str] | None = None) -> int:
         help="опубликованный выпуск, с которым сверяются real-строки",
     )
     parser.add_argument("--out-dir", type=Path, help="папка overlay (по умолчанию <год>.d)")
+    parser.add_argument(
+        "--alerts-out",
+        type=Path,
+        default=ALERTS_PATH,
+        help="файл срочных оповещений (по умолчанию content/alerts.yaml)",
+    )
     parser.add_argument("--check", action="store_true", help="только проверить, не писать")
     parser.add_argument("--drop-preview", action="store_true", help="удалить overlay и выйти")
     parser.add_argument(
@@ -1002,25 +1159,32 @@ def main(argv: list[str] | None = None) -> int:
                 )
             texts = fetch_sheets(sources, timeout=args.sheets_timeout)
         overlay, summary = build_overlay(args.tables_dir, args.base, texts=texts)
+        # Оповещения читаются до записи файлов — по той же причине, что и
+        # overlay: битая строка не должна оставить половину каталога обновлённой.
+        alerts = alerts_from(texts or {}, args.tables_dir)
         if args.check:
             problems = _check_overlay(overlay, out_dir)
+            problems += _check_alerts(alerts, args.alerts_out)
             if problems:
                 print(
-                    f"ОШИБКА: overlay не совпадает с таблицами: {', '.join(problems)}",
+                    f"ОШИБКА: данные расходятся с файлами: {', '.join(problems)}",
                     file=sys.stderr,
                 )
                 return 1
             print(f"OK  таблицы: {summary.line()}")
             print(f"OK  overlay совпадает: {out_dir}")
+            print(f"OK  оповещения совпадают: {args.alerts_out} ({len(alerts)})")
             return 0
         # Запись только после проверки всех листов: до этой строки любая ошибка
         # оставляет и CSV, и overlay прежними.
         written_tables = write_tables(texts, args.tables_dir) if texts else []
         written = write_overlay(overlay, out_dir)
+        write_alerts(alerts, args.alerts_out)
         print(f"OK  таблицы: {summary.line()}")
         if texts:
             print(f"OK  листов из Google Таблиц: {len(written_tables)} → {args.tables_dir}")
         print(f"OK  записано файлов overlay: {len(written)} → {out_dir}")
+        print(f"OK  оповещения: {len(alerts)} → {args.alerts_out}")
         return 0
     except (TableError, ContentError) as exc:
         print(f"ОШИБКА: {exc}", file=sys.stderr)

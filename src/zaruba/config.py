@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # Разобранные судейские листы по выпускам: `content/results/2025.yaml`.
     # Пустая папка — законное состояние: страница объясняет, почему таблиц нет.
     results_dir: Path = BASE_DIR / "content" / "results"
+    # Срочные оповещения организаторов (`docs/09` §9.9): файл уровня сайта, а не
+    # выпуска — оповещение живёт сутки, а выпуск год.
+    alerts_file: Path = BASE_DIR / "content" / "alerts.yaml"
 
     # Презентационный overlay `content/editions/<год>.d/*.yaml`: выдуманные
     # строки видны только при явном включении (`ZARUBA_PREVIEW_ENABLED=1`) и
@@ -64,6 +67,9 @@ class Settings(BaseSettings):
     # Дополнительный корневой сертификат для исходящих запросов к MAX
     # (Минцифры): без него TLS-проверка `platform-api2.max.ru` падает.
     max_bot_ca_file: Path | None = None
+    # Чат или канал рассылки срочных оповещений (`docs/09` §9.9). Пусто —
+    # рассылка не запускается, но бот-проводник продолжает работать.
+    max_alert_chat_id: int | None = None
 
     # Кэш публичных страниц (docs/06 §6.20): 60 с, расписание — 15 с.
     cache_ttl_public: int = 60

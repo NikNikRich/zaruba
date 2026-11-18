@@ -15,6 +15,8 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import JSONResponse, Response
 
+from ..config import Settings
+from ..content import ContentError, load_latest
 from ..services import max_bot
 
 logger = logging.getLogger("zaruba.max_bot")
@@ -57,8 +59,24 @@ async def max_webhook(request: Request, background: BackgroundTasks) -> Response
     if not isinstance(update, dict):
         return JSONResponse({"ok": True})
 
-    plan = max_bot.plan_reply(update, settings)
+    plan = max_bot.plan_reply(update, settings, **_content(settings))
     if plan is not None:
         # После ответа: MAX должен получить 200 быстрее, чем сеть ответит.
         background.add_task(max_bot.post_message, settings, plan.chat_id, plan.body)
     return JSONResponse({"ok": True})
+
+
+def _content(settings: Settings) -> dict[str, Any]:
+    """Свежий выпуск и площадка для ответа; битый контент — ответ без данных.
+
+    Webhook обязан ответить 200 даже при сломанном YAML: иначе MAX повторит
+    доставку десять раз и отпишется. Поэтому ошибка контента — журнал и общая
+    фраза, а не 500.
+    """
+
+    try:
+        bundle = load_latest(settings)
+    except ContentError as exc:
+        logger.warning("MAX: контент не прочитан, ответ без данных: %s", exc)
+        return {}
+    return {"edition": bundle.edition, "venue": bundle.venue}

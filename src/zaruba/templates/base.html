@@ -36,6 +36,17 @@
 </div>
 {% endif %}
 
+{% if alert %}
+{# Срочное оповещение организаторов из листа `alerts` (docs/09 §9.9): строка
+   показывается только при status=send и urgent=true, поэтому вёрстка доверяет
+   решению сервиса и ничего не фильтрует сама. Цвет и рамку даёт `.notice`,
+   поверх — `.alert-band`: новых правил в бюджет стилей не добавляем. #}
+<div class="notice alert-band" role="status">
+  <div class="wrap"><strong>{{ alert.title }}</strong> — {{ alert.text }}
+  {% if alert.link_slug %}<a href="/{{ alert.link_slug }}">Подробнее</a>{% endif %}</div>
+</div>
+{% endif %}
+
 <header class="site-header{% if settings.max_miniapp %} site-header--embedded{% endif %}">
   <div class="wrap header-inner">
     {# В Mini App MAX нативный заголовок окна уже называет бота: логотип —

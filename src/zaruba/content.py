@@ -16,6 +16,8 @@ from .config import Settings, get_settings
 from .models import (
     INITIALS_RE,
     AgeGroup,
+    Alert,
+    AlertFeed,
     DanceFormat,
     Edition,
     EditionBundle,
@@ -246,6 +248,7 @@ def _content_fingerprint(settings: Settings) -> tuple[tuple[str, int, int], ...]
 
     paths = [
         settings.venues_file,
+        settings.alerts_file,
         settings.glossary_file,
         settings.faq_file,
         settings.history_file,
@@ -410,6 +413,42 @@ class Knowledge:
 
     glossary: list[GlossaryEntry]
     faq: list[FaqItem]
+
+
+ALERTS_ADAPTER = TypeAdapter(AlertFeed)
+
+
+@lru_cache(maxsize=4)
+def _alerts_cached(path: str, fingerprint: tuple[int, int, int]) -> tuple[Alert, ...]:
+    """Оповещения по отпечатку файла: плашка не должна отставать от таблицы."""
+
+    raw = _read_yaml(Path(path), "списком alerts")
+    try:
+        feed = ALERTS_ADAPTER.validate_python(raw)
+    except ValidationError as exc:
+        raise _validation_error(Path(path), exc) from exc
+
+    ids = [item.id for item in feed.alerts]
+    duplicates = sorted({slug for slug in ids if ids.count(slug) > 1})
+    if duplicates:
+        raise ContentError(f"{path}: оповещение описано дважды — {duplicates}")
+    return tuple(feed.alerts)
+
+
+def load_alerts(settings: Settings | None = None) -> list[Alert]:
+    """Срочные оповещения (`docs/09` §9.9). Нет файла — нет оповещений.
+
+    Пустое состояние — норма: до чемпионата плашке нечего сообщать, и страница
+    не должна из-за этого падать. Битый файл — наоборот, авария: он ломает
+    главную и расписание, поэтому ошибка называется файлом и полем.
+    """
+
+    settings = settings or get_settings()
+    path = Path(settings.alerts_file)
+    if not path.is_file():
+        return []
+    stat = path.stat()
+    return list(_alerts_cached(str(path), (stat.st_mtime_ns, stat.st_size, len(str(path)))))
 
 
 def load_history(path: Path) -> list[HistoryEntry]:
@@ -693,6 +732,7 @@ def main(argv: list[str] | None = None) -> int:
                 photos = load_photos(settings.photos_file)
                 results = load_all_results(settings)
                 knowledge = load_knowledge(settings)
+                alerts = load_alerts(settings)
                 # Офферы проверяются тем же прогоном: битый `offers.yaml` должен
                 # ломать pre-commit, а не первую же страницу в проде. Демо-файл
                 # проверяется всегда, даже без preview: показ не должен падать.
@@ -702,6 +742,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"OK  глоссарий: {len(knowledge.glossary)} статей")
                 print(f"OK  FAQ: {len(knowledge.faq)} вопросов")
                 print(f"OK  рекламные слоты: {len(tips)} офферов")
+                urgent = sum(1 for item in alerts if item.in_feed)
+                print(f"OK  оповещения: {len(alerts)} строк, срочных к показу {urgent}")
                 print(f"OK  демо-офферы: {len(demo_tips)} (только preview)")
                 own = sum(1 for photo in photos if photo.file)
                 cited = sum(1 for photo in photos if photo.is_citation)
