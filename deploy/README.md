@@ -17,6 +17,7 @@ deploy/setup_vps.sh        подготовка чистого Ubuntu: Docker, c
 deploy/nginx.conf.example  HTTPS, gzip, /healthz только с loopback, X-Request-ID
 deploy/zaruba.service      вариант без Docker: systemd-юнит с минимумом прав
 deploy/smoke.sh            проверка живого сайта после выкладки
+deploy/local-pc/           бот MAX 24/7 на домашнем ПК (docs/09 §9.12)
 ```
 
 ## 1. Что нужно до первого запуска

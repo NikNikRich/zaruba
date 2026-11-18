@@ -19,6 +19,9 @@ assets/photos/*
 !assets/photos/README.md
 # Логи локального запуска (uvicorn и прочее) — не для репозитория
 .run_*.txt
+# Журналы бота на домашнем ПК (`deploy/local-pc/run_bot_loop.ps1`): ротация
+# оставляет до LogMaxMB×LogKeepFiles мегабайт, в git им делать нечего.
+logs/
 # Служебные файлы ОС: их создаёт Explorer/Finder, в репозитории им делать нечего
 .DS_Store
 Thumbs.db
