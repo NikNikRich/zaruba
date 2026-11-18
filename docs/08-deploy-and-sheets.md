@@ -41,6 +41,11 @@ $env:ZARUBA_SHEETS_MAP = '{"studios": "<gid>", "participants": "<gid>", "blocks"
 .venv\Scripts\python.exe -m zaruba.sync_tables --from-sheets --check
 ```
 
+Лист `alerts` (срочные оповещения, `09-max-miniapp.md` §9.9) в карту добавляется
+по желанию: `{"…": "…", "alerts": "<gid>"}`. Он не входит в overlay и не
+обязателен — без него `content/alerts.yaml` остаётся пустым, а выгрузка таблиц
+работает как раньше.
+
 Без `--check` тот же запуск обновляет `docs/templates/*.csv` и overlay
 `content/editions/2026.d/`. Без переменных окружения инструмент работает как
 раньше — на локальных CSV.

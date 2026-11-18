@@ -28,7 +28,7 @@
 | Результаты 2025 (M6) | готово: `/results` — расчёт по 21 номинации судейских листов, места расчётные, дети по инициалам |
 | Служебные страницы (M6) | готово: `/about`, `/rules`, `/privacy`, `/takedown` + ряд футера |
 | Публикация (M6) | готово: Dockerfile, compose (web + Caddy с сертификатом Let's Encrypt), автодеплой по SSH, синхронизация таблиц из Google Sheets, CI, CSP/HSTS в `middleware.py`, ранбук `deploy/README.md`, `deploy/smoke.sh` |
-| MAX: Mini App и бот (`docs/09`) | готово: `ZARUBA_MAX_MINIAPP`, статика для GitHub Pages, диплинки `?startapp=`; бот-проводник — `POST /max/webhook` отвечает ссылкой на раздел (без базы и без новых зависимостей) |
+| MAX: Mini App и бот (`docs/09`) | готово: `ZARUBA_MAX_MINIAPP`, статика для GitHub Pages, диплинки `?startapp=`; бот-проводник отвечает ценой, блоками дня, адресом и карточкой студии (`POST /max/webhook` и `python -m zaruba.max_bot --polling`), срочные оповещения из листа `alerts` — плашкой и рассылкой `python -m zaruba.max_notify --send-alerts` (без базы и без новых зависимостей) |
 
 ### Документы проекта
 
